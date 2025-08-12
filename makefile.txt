@@ -1,0 +1,12 @@
+
+BIN_LIB=CESARDLIB
+LIBLIST=$(BIN_LIB) CESARDLIB
+SHELL=/QOpenSys/usr/bin/qsh
+
+all: deploy1.rpgle
+
+%.rpgle:
+	system -s "CHGATR OBJ('/home/CESARD/deploy/qrpglesrc/$*.rpgle') ATR(*CCSID) VALUE(1252)"
+	liblist -a $(LIBLIST);\
+	system "CRTBNDRPG PGM($(BIN_LIB)/$*) SRCSTMF('/home/CESARD/deploy/qrpglesrc/$*.rpgle') DBGVIEW(*SOURCE) OPTION(*EVENTF)"
+
