@@ -25,7 +25,7 @@ CALL qsys2.ifs_write(
 PATH_NAME => TRIM(:pathFile),
 LINE => '',
 OVERWRITE => 'REPLACE',
-FILE_CCSID => 1208,
+FILE_CCSID => 284,
 END_OF_LINE => 'NONE'
 )
 ;
@@ -51,7 +51,7 @@ CALL qsys2.ifs_write(
 PATH_NAME => TRIM(:pathFile),
 LINE => :jsondoc,
 OVERWRITE => 'APPEND',
-FILE_CCSID => 1208,
+FILE_CCSID => 284,
 END_OF_LINE => 'CRLF'
 )
 ;
