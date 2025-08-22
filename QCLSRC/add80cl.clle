@@ -2,7 +2,7 @@
 /*  ADICIONA ARCHIVOS DE 80 DE LONGITUD                             */
 /*                                                                  */
              PGM        PARM(&PM01 &PM02)
-
+/*                                                                  */
              DCL        VAR(&PM01) TYPE(*CHAR) LEN(012)
              DCL        VAR(&PM02) TYPE(*CHAR) LEN(012)
              DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
