@@ -1,0 +1,11 @@
+/*  ----------------------------------------------------  *         */
+/*        FIN PROCESO CARTA DE CREDITO                    *         */
+/*  CER180            ALTA                        BUENO   *         */
+/*  ----------------------------------------------------  *         */
+/*                                                                  */
+             PGM
+
+             OVRDBF     FILE(CERALT) TOFILE(CER.ALT)
+             CALL       PGM(EXP.LIBR/CER180NW)
+             DLTOVR     FILE(*ALL)
+             ENDPGM

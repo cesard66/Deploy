@@ -1,0 +1,74 @@
+PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&MESCHAR) TYPE(*CHAR) LEN(2)
+             DCL        VAR(&MESDEC) TYPE(*DEC) LEN(2)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(10)
+
+             RTVJOBA    DATE(&DATE)
+             CHGVAR     VAR(&MESDEC) VALUE(%SST(&DATE 3 2))
+             CHGVAR     VAR(&MESDEC) VALUE(&MESDEC -1)
+             CHGVAR     VAR(&MESCHAR) VALUE(&MESDEC)
+             IF         COND(&MESCHAR *EQ '00') THEN(CHGVAR +
+                          VAR(&MESCHAR) VALUE('12'))
+             SNDPGMMSG  MSG('VERIFICA NUME 30 Y D30') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CPYF       FROMFILE(QS36F/HISTOCAH) +
+                          TOFILE(QS36F/HISTOCAW) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCCHAR(RCD 11 *EQ &MESCHAR)
+             CPYF       FROMFILE(QS36F/HISTOCAW) +
+                          TOFILE(QS36F/HISTOC70) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCCHAR(*RCD 07 *EQ '70') +
+                          FMTOPT(*NOCHK)
+             CLRPFM     FILE(QS36F/HISTOCPF)
+             OVRDBF     FILE(HISTOCAH) TOFILE(QS36F/HISTOCAW)
+             OVRDBF     FILE(HISTOCPF) TOFILE(QS36F/HISTOCPF)
+             CALL       PGM(CHISTOCAH1)
+             CPYF       FROMFILE(QS36F/HISTOCPF) +
+                          TOFILE(QS36F/HISTOCPO) MBROPT(*REPLACE) +
+                          FMTOPT(*NOCHK)
+             CLRPFM     FILE(NUMERROR)
+             OVRDBF     FILE(CAHSDO) TOFILE(QS36F/CAHSDO)
+             OVRDBF     FILE(CAHSDOA) TOFILE(QS36F/(CAHSDO *CAT +
+                          &MESCHAR))
+             CALL       PGM(VNUME30)
+             DLTOVR     FILE(*ALL)
+             SNDPGMMSG  MSG('VERIFICA NUMERALES DE MESES +
+                          ANTERIORES      ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+
+             CLRPFM     FILE(NUMERAE)
+             CHGJOB     JOB(SWS)
+             SNDPGMMSG  MSG('Verifica que nume60 del mes actual sea +
+                          nume 30 del mes anterior') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGVAR     VAR(&MESDEC) VALUE(&MESCHAR)
+             CHGVAR     VAR(&MESDEC) VALUE(&MESDEC -1)
+             CHGVAR     VAR(&MESCHAR) VALUE(&MESDEC)
+             IF         COND(&MESCHAR *EQ '00') THEN(CHGVAR +
+                          VAR(&MESCHAR) VALUE('12'))
+             OVRDBF     FILE(WCAHSDO) TOFILE(QS36F/(CAHSDO *CAT +
+                          &MESCHAR))
+             CALL       PGM(VNUME60)
+             DLTOVR     FILE(WCAHSDO)
+             SNDPGMMSG  MSG('Verifica que nume90 del mes actual sea +
+                          nume 30 del mes sub-anterior') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&MESDEC) VALUE(&MESCHAR)
+             CHGVAR     VAR(&MESDEC) VALUE(&MESDEC -1)
+             CHGVAR     VAR(&MESCHAR) VALUE(&MESDEC)
+             IF         COND(&MESCHAR *EQ '00') THEN(CHGVAR +
+                          VAR(&MESCHAR) VALUE('12'))
+             OVRDBF     FILE(WCAHSDO) TOFILE(QS36F/(CAHSDO *CAT +
+                          &MESCHAR))
+             CALL       PGM(VNUME90)
+             DLTOVR     FILE(WCAHSDO)
+             RTVMBRD    FILE(QS36F/NUMERAE) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(DO)
+             SNDPGMMSG  MSG('ERROR EN NUMERALES DE MESES +
+                          ANTERIORES-VERIFIQUE]]') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             ENDDO
+
+             ENDPGM

@@ -1,0 +1,389 @@
+/* *- Modifica Jose Eduardo Pozzo JOSEPO 23/08/2021                         */
+/* *- Ticket 275345 se agrega el 11amado al PGM ITBPGLIB/NFNPR198           */
+/* * PROCESO MENSUAL DE AHORROS                                             */
+/* * ABRIL/23: SE DISCONTINUAN LOS MODULOS RELACIONADAS A PLAZOS FIJOS      */
+/* *         : SE DISCONTINUAN LISTADOS DE PREVISIONES DE AHORROS VISTA     */
+/* *         : SE DISCONTINUA LISTADO DE CUMPLEA#OS DE AHORRISTAS           */
+/* *         : SE DISCONTINUA LISTADO DE SALDOS Y TRANS.AHOS05/AHOS05T      */
+/* *         : SE COMENTA EXONERACIÓN SPI EXDBPIAH, SE LLEVA A CONTROLM     */
+/* *         : SE DISCONTINUA EXPORTACION DE OP. CDA VIEJO A PLD            */
+/* *         : SE DISCONTINUA PLAZOFOO PLAZO FIJO YA NO EXISTE              */
+/* *         LISTADOS QUE YA NO SE USAN:                                    */
+/* *         ** LOAD CA241                                                  */
+/*  // IFF DATAF1-CAHSCLIE BLDINDEX CAHSCLIE, 97,4, CAHSDO,,DUPKEY          */
+/* **** VERIFICA FIN DE EXDBPIAHCL, LANZADO POR CONTROLM DESPUES DE         */
+/* **** PRCONVAG ****                                                       */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             SNDPGMMSG  MSG(' *** VERIFICA FINALIZACION DE +
+                          EXDBPIAHCL ***') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(GLOBAL/OP002VCL) PARM(('EXDBPIAHCL') (' '))
+/* *******                                                          */
+             CPYF       FROMFILE(QS36F/CAHSDO) +
+                          TOFILE(QS36F/CAHSDOAN) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CCMANU) +
+                          TOFILE(QS36F/CCMANUAN) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             SNDPGMMSG  MSG('CONSOLIDADO DE COMPRAS DEL MES (CON +
+                          TARJETAS DE DEBITO)') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* *CALL TD061VCL                                                   */
+/* *-------------------------------------------------------------   */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHSCLIE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHSCLIE))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHSDOL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHSDOL))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHS2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHS2))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/AHOFT02) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "AHOFT02"-MOVIMI. GRABADOS +
+                          POR CPD') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MCAONL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "MCAONL"-MOVIMI. GRABADOS +
+                          P/ONLINE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/PRMOVCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "PRMOVCA" -MOVIMIENTO DE +
+                          PRESTAMOS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "ROBOTCA"-TRANSF. +
+                          AUTOMATICAS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CANCELO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/AUTOMONL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             PAUSE      MSG('AUN NO SE PROCESO +
+                          CONVAGE.CANCELARE       ')
+             RETURN
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/DAUTOPF) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "DAUTOPF" - PLAZO FIJO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/AHOINT) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "AHOINT" -MOVIMIM. +
+                          INTERNACIONAL') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/AFMOVCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "AFMOVCA" -MOVIMIENT.ACTIVO +
+                          FIJO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+/* * ESTA PARTE CORRE CON LAS DEMAS COMISIONES EN AHOCOMCL EN AHOP33                    */
+/* *CALL ONLINE/DEBCOMN3                                                                */
+/* *CPYF       FROMFILE(QS36F/NDBCOM02) +                                               */
+/* *           TOFILE(QS36F/NCOMISIA) MBROPT(*ADD) +                                    */
+/* *            INCCHAR(RCD 1 EQ '60') FMTOPT(*NOCHK)                                   */
+             CALL       PGM(INTERB2C/AHOP33CL)
+             SNDPGMMSG  MSG(' TRANSFIERE OPERACIONES DE DEBITO POR +
+                          PROMEDIO INFERIOR - AHORRO ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* ****CALL INGEN/TRO1AHOC3 SE COLOCÓ EN CTEP21 - GENERA PRIMER DIA HABIL               */
+/*  // * ' CONTABILIZACIÓN DE VENCIMIENTO DE CDA'                                       */
+/* *CALL INGEN/TRCDA01P                                                                 */
+/* / * '************************************************************************'       */
+/* / * '**  """""""""""""FINALIZACION PARCIAL DE AHORROS"""""""""""""""       **'       */
+/* / * '**  YA PUEDE VOLVER A PROCESAR COMEX. PERO RECUERDE QUE ANTES         **'       */
+/* / * '**  YA TUVO QUE EJECUTAR EL REPROCESO Y HABER BORRADO TODOS LOS       **'       */
+/* / * '**  LISTADOS GENERADOS EN EL PRIMER PROCESO                           **'       */
+/* / * '************************************************************************'       */
+/*                                                                                      */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MOVCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/MOVCA))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/PFD001) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/PFD001))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/PFD001A) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/PFD001A))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/PFD002) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/PFD002))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/WPFP001) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/WPFP001))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHS) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHS))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHGER) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHGER))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/PFD001M) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/PFD001M))
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHSDO1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) GOTO WW
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHSCLIE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHSCLIE))
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHS2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHS2))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHSDOL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHSDOL))
+/* -- CLRPFM CAHSDO   Ticket 275345                                 */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHSDO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ITBPGLIB/NFNPR198CL) PARM(('QS36F') +
+                          ('CAHSDO') ('AHOP22  ') ('  ')))
+/* *Esta linea:                                                     */
+/* * CLRPFM CCMASL                                                  */
+/* *Se reemplaza por:                                               */
+             CALL       ITBPGLIB/NFNPR198CL PARM('QS36F' 'CCMASL' +
+                          'AHOP21  ' '  ')
+             CPYF       FROMFILE(QS36F/CAHSD01) TOFILE(QS36F/CAHSDO) +
+                          MBROPT(*ADD)
+             CPYF       FROMFILE(QS36F/CCMASL1) TOFILE(QS36F/CCMASL) +
+                          MBROPT(*ADD)
+/* *CALL PLAZOFOO                                                   */
+             DLTF       FILE(CAHSDO1)
+/* // LOAD GOLARA,INTERB2C                                          */
+/* // FILE NAME-CAHSDO                                              */
+/* // FILE NAME-BLOQUEO,DISP-SHR                                    */
+/* // RUN                                                           */
+ NENHUM:
+             CHGJOB     SWS(00000000)
+ WW:
+             SNDPGMMSG  MSG('VERIFICACION DE FECHAS PARA +
+                          ACTUALIZACION DEL HISTORICO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/HISTOCA2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(RR))
+/* * IF DATAF1-HISTOCL1 DELETE HISTOCL1,F1                          */
+/* * IF DATAF1-HISTOCAL DELETE HISTOCAL,F1                          */
+             CRTPF      FILE(QS36F/HISTOCA2) RCDLEN(24) SIZE(*NOMAX)
+             CALL       PGM(AHOS32)
+ RR:
+             CLRPFM     HISTOCAH
+             CPYF       FROMFILE(QS36F/HISTOCA2) +
+                          TOFILE(QS36F/HISTOCAH) MBROPT(*ADD)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/HISTOCA2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/HISTOCA2))
+/* *RENAME HISTOCA2, HISTOCAH                                       */
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('**ACTUAL.DE TASAS DE INTERESES SEGUN +
+                          PROMEDIO Y LISTADO DE SALDOS M/L**') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRPRTF    FILE(CA120L) COPIES(1)
+             CALL       PGM(CA120LN)
+             DLTOVR     FILE(*ALL)
+             SNDPGMMSG  MSG('**ACTUAL.DE TASAS DE INTERESES SEGUN +
+                          PROMEDIO Y LISTADO DE SALDOS M/E**') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRPRTF    FILE(CA120D) COPIES(1)
+             CALL       PGM(CA120D)
+             DLTOVR     FILE(*ALL)
+             CHGDTAARA  DTAARA(*LDA (1 24)) +
+                          VALUE('000000000000000000000000')
+             CALL       PGM(PFP021NW)
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('**                               QUINTA +
+                          PARTE - PENULTIMO DIA UTIL,   **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**                                     -
+       - ULTIMO DIA UTIL,      **') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**                                     -
+       - - PRIMER DIA UTIL.    **') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('**                     HOY ES EL ULTIMO +
+                          DIA UTIL                      **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(10000000)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('**                               +
+                          SEPTIMA PARTE - MENSUAL MODULO -2-   **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(10000000)
+             CHGJOB     SWS(01000000)
+/* *CALL (INTERB02/EXTRACTO)                                        */
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/*                                                                                */
+/* **********************************************DESDE AQUI********************EA */
+/*  INCLUSION DE CERTIFICADO DEPOSITO DE AHORROS                                  */
+/*                                                                                */
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (50 6)) VALUE(&DATE)
+             RUNSQL     SQL('CREATE INDEX QS36F.CAHSDOL ON +
+                          QS36F.CAHSDO ( CAST(SUBSTRING(F00001   +
+                          FROM  1 FOR  40) AS CHAR(40)) AS K00002 +
+                          ASC) RCDFMT RCAHSDO ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             RUNSQL     SQL('CREATE INDEX QS36F.CAHSCLIE ON +
+                          QS36F.CAHSDO ( CAST(SUBSTRING(F00001   +
+                          FROM 88 FOR    4) AS CHAR(4)) AS K00002 +
+                          ASC)  RCDFMT RCAHSCLI ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             RUNSQL     SQL('CREATE INDEX QS36F.CAHS2 ON +
+                          QS36F.CAHSDO ( CAST(SUBSTRING(F00001   +
+                          FROM 137 FOR  7) AS CHAR(7)) AS K00002 +
+                          ASC)  RCDFMT RCAHS2 ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+/* ****** PREPARO ARCHIVO PARA CALCULO PROMEDIO INF. PRIMER DIA HABIL ***  */
+             CPYF       FROMFILE(QS36F/CAHSDO) +
+                          TOFILE(QS36F/CAHSDOFM) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+/* ****************************************************************     */
+/*                                                                      */
+/*         PREVENCION DE LAVADO DE DINERO - EDUARDO DIETRICH            */
+/*                                                                      */
+/* ****************************************************************     */
+/*  PREPARA MOV.AHORROS PARA PROCESO DE PREVENCION DE LAVADO DE DINERO  */
+             CPYF       FROMFILE(QS36F/MOVIMCA) +
+                          TOFILE(QS36F/AHMOVAH) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+/*  PREPARA MOV.CDA Y PF PARA PROCESO DE PREVENCION DE LAVADO DE DINERO */
+             CALL       PLLIB/NPLGENPXCL
+             CALL       PLLIB/NPLCPMOV
+/* ****************************************************HASTA AQUI**************EA*/
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('**             F I N   D E L   P R O +
+                          C E S O   M E N S U A L          **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* -- COLOCA ESTADO '3' AL PROCESO PRAHORRO                         */
+             CALL       CTRPROCES PARM('PRAHORRO' '3')
+/* -- DEJA DISPONIBLE PROCESO 'PRCTACTE'                            */
+             CALL       PRCSTATUS PARM('PRAHORRO')
+/* *PAUSE                                                           */
+
+             ENDPGM

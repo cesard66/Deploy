@@ -1,0 +1,75 @@
+             PGM
+
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     &WSID &JOBA
+             CHGDTAARA  DTAARA(*LDA (15 485)) VALUE(' ')
+             CHGDTAARA  DTAARA(*LDA (15 2)) VALUE(&WSID)
+             CHGDTAARA  DTAARA(*LDA (17 10)) VALUE(&USER)
+             CHGDTAARA  DTAARA(*LDA (25 2)) VALUE('01')
+/* *                                                                */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(EXP.DEM) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-EXP.DEM BLDFILE +
+                          EXP.DEM,I,RECORDS,300,400,,T,4,26,DFILE,N+
+                          ODUPKEY,3 */
+             RUNSQL     SQL('CREATE TABLE QS36F.EXP.DEM ( F00001 +
+                          CHAR(3), K00001 CHAR(26) , F00002 +
+                          CHAR(371) , CONSTRAINT QS36F.PK_EXPDEM +
+                          PRIMARY KEY( K00001 ) ) RCDFMT REXPDEM') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(EXP.DEMW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-EXP.DEMW BLDINDEX EXP.DEMW,6,9,EXP.DEM,,NODUPKEY */
+             RUNSQL     SQL('CREATE INDEX QS36F.EXP.DEMW ON +
+                          QS36F.EXP.DEM ( CAST(SUBSTRING(K00001   +
+                          FROM  3 FOR 9) AS CHAR(9)) AS K00002 ASC) +
+                          RCDFMT REDEDEM ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(EXP.DEMZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-EXP.DEMZ BLDINDEX EXP.DEMZ,4,11,EXP.DEM,,NODUPKEY */
+             RUNSQL     SQL('CREATE INDEX QS36F.EXP.DEMZ ON +
+                          QS36F.EXP.DEM ( CAST(SUBSTRING(K00001   +
+                          FROM  1 FOR 11) AS CHAR(11)) AS K00002 ASC) +
+                          RCDFMT REDEDEM ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+
+             ENDDO
+/* *                                                                */
+             SNDPGMMSG  MSG('REAL -ABM DECLARACION DE EMBARQUE') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(EXPDEM) TOFILE(EXP.DEM)
+             OVRDBF     FILE(EXPDEMWW) TOFILE(EXP.DEMW)
+             OVRDBF     FILE(CTESNCL) TOFILE(CTESNCL)
+             OVRDBF     FILE(CAHSCLIE) TOFILE(CAHSCLIE)
+             OVRDBF     FILE(EXPARAWW) TOFILE(EXP.ARA)
+             OVRDBF     FILE(EXPTIP) TOFILE(EXP.TIP)
+             OVRDBF     FILE(EXPTAB) TOFILE(EXP.TAB)
+             OVRDBF     FILE(EXPNUM) TOFILE(EXP.NUM)
+             CALL       PGM(EDE01NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

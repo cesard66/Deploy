@@ -1,0 +1,142 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     &WSID &JOBA
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (1 18)) VALUE(&WSID *TCAT &USER)
+ VERUSU:
+             CHGJOB     SWS(00000000)
+             CALL       PGM(COL01EN)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('USUARIO ACTIVO EN OTRA TERMINAL O HUBO +
+                          UNA ANOMALIA ANTERIORMENTE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE      MSG('AGUARDE A QUE LE HAGAN LIMPA Y LUEGO +
+                          PRESIONE INTRO P/CONTINUAR  ')
+             GOTO       CMDLBL(VERUSU)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAMAG0$) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             PAUSE      MSG('FALTA EN DISCO EL ARCHIVO DE CAMARA +
+                          PARA PROCESO. SE CANCELA.')
+             RETURN
+             ENDDO
+
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -----------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*      ACTUALIZACION DE LOS CHEQUES +
+                          PROVENIENTES DE CAMARA   *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*      LISTADO DE MOVIMIENTOS +
+                          PENDIENTES DE AUTORIZACION     *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*      -  ENERA MOVIMIENTOS CON CODIGOS +
+                          * 52 Y 53 * -        *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -----------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAMAG0$G) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+
+/* // BLDINDEX CAMAG0$G,15,9,CAMAG0$,,DUPKEY,,75,1 */
+ /*          RUNSQL     SQL('SET SCHEMA QS36F')     */
+             RUNSQL     SQL('CREATE INDEX CAMAG0$G ON CAMAG0$ ( +
+                          CUENTA ASC,AGECAM ASC )') COMMIT(*NONE)
+             ENDDO
+
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(XEQBC) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+
+/* // IFF DATAF1-XEQBC BLDINDEX XEQBC,15,9,XEQB,,DUPKEY,,1,7 */
+ /*          RUNSQL     SQL('SET SCHEMA QS36F')     */
+             RUNSQL     SQL('CREATE INDEX XEQBC ON XEQB ( +
+                          CAST(SUBSTRING(F00001 FROM 8 FOR  9) AS +
+                          CHAR(9)) AS K00002 ASC, K00001 ASC )  +
+                          RCDFMT RXEQB  ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+             CPYF       FROMFILE(QS36F/COLB) TOFILE(QS36F/SALDO$AP) +
+                          MBROPT(*REPLACE) CRTFILE(*NO) +
+                          INCCHAR(*RCD 2 *EQ '5') FMTOPT(*MAP *DROP)
+             CLRPFM     FILE(SGDETPAG$)
+             CLRPFM     FILE(CAMAGHB$)
+             OVRDBF     FILE(CAMAGX) TOFILE(CAMAG0$A)
+             OVRDBF     FILE(SUSTAD) TOFILE(SUSB)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             OVRDBF     FILE(COL) TOFILE(COLB)
+             OVRDBF     FILE(XEQ) TOFILE(XEQB)
+             OVRDBF     FILE(COLTRA) TOFILE(COLB)
+             OVRDBF     FILE(HOL) TOFILE(HOLB) FRCRATIO(1000)
+             OVRDBF     FILE(MOL) TOFILE(MOL) FRCRATIO(1000)
+             OVRDBF     FILE(SGDETPAG) TOFILE(SGDETPAG$)
+             CALL       PGM(CAMAR1$)
+             DLTOVR     FILE(*ALL)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             PAUSE      MSG('Ud. no esta autorizado a utilizar este +
+                          programa')
+             RETURN
+             ENDDO
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('No es permitido reprocesar este item +
+                          despues de los rechazos') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE      MSG('hechos por el item 12 de este menú. +
+                          CANCELO ESTE PROCEDIMENTO.')
+             ENDDO
+/*                                                                  */
+             SNDPGMMSG  MSG('SE PROCESAN CHEQUES ADMINISTRATIVOS') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(CAMAGX) TOFILE(CAMAGX$)
+             CALL       PGM(CACHEA$)
+             DLTOVR     FILE(*ALL)
+/*                                                                  */
+             CALL       PGM(COL01TN)
+ REPROZ:
+             SNDPGMMSG  MSG('PLANILLA DE CHEQUES RECHAZADOS, PARA +
+                          AUTORIZAR') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CAMAGN$CL)
+/*                                                                  */
+/* *Listado de contingencia-Proceso de aprobación de sobregiros     */
+             OVRDBF     FILE(SGRESCL1) TOFILE(SGRESCL1$)
+             OVRDBF     FILE(SGDETCL2) TOFILE(SGDETCL2$)
+             OVRDBF     FILE(SGDETPAG) TOFILE(SGDETPAG$)
+             OVRDBF     FILE(SGDATCTA) TOFILE(SGDATCTA)
+             OVRDBF     FILE(SGDATCLI) TOFILE(SGDATCLI)
+             OVRDBF     FILE(ASINFOL1) TOFILE(ASINFOL1)
+             OVRDBF     FILE(SGDATINP) TOFILE(SGDATINP$)
+             OVRDBF     FILE(SGUSUARI) TOFILE(SGUSUARI$)
+             OVRDBF     FILE(LINCRED) TOFILE(LINCRED)
+             OVRDBF     FILE(CODMOTPF) TOFILE(CODMOTPF)
+             OVRDBF     FILE(CTASOBRE) TOFILE(CTASOBRE)
+             OVRDBF     FILE(GERNOM) TOFILE(GERNOM)
+             OVRDBF     FILE(COLB) TOFILE(COLB)
+             OVRDBF     FILE(SGSOBREG) TOFILE(SGSOBREG$)
+             OVRDBF     FILE(PRCATAST) TOFILE(PRCATAST)
+             OVRDBF     FILE(ITCHBDPW) TOFILE(ITCHBDPW)
+             OVRDBF     FILE(TCMAECOM) TOFILE(TCMAECOM)
+             OVRPRTF    FILE(SG047CPR) TOFILE(SG047CPR)
+             CALL       PGM(SG047C)
+             DLTOVR     FILE(*ALL)
+ ALFIN:
+
+             ENDPGM

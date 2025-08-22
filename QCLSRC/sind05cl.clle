@@ -1,0 +1,34 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&MESANHO) TYPE(*CHAR) LEN(004)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+
+             RTVJOBA    DATE(&DATE)
+             CHGVAR     VAR(&MESANHO) VALUE(%SST(&DATE 3 4))
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             SNDPGMMSG  MSG('CLASIFICACION DEL ARCHIVO DE +
+                          OPERACIONES, SELECCIONA MOVIM.DEL MES.') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CLRPFM     FILE(QTEMP/SINDOPER)
+             MONMSG     MSGID(CPF3142) EXEC(CRTPF +
+                          FILE(QTEMP/SINDOPER) RCDLEN(40) SIZE(*NOMAX))
+             CHGVAR     VAR(&CMD) VALUE('INSERT INTO QTEMP.SINDOPER +
+                          SELECT K00001 || F00001 FROM +
+                          QS36F."SEI.OPER" WHERE SUBSTRING(F00001 +
+                          FROM 22 FOR 6) = ''' || &MESANHO || ''' +
+                          ORDER BY SUBSTRING(F00001 FROM 29 FOR  1) +
+                          ASC, SUBSTRING(F00001 FROM  8 FOR  1) +
+                          ASC, SUBSTRING(F00001 FROM 14 FOR  4) ASC')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             SNDPGMMSG  MSG('IMPRESION DE LOS MOVIMIENTOS DEL MES.') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(SINDOPER) TOFILE(QTEMP/SINDOPER)
+             OVRDBF     FILE(SINDCASA) TOFILE(SEI.CASA)
+             OVRDBF     FILE(NOMINAS) TOFILE(SEIMAES)
+             OVRPRTF    FILE(SIND05) TOFILE(QPRINT) FORMTYPE(L66) +
+                          COPIES(1) HOLD(*YES)
+             CALL       PGM(SIND05NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

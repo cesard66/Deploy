@@ -1,0 +1,12 @@
+/*  ----------------------------------------------------  *         */
+/*        FIN PROCESO CARTA DE CREDITO                    *         */
+/*  CER200            UTILIZA                     BUENO   *         */
+/*  ----------------------------------------------------  *         */
+/*                                                                  */
+             PGM
+
+             OVRDBF     FILE(CERUTI) TOFILE(CER.UTI)
+             CALL       PGM(EXP.LIBR/CER200NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

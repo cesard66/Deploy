@@ -1,0 +1,35 @@
+/* * VISUALIZACION DE CHEQUERAS EMITIDAS PARA LOS CLIENTES          */
+             PGM        PARM(&PM10)
+
+             DCL        VAR(&PM10) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(AUXEQB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('AUN NO TERMINO LA APERTURA O YA SE +
+                          CERRO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('POR TANTO NO ESTA DISPONIBLE.           +
+                          ') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             CALL       PGM(VERAGECL) PARM((&USER))
+             CHGVAR     VAR(&PM10) VALUE(%SST(*LDA 035 002))
+             CHGDTAARA  DTAARA(*LDA (1 20)) VALUE(&USER *TCAT +
+                          '        ')
+             CHGDTAARA  DTAARA(*LDA (11 23)) VALUE(&PM10 *TCAT +
+                          '           ')
+             OVRDBF     FILE(COLB) TOFILE(QS36F/COLBAJ)
+             OVRDBF     FILE(AUXEQ) TOFILE(AUXEQB)
+             OVRDBF     FILE(SUSTADO) TOFILE(SUSB)
+             OVRDBF     FILE(COL0) TOFILE(COLB)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             CALL       PGM(VERXEQNW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

@@ -1,0 +1,137 @@
+             PGM
+/* -- RECUPERA AREA DE DATOS PARA VER SI CONCLUYO CORRECTAMENTE PRCREON2               */
+/* ALL PGM(RTVDTAARAC) PARM(FINCREON)                                                  */
+/* / IFF ?L'311,1'?/F PAUSE 'TODAVIA NO SE COMPLETO PRCREON2, NO PUEDE CORRER BACKUP'  */
+/* / IFF ?L'311,1'?/F GOTO ALFIN                                                       */
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+
+             SNDPGMMSG  MSG('  **************** PROCESO UNICO DE +
+                          BACKUP DE ARCHIVOS **************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                              ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                              ') TOPGMQ(*EXT) MSGTYPE(*COMP)            q
+/* * ESTABLECE FECHA DE PROCESO                                     */
+             CALL       PGM(GLOBAL/FIJAFCIE)
+/* * VALIDA FECHA DE PROCESO                                        */
+             CHGJOB     SWS(00000000)
+             CALL       GLOBAL/CONFEBKP
+             IF         (%SWITCH(XX1XXXXX)) DO
+             PAUSE      MSG('FECHA DE PROCESO NO ES CORRECTA-CANCELO')
+             GOTO ALFIN
+             ENDDO
+/* *VERIFICA SI USUARIO ESTA AUTORIZADO A EJECUTAR                  */
+             CALL       PGM(GLOBAL/PRAUTORJCL)
+/* -- VERIFICA SI EL PROCESO ESTA DISPONIBLE PARA INICIO            */
+             CALL       PGM(CTRPROCES) PARM(('PRBACKUP') ('1'))
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             PAUSE      MSG('PROCESO NO DISPONIBLE PARA INICIO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* --  COLOCA MARCA DE INICIADO AL PROCESO                          */
+             CALL       PGM(CTRPROCES) PARM(('PRBACKUP') ('2'))
+/* * SI SWITCH1 ESTA ON PROCESO DIARIO / SI SWITH2 ESTA ON PROCESO MENSUAL */
+             CHGJOB     SWS(00000000)
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             CALL       (GLOBAL/ACTIUX)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             CALL       PGM(GLOBALC/BACKDITCCL)
+             ENDDO
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('ATENCION +
+                          ]]]]]]]]]]]]]]]]]]]                         -
+       ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('============================           -
+                     ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('COMO ES  FIN DE MES  HOY SE  DEBERA  +
+                          HACER  BACKUP   MENSUAL') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('LA ETIQUETA DE LA CINTA DEBE  TENER  +
+                          EL  MES  Y  EL   AÑO   ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EJ. NOVIEMBRE/95. Y YA TUVO QUE SER +
+                          INICIALIZADA PREVIAMENTE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * IF SWITCH2-1 PAUSE                                             */
+             CALL       PGM(GLOBALC/BACKMENSCL)
+             ENDDO
+             IF         COND((%SST(*LDA 415 001)) *EQ F) THEN(GOTO +
+                          CMDLBL(FINMES))
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*         PROCESO DE SISTEMA DE +
+                          INFORMACION GERENCIAL +
+                          -NUEVO               *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(GLOBAL/SBMJOSIG)) DATE(&DATE)
+/* * CPYF FROMFILE (QS36F/PRCATAST) TOFILE(QS36F/ANPRCATA) MBROPT(*REPLACE) */
+ FINMES:
+/* * AHORA SE HACE APERTURA DE CAMBIOS PARA EL DIA SIGUIENTE        */
+             CALL       PGM(CAMLIB/CLAPEAUT)
+             CHGPRTF    FILE(QSYS/QPQUPRFIL) COPIES(1)
+             CPYF       FROMFILE(BDIGEN/BDFIREP) +
+                          TOFILE(BDIGEN/BDFIREPHI) MBROPT(*ADD)
+/* *Esta linea                                                      */
+/* *RPFM BDIGEN/BDFIREP                                             */
+/* * se reemplaza por                                               */
+             CALL       ONLINE/C10931CL
+             CLRPFM     QS36F/ENITBPHH
+             CALL       GLOBAL/TCDTAARA
+/* * EL CAMBIO DE LOS DTAARA SE REALIZAN EN GLOBAL/TCDTAARA                         */
+/* *CHGDTAARA DTAARA(TARJETA/TCTRASPA (1 1)) VALUE(' ')                             */
+/* *CHGDTAARA DTAARA (TARJETA/TCTRAS14 (1 1)) VALUE(' ')                            */
+/* *//* 'GENERA NUMEROS DE CUENTA P/ CONTINGENCIA' **COMENTADO EN FECHA 16-10-18**  */
+/* *CALL CREANUMCL COMENTADO 16-10-18**                                             */
+             SNDPGMMSG  MSG('ACTUALIZA ARCHIVO DE RESTRICCIONES +
+                          CHEQUE DIFERIDO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       CDRESTRICL
+/* *****************************************************            */
+/* CALCULA CANTIDAD DE CHEQUES DISPONIBLES POR CUEHNTA *            */
+/* *****************************************************            */
+             CLRPFM     CHEDISCU
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(INTERB01/CHEDISCU)) DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(INTERB03/BCPINF01CL)) DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(TARJETA/TCDELFIL)) DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(RESUPSCS)) DATE(&DATE)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*         FIN DE PROCESO DE +
+                          BACKUP/BORRADO/INICIALIZACION DE +
+                          ARCHIVOS     *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* *SNDMSG MSG('FIN NORMAL DE BACKUP DEL DIA ANTERIOR') TOUSR(JOSE)    */
+/* *SNDMSG MSG('FIN NORMAL DE BACKUP DEL DIA ANTERIOR') TOUSR(MARTIN)  */
+/* *SNDMSG MSG('FIN NORMAL DE BACKUP DEL DIA ANTERIOR) TOUSR(ABAGNOLI) */
+/* *SNDMSG MSG('FIN NORMAL DE BACKUP DEL DIA ANTERIOR') TOUSR(JUAN)    */
+             SNDPGMMSG  MSG('FIN NORMAL DE BACKUP DEL DIA +
+                          ANTERIOR') TOPGMQ(*EXT) MSGTYPE(*COMP)
+UTI.LIBR/ENVMAILC ASUNTO('PRBACKUP') MENSAJE('FIN NORMAL DE BACKUP +
+                          DEL DIA ANTERIOR')
+/* -- COLOCA MARCA FINALIZADO AL PROCESO                            */
+             CALL       PGM(CTRPROCES) PARM(('PRBACKUP') ('4'))
+/* -- INICIALIZA AREA DE DATOS                                      */
+             CHGDTAARA  DTAARA(GLOBAL/INZPROC (1 1)) VALUE(' ')
+/* * OFF                                                            */
+ ALFIN:
+             CHGDTAARA  DTAARA(*LDA (311 1)) VALUE(' ')
+
+             ENDPGM

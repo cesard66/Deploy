@@ -1,0 +1,8 @@
+             PGM
+
+             OVRDBF     FILE(SINDCASA) TOFILE(SEI.CASA)
+             OVRDBF     FILE(SINDRUB) TOFILE(SEI.RUB)
+             OVRDSPF    FILE(WK) TOFILE(*LIBL/SIND03FM)
+             CALL       PGM(SIND03NW)
+
+             ENDPGM

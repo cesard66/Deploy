@@ -1,0 +1,33 @@
+             PGM
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(1) VALUE('1')
+
+             SNDPGMMSG  MSG('CLASIFICANDO ARCHIVO CAHSDO ...... PARA +
+                          LA EMISION DEL INFORME') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+
+             SNDPGMMSG  MSG('INVENTARIO DE DEPOSITO DE AHORRO A LA +
+                          VISTA M/L') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CTECAH) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTECAH))
+             CRTPF      FILE(QS36F/CTECAH) RCDLEN(89) SIZE(*NOMAX)
+             RUNSQL     SQL('INSERT INTO QS36F.CTECAH  SELECT +
+                          SUBSTR(F00001, 247, 1) || K00001 || +
+                          SUBSTR(F00001, 1, 40) || SUBSTR(F00001, +
+                          160, 8) || SUBSTR(F00001, 216, 2) || +
+                          SUBSTR(F00001, 240, 4) || SUBSTR(F00001, +
+                          107, 4) || SUBSTR(F00001, 236, 1) || +
+                          SUBSTR(F00001, 176, 8) || SUBSTR(F00001, +
+                          192, 8) || SUBSTR(F00001, 218, 2) || +
+                          SUBSTR(F00001, 220, 2) FROM QS36F.CAHSDO +
+                          WHERE SUBSTR(K00001, 2, 1) NOT IN(''1'', +
+                          ''3'', ''4'') AND SUBSTR(K00001, 3, 6) <> +
+                          ''000000'' ORDER BY SUBSTR(F00001, 247, +
+                          1), K00001') COMMIT(*NONE)
+             CALL       PGM(DEAVML)
+
+ENDPGM

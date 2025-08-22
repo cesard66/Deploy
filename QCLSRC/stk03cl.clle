@@ -1,0 +1,18 @@
+             PGM
+/* ----------------------------------------------------------*/
+/* FUNCION: GRABACION DE PEDIDOS DE DEPOSITO A COMPRAS. -    */
+/*                                                           */
+/*-----------------------------------------------------------*/
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSIDS36) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&TYPEWS) TYPE(*DEC) LEN(001)
+
+             RTVJOBA    JOB(&WSID) USER(&USER)
+             CALL       PGM(QSSP/QEXCVTDV) PARM((&WSIDS36) (&WSID) +
+                          (&TYPEWS))
+             CHGDTAARA  DTAARA(*LDA (1 12)) VALUE(&WSIDS36 *CAT &USER)
+             OVRDSPF    FILE(PANTALL) TOFILE(*LIBL/STK03FM)
+             CALL       PGM(STK03NW)
+
+             ENDPGM

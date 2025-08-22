@@ -1,0 +1,28 @@
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WORK) TYPE(*CHAR) LEN(032)
+
+             RTVJOBA    USER(&USER)
+             RTVMBRD    FILE(*LIBL/CAMAG0$) NBRCURRCD(&RCDNBR)
+
+             IF         COND(&RCDNBR *NE 0) THEN(DO)
+             PAUSE      MSG('YA NO SE PUEDE GRABAR CHEQUES ')
+
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             CHGJOB     SWS(00000000)
+             CHGDTAARA  DTAARA(*LDA (1 10)) VALUE(&USER)
+
+             CALL       VERAGECM$ PARM(&USER)
+             SNDUSRMSG  MSG(' Ud. va a grabar Cheques Canje de ' +
+                          *CAT (%SST(*LDA 105 030)) *TCAT ' (S/N)') +
+                          TOMSGQ(*EXT) MSGRPY(&WORK)
+             IF         (*NOT (&WORK *EQ 'S')) GOTO ALFIN
+             OVRDBF     FILE(CAMINT) TOFILE(%SST(*LDA 037 008))
+             CALL       (ONLINEC/CAMARA)
+             DLTOVR     FILE(*ALL)
+ ALFIN:
+
+             ENDPGM

@@ -1,0 +1,124 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&PROCESO) TYPE(*CHAR) LEN(10) +
+                          VALUE('PRCOMEX')
+
+             CHGDTAARA  DTAARA(*LDA (311 1)) VALUE(' ')
+             SNDPGMMSG  MSG('************ PROCESO DE COMEX +
+                          (IMPORTACION-EXPORTACION-CAMBIOS +
+                          *********') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * ESTABLECE FECHA DE PROCESO                                     */
+             CALL       GLOBAL/FIJAFCIE
+/* * VALIDA FECHA DE PROCESO                                        */
+             CHGJOB     SWS(00000000)
+             CALL       GLOBAL/RTVDTAARAC PARM('FINAHORRO')
+             IF         COND((%SST(*LDA 311 001)) *EQ F) THEN(DO)
+             CALL       PGM(GLOBAL/CONFECTE)
+             CHGDTAARA  DTAARA(FINAHORRO (1 1)) VALUE('F')
+             ENDDO
+             IF         COND(*NOT ((%SST(*LDA 311 001)) *EQ F)) +
+                          THEN(DO)
+             CALL       PGM(GLOBAL/CONFEPRV)
+             ENDDO
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(DO)
+             PAUSE      MSG('FECHA DE PROCESO NO ES CORRECTA-CANCELO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* * VERIFICA SI EL USUARIO ESTA AUTORIZADO A EJECUTAR              */
+             CALL       PGM(GLOBAL/PRAUTORJCL)
+             SNDPGMMSG  MSG('PRCOMEX ======> PROCESO DIARIO DE +
+                          IMPORTACION-EXPORTACION Y CAMBIOS +
+                          <====') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CPPROCE2C)
+             IF         (%SWITCH(XXXXXXX1)) DO
+             PAUSE      MSG('PROCESO NO DISPONIBLE PARA INICIO-FALTA +
+                          PRCOMPLE')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* -- VERIFICA SI EL PROCESO ESTA DISPONIBLE PARA INICIO            */
+             CALL       PGM(CTRPROCES) PARM((&PROCESO) ('1'))
+             IF         (%SWITCH(XXXXXXX1)) DO
+             PAUSE      MSG('PROCESO NO DISPONIBLE PARA INICIO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       CTRPROCES PARM(&PROCESO '2')
+/* * PROCESO DIARIO DE COMEX                                        */
+             CALL       PGM(INTERB05/INTP74CL)
+/* * INCLUIR ACA====> SI YA SE PROCESO PRAHORRO GOTO FIN            */
+             CALL       PGM(GLOBAL/RTVDTAARAC) PARM(('FINAHORRO '))
+             IF         COND((%SST(*LDA 311 001)) *EQ F) THEN(DO)
+             SNDPGMMSG  MSG('FINALIZO EL SEGUNDO PROCESO DE +
+                          PRCOMEX') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* * SI SWITCH1 ESTA ON PROCESO DIARIO / SI SWITH2 ESTA ON PROCESO MENSUAL */
+             CHGJOB     SWS(00000000)
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             CALL       PGM(GLOBAL/ACTIUXNW)
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('Hoy es el último día habil del mes, y +
+                          aún NO SE EJECUTO PROCESO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('PROCESO MENS.DE AHORROS, por tanto +
+                          seguidamente se ejecutará el') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('PREPARACION PARA REPROCESO DE COMEX, +
+                          para que luego en AHORROS ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('se genere las operaciones de cambios +
+                          por cap.de intereses.y una') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('vez finalizado el PROCESO DE AHORROS,se +
+                          debe ejecutar DE NUEVO ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('COMEX. SI EL MENSAJE NO CORRESPONDE +
+                          PARA LA FECHA INFORME AL   ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('RESPONSABLE DE TURNO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('AH!. ALGO MUY IMPORTANTE NO SE OLVIDE +
+                          DE BORRAR DEL SPOOL TODOS') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('LOS LISTADOS DEL 1ER. PROCESO DE +
+                          COMEX-P/EVITAR CONFUSIONES    ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* *IF SWITCH2-1 PAUSE                                              */
+             CALL       PGM(INTERB05/INTP01CL)
+             ENDDO
+             IF         (*NOT (%SWITCH(X1XXXXXX))) DO
+             CALL       PGM(INTERB05/INTP74CCL)
+             CALL       PGM(CAMLIB/CMDIFC01)
+             ENDDO
+ FIN:
+/* -- TRANSFIERE CUENTAS DE COMERCIO EXTERIOR PARA NUEVO SISTEMA DE CONTABILIDAD    */
+             CALL       PGM(INGEN/TRNOMCECL)
+/* -- TRANSFIERE OPERACIONES DE COMERCIO EXTERIOR                   */
+             CALL       PGM(INGEN/TROPECECL)
+/* COLOCA MARCA DE FINALIZADO AL PROCESO                            */
+             CALL       PGM(INGEN/CLCONCG)
+/* COLOCA MARCA DE FINALIZADO AL PROCESO                            */
+             CALL       CTRPROCES PARM(&PROCESO '4')
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                     FIN DEL PROCESO +
+                          DE COMEX                           *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+ ALFIN:
+             CHGDTAARA  DTAARA(*LDA (311 1)) VALUE(' ')
+
+             ENDPGM

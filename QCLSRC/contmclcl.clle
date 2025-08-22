@@ -1,0 +1,15 @@
+             PGM
+
+             SNDPGMMSG  MSG('CONTROLA ALTAS DE CUENTAS DEL DIA') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       PGM(CONTMCL)
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             SNDPGMMSG  MSG('ERROR EN ALTA DE CUENTAS, VERIFIQUE +
+                          ARCHIVO ERRMCL (BAGNOLI)') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             ENDDO
+             CHGJOB     SWS(00000000)
+
+             ENDPGM

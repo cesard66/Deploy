@@ -1,0 +1,20 @@
+             PGM
+/*========================================================*/
+/* SISTEMA.: CONTROL DE STOCK                             */
+/*           CARGA DE PRESUPUESTO OBTENIDO                */
+/*========================================================*/
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSIDS36) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&TYPEWS) TYPE(*DEC) LEN(001)
+             CHGJOB     SWS(00000000)
+             RTVJOBA    JOB(&WSID) USER(&USER)
+             CALL       PGM(QSSP/QEXCVTDV) PARM((&WSIDS36) (&WSID) +
+                          (&TYPEWS))
+             CHGDTAARA  DTAARA(*LDA (1 12)) VALUE(&WSIDS36 *CAT &USER)
+             OVRDBF     FILE(STMASPRV) TOFILE(STMASPRO)
+             OVRDSPF    FILE(PANTALL) TOFILE(STK08FM)
+             CALL       PGM(STK08NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

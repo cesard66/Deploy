@@ -1,0 +1,107 @@
+PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&LISTA) TYPE(*CHAR) LEN(14) +
+                          VALUE('ABGIKPQSTUYZVC')
+             DCL        VAR(&PARM01) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             SNDPGMMSG  MSG('Una vez ejecutado este proceso los +
+                          accesos al sistema de ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('aprobacion de sobregiros, quedan +
+                          restringidos (solo podran') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('acceder los coordinadores)') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+ARRIBA:
+             CHGDTAARA  DTAARA(*LDA (11 2)) VALUE(' ')
+             SNDPGMMSG  MSG('Elija Banca a Imprimir') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' A Administracion ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' B Agribusiness  ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' C Corporate     ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' G Grandes Empresas') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' I Individual Bank ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' K Recuperaciones  ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' P Banca Personal  ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' Q Interclass      ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' S Pypes           ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' T Gerencia Financiera') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' U Banca Institucional') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' V Ganaderia         ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' Y Empresas          ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' Z Salir sin imprimir ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDUSRMSG  MSG('Ingrese parametro requerido') +
+                          TOMSGQ(*EXT) MSGRPY(&PARM01)
+             IF         COND(%SCAN(&PARM01 &LISTA) *EQ 0) THEN(GOTO +
+                          CMDLBL(ARRIBA))
+             IF         COND(&PARM01 *EQ 'Z') THEN(GOTO CMDLBL(ALFIN))
+             OVRPRTF    FILE(ASG043PR) OUTQ(PRTNET22) HOLD(*YES) +
+                          SAVE(*YES)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/COLBX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(OVRDBF FILE(COLB) +
+                          TOFILE(QS36F/COLBX))
+             CALL       PGM(SG043C) PARM((&PARM01))
+             CALL       PGM(SG044C) PARM((&PARM01))
+             CALL       PGM(SG044D) PARM((&PARM01))
+             DLTOVR     FILE(*ALL)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/SGCIEW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CPYF       FROMFILE(QS36F/SGCIERRE) +
+                          TOFILE(QS36F/SGCIEW) CRTFILE(*YES)
+             ENDDO
+             OVRDBF     FILE(SGCIERRE) TOFILE(SGCIEW)
+             CALL       PGM(SG024C) PARM((&PARM01))
+             DLTOVR     FILE(SGCIERRE)
+             IF         COND(&PARM01 *EQ 'A') THEN(PAUSE MSG('Se han +
+                          impreso resultados de ADMINISTRACION'))
+             IF         COND(&PARM01 *EQ 'B') THEN(PAUSE MSG('Se han +
+                          impreso resultados de AGRIBUSINESS'))
+             IF         COND(&PARM01 *EQ 'C') THEN(PAUSE MSG('Se han +
+                          impreso resultados de CORPORATE'))
+             IF         COND(&PARM01 *EQ 'V') THEN(PAUSE MSG('Se han +
+                          impreso resultados de GANADERIA'))
+             IF         COND(&PARM01 *EQ 'G') THEN(PAUSE MSG('Se han +
+                          impreso resultados de GRANDES EMPRESAS'))
+             IF         COND(&PARM01 *EQ 'I') THEN(PAUSE MSG('Se han +
+                          impreso resultados de INDIVIDUAL '))
+             IF         COND(&PARM01 *EQ 'K') THEN(PAUSE MSG('Se han +
+                          impreso resultados de RECUPERACIONES'))
+             IF         COND(&PARM01 *EQ 'P') THEN(PAUSE MSG('Se han +
+                          impreso resultados de BANCA PERSONAL'))
+             IF         COND(&PARM01 *EQ 'Q') THEN(PAUSE MSG('Se han +
+                          impreso resultados de INTERCLASS'))
+             IF         COND(&PARM01 *EQ 'S') THEN(PAUSE MSG('Se han +
+                          impreso resultados de PYPES'))
+             IF         COND(&PARM01 *EQ 'T') THEN(PAUSE MSG('Se han +
+                          impreso resultados de G.FINANCIERA'))
+             IF         COND(&PARM01 *EQ 'U') THEN(PAUSE MSG('Se han +
+                          impreso resultados de B.INSTITUCIONAL'))
+             IF         COND(&PARM01 *EQ 'Y') THEN(PAUSE MSG('Se han +
+                          impreso resultados de EMPRESAS'))
+ALFIN:
+
+             ENDPGM

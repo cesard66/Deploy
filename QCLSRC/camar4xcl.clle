@@ -1,0 +1,148 @@
+/* *--- ACTUALIZACION DE RECHAZOS NO AUTORIZADOS-GENERA COD.10 --- */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     VAR(&WSID) VALUE(&JOBA)
+             CHGDTAARA  DTAARA(*LDA (1 30)) VALUE(&WSID *TCAT &USER)
+             CHGJOB     SWS(000000OO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAMAG0) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO ESTA EN DISCO EL ARCHIVO CONSOLIDADO +
+                          DE CHEQUES. CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+/* * VERIFICA SI YA SE FINALIZO PROCESO DE SOBREGIROS USD           */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CONTROC$) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('TODAVIA NO CULMINO PROCESO DE CLEARING +
+                          M/E') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+ VERUSU:
+             CHGJOB     SWS(0O00OOOO)
+             CALL       PGM(COLO1EN)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('USUARIO ACTIVO EN OTRA TERMINAL O HUBO +
+                          UNA ANOMALIA ANTERIORNENTE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('AGUARDE A QUE LE HAGAN LIMPA Y LUEGO +
+                          PRESIONE INTRO P/CONTINUAR') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             GOTO       CMDLBL(VERUSU)
+             ENDDO
+/* **************************************************************** */
+/* ***********                                                      */
+/* * VERIFICA SI YA SE FINALIZO PROCESO DE RECHAZO POR FORMALISTICA */
+             CALL       PGM(GLOBAL/RTVDTAARAC) PARM((ESTAFOR))
+             IF         COND((%SST(*LDA 311 001)) *EQ M) THEN(GOTO +
+                          CMDLBL(SIGUE))
+             CHGJOB     SWS(10000000)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('PROCESO RECHAZO FORMALISTICA NO +
+                          FINALIZADO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CANCELARE ESTE PROCESO') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+/* **************************************************************** */
+SIGUE:
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          --------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*   ACTUALIZACION DE NUESTROS CHEQUES +
+                          RECHAZADOS - CAMARA  *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* - GENERA MOVIMIENTOS CON CODIGO  * 10 +
+                          Y 44 * -           *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRDBF     FILE(CAMAGX) TOFILE(QS36F/CAMAGOLG)
+             CALL       PGM(ONLINE/CAMAR4XN)
+             DLTOVR     FILE(CAMAGX)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('Ud. no esta autorizado a utilizar este +
+                          programa') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('YA SE HIZO ESTE PASO. TENGA MAS +
+                          CUIDADO.') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RETURN
+             ENDDO
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('Ud. aun no proceso ACT. CHEQUE CANJE. +
+                          Hagalo antes.') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+/* * Se agregan nuevas lineas para CI                               */
+             CALL       ONLINE/NCHBU010
+             OVRDBF     FILE(CAMAGX) TOFILE(QS36F/CAMAGX)
+             CALL       PGM(ONLINE/NCIMM923)
+             CALL       PGM(ONLINE/CICHRECH)
+             DLTOVR     FILE(CAMAGX)
+             CALL       ONLINE/AVIDEBCI
+             CALL       ONLINE/NCIMM922
+             CALL       ONLINE/CI0917CL
+             CALL       ONLINE/CI0921CL
+/* * Se agregan nuevas lineas para CI                               */
+/* ******************* CALL INGEN/TR24COMC2                         */
+/* ******************* CALL INGEN/TR25COMC2                         */
+             CALL       ONLINE/CICHREC1
+             RTVJOBA    DATE(&DATE)
+             CPYF       FROMFILE(QS36F/CHERECO1) +
+                          TOFILE(QS36F/CHERECO1W) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCREL((*IF FECHAR *EQ &DATE))
+             OVRPRTF    FILE(QPQUPRFIL) TOFILE(*LIBL/QPQUPRFIL) +
+                          OUTQ(LASER_31) HOLD(*YES) SAVE(*YES)
+             RUNQRY     QRY(ONLINE/CHERECO1) QRYFILE((QS36F/CHERECO1W))
+             CLRPFM     FILE(QS36F/BDINFOR)
+             CPYSPLF    FILE(QPQUPRFIL) TOFILE(QS36F/BDINFOR) +
+                          SPLNBR(*LAST)
+             CPYTOPCD   FROMFILE(QS36F/BDINFOR) TOFLR(INFORMES) +
+                          TODOC(RECHIF.TXT) REPLACE(*YES)
+/*  */
+             SNDDST     TYPE(*DOC) TOINTNET((SUPERVADMIN@itau.com.py +
+                          *PRI) (CONTABILIDAD@itau.com.py *PRI) +
+                          (CAMARA@itau.com.py *CC)) DSTD('Rechazo +
+                          IF') MSG('Rechazo de cheques por IF') +
+                          DOC(RECHIF.TXT) FLR(INFORMES)
+             DLTOVR     FILE(QPQUPRFIL)
+/* ***************ESTE MENSAJE SE ENVIABA AL FINAL DE CAMDEB        */
+/* ***********                                                      */
+
+             SNDBRKMSG  MSG('Termino proceso de cheques canje. Si +
+                          todas las agencias cerraron, puede +
+                          comenzar CONVAGE. ') TOMSGQ(WK W5)
+
+/* **************************************************************** */
+/* * ARCHIVO DE CONTROL DE QUE TERNINO EL PROCESO DE CAMARA **      */
+             CRTPF      FILE(QS36F/CONTROCA) RCDLEN(8)
+             CHGDTAARA  DTAARA(ONLINE/ESTAFOR (1 1)) VALUE(' ')
+/* * ESTA COPIA ESTABA EN CAMAR10, ONLINE AL DIA SIGUIENTE          */
+             CPYF       FROMFILE(QS36F/CAMAG0) TOFILE(QS36F/CAMAG00) +
+                          MBROPT(*REPLACE)
+             CALL       INTERBO1/SG062CL
+             CALL       ONLINE/NCHM914L
+             CLRPFM     FILE(TOTRFOR)
+             CALL       INTERBO1/TOTFOR
+
+             ENDPGM

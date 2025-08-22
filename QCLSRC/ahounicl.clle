@@ -1,0 +1,9 @@
+             PGM
+
+             CLRPFM     FILE(NOPOXB)
+             OVRDBF     FILE(MOVIM10) TOFILE(AHOFT02)
+             CALL       PGM(INTERB2C/AHOUNINW)
+             CPYF       FROMFILE(NOPOSB) TOFILE(NOPOXB) MBROPT(*ADD)
+             CLRPFM     FILE(NOPOSB)
+
+             ENDPGM

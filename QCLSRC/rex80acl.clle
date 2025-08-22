@@ -1,0 +1,31 @@
+/*                                                                  */
+/*   CREA UN ARCHIVO CON TOTALES A PARTIR DEL ARCHIVO DE BAJAS COMO CAMPO */
+/*   DE CONTROL UTILIZA LA CLAVE                                    */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(REX.ACU) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) DLTF FILE(REX.ACU)
+
+             RUNSQL     SQL('CREATE TABLE QS36F."REX.ACU" AS (SELECT +
+                          F00001 || SUBSTR(K00001, 1, 11) F01, +
+                          CAST(SUM(CAST(SUBSTR(F00002, 29, 15) AS +
+                          DEC(15, 2))) AS NUM(15, 0)) F02 FROM +
+                          QS36F."REX.BAJ" WHERE SUBSTR(F00002, 484, +
+                          1) NOT IN(''9'', '' '') GROUP BY F00001 +
+                          || SUBSTR(K00001, 1, 11) ORDER BY F00001 +
+                          || SUBSTR(K00001, 1, 11)) WITH DATA') +
+                          COMMIT(*NONE)
+/*                                                                        */
+/*   ACTUALIZA SALDO ALTAS DE COBRANZAS DE ACUERDO A MONTO TOTAL DE LA BA */
+/*   JA,CREADO ANTERIORMENTE                                              */
+             OVRDBF     FILE(REXACU) TOFILE(REX.ACU)
+             OVRDBF     FILE(REXALT) TOFILE(REX.ALT)
+             CALL       PGM(EXP.LIBR/REX80A)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

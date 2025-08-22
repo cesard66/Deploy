@@ -1,0 +1,404 @@
+/* ** ************************************************************  */
+/* **Modifica : Celeste Arguello    Gescam # 1808220840             */
+/* **Fecha    : 23/08/2018                                          */
+/* **Motivo   : Se comenta la llamada a algunos programas para      */
+/* **           optimizacion del PRBACKUP                           */
+/* ** ************************************************************  */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&WRK01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TABLAORI) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TABLADES) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+
+             SNDPGMMSG  MSG('BACKMENS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('--------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* AGREG. MARIAVC PARA CHEQUEAR CIERRE 03 FEB 2010 Y                        */
+/* Registra status de inicio de backup :                                    */
+/* *CALL IBANKING/SQLBKSTS PARM('QSSAVLIB' 'A') **OPTIMIZACION PRBACKUP **  */
+/*  GENERA REPORTE DE PAGOS AMEX RECIBIDOS EN EL MES Y ENVIA A COMPLIANCE   */
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/PAGAMEXCL)) DATE(&DATE)
+/*  crea archivos para extractos históricos                         */
+             SBMJOB     CMD(CALL PGM(CREXHIS)) CURLIB(ONLINE) +
+                          DATE(&DATE)
+/* Copia archivo de Pines -                                         */
+             CALL       PGM(ONLINE/CLCPYRPNG)
+/* *//* 'IMPRESION DE INFORME PARA GTE.DE CONTROL FINANCIERO'  COMENTADO EN FECHA 6-11-18     */
+/* *SBMJOB CMD(STRS36PRC PRC(CLIENT) CURLIB(GLOBAL)) DATE(?DATE?)  COMENTADO EN FECHA 6-11-18 */
+/* *                                                                                          */
+/*  ELIMINAMOS ESTE PROGRAMA ZPHC/MAYO-16                                                     */
+/* *CALL ONLINE/LISCTAVN int Z PHG-05-16                                                      */
+             CALL       (SOFTSHOP/COPIFI)
+             SNDPGMMSG  MSG('COPIA IT. VENC Y PRCUOTA A SOFTSHOP') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(LUILIB/COPIA)
+/*                                                                  */
+/*          BACKUP DE BIBLIOTECAS                                   */
+/*                                                                  */
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ************') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*PRIMERA COPIA DE BACKUP DE ARCHIVOS EN +
+                          EJECUCION*') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ************') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(BALIB/NBAME911C)
+/* *CALL UTI.LIBR/QSSAVLIB **OPTIMIZACION PRBACKUP**                */
+             CALL       PGM(BALIB/NBAME912C)
+             SNDMSG     MSG(' HA FINALIZADO EL PROCEDIMIENTO DE +
+                          BACKUP DE LA 1RA.COPIA ') TOMSGQ(*SYSOPR)
+/* *                                                                */
+             SNDPGMMSG  MSG('****************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*SEGUNDA COPIA EN EJECUCION*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('****************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *******************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* SEÑOR +
+                          OPERADOR                                    -
+                *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*   PREVIAMENTE DEBERA SACAR LA CINTA +
+                          UTILIZADA E INTRODUCIR LA     *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*   SEGUNDA CINTA PARA CONTINUAR CON EL +
+                          BACKUP:                     *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                         .... * +
+                          ....                               *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*   CUANDO ESTE LISTO PARA EL EFECTO, +
+                          TECLEAR * 0 * Y LA SEGUNDA    *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*   COPIA SE HARA A +
+                          CONTINUACION.                               -
+    *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *******************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDMSG     MSG(' HA FINALIZADO EL PROCEDIMIENTO DE +
+                          BACKUP DE LA 2DA.COPIA ') TOMSGQ(WK)
+/*                                                                  */
+             SNDPGMMSG  MSG('****************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*SUBMITE EL PROCESO DE SIG *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('****************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('PROCESO DE SISTEMA DE INFORMACION +
+                          GERENCIAL.--- SIG') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/*    **SE DEBE CORRER CON FECHA DEL ULTIMO DIA DEL MES **          */
+             SBMJOB     CMD(CALL PGM(GLOBAL/PRSIGCL)) DATE(&DATE)
+/* *                                                                */
+/*                                                                  */
+/* *                                                                */
+             CALL       PGM(SALAHOMECL)
+             CALL       PGM(SALAHOM2CL)
+             CALL       PGM(DCBAAN)
+             CALL       PGM(DEAVMECL)
+             CALL       PGM(DEAVMLCL)
+             CALL       PGM(DEPFMECL)
+             CALL       PGM(DEPFMLCL)
+             CALL       PGM(DEPFMLCCL)
+/*  PROCESO DE IMPRESION FACTURAS IVA                               */
+/* VAFAC, GLOBAL                                                    */
+/*  PROCESO DE INFORME MENSUAL DE PRESTAMOS                         */
+             RMVLIBLE   LIB(CATAS)
+             ADDLIBLE   LIB(PGLIB)
+             CALL       PGM(PGCBCP)
+             RMVLIBLE   LIB(PGLIB)
+             ADDLIBLE   LIB(PELIB)
+             CALL       PGM(PECBCP)
+             RMVLIBLE   LIB(PELIB)
+/*  PROCESO DE INFORME MENSUAL DE BASE DE CLIENTES                  */
+             ADDLIBLE   LIB(BCLIB)
+             CALL       PGM(BCCCARCL)
+             RMVLIBLE   LIB(BCLIB)
+             ADDLIBLE   LIB(CATAS)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *************************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*     PREPARACION DE ALGUNOS ARCHIVOS +
+                          PARA PROXIMO DIA UTIL   *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *************************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('FILES PARA EXTRACTO MESES +
+                          ANTERIORES                           ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *************************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGVAR     VAR(&PM01) VALUE(&DATE)
+             CHGVAR     VAR(&PM02) VALUE(%SST(&PM01 3 2))
+             CHGVAR     VAR(&WRK01) VALUE(CAHSDO *CAT &PM02)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CTESDO *CAT &PM02)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CCMASL *CAT &PM02)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CCMANU *CAT &PM02)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(HISTR *CAT &PM02 *TCAT L)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(HISTR *CAT &PM02)
+             CALLSUBR   SUBR(BORRATABLA)
+             IF         COND(&PM02 *EQ '06' *OR &PM02 *EQ '12') +
+                          THEN(DO)
+             CHGVAR     VAR(&WRK01) VALUE(HISTC *CAT &PM02 *TCAT L)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(HISTOC *CAT &PM02)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(HISTOCAH)
+             CHGVAR     VAR(&TABLADES) VALUE(HISTOC *CAT &PM02)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&CMD) VALUE('CREATE INDEX QS36F.' *CAT +
+                          HISTC *CAT &PM02 *TCAT L *CAT ' ON +
+                          QS36F.' *CAT HISTOC *CAT &PM02 *CAT +
+                          '(CAST(SUBSTRING(HISTOCA2 FROM 2 FOR 5) +
+                          AS CHAR(5)) AS K00001 ASC) RCDFMT R' *CAT +
+                          HISTOCA *CAT ' ADD ALL COLUMNS')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             ENDDO
+             CHGVAR     VAR(&WRK01) VALUE(MVTRPF *CAT &PM02)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(CAHSDO)
+             CHGVAR     VAR(&TABLADES) VALUE(CAHSDO *CAT &PM02)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(CTESDO)
+             CHGVAR     VAR(&TABLADES) VALUE(CTESDO *CAT &PM02)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(CCMASL)
+             CHGVAR     VAR(&TABLADES) VALUE(CCMASL *CAT &PM02)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(CCMANU)
+             CHGVAR     VAR(&TABLADES) VALUE(CCMANU *CAT &PM02)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(HISTORY1)
+             CHGVAR     VAR(&TABLADES) VALUE(HISTR *CAT &PM02)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/(HISTR *CAT &PM02 *CAT L)) +
+                          OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CHGVAR     VAR(&CMD) VALUE('CREATE INDEX QS36F.' *CAT +
+                          HISTR *CAT &PM02 *CAT L *CAT ' ON QS36F.' +
+                          *CAT HISTR *CAT &PM02 *CAT +
+                          '(CAST(SUBSTRING(HISTORY2 FROM 2 FOR 5) +
+                          AS CHAR(5)) AS K00001 ASC) RCDFMT R' *CAT +
+                          HISTORY *CAT ' ADD ALL COLUMNS')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             ENDDO
+             CHGVAR     VAR(&TABLAORI) VALUE(MVTRPF)
+             CHGVAR     VAR(&TABLADES) VALUE(MVTRPF *CAT &PM02)
+             CALLSUBR   SUBR(COPIATABLA)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **************************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             DLTF       FILE(QS36F/HISTINTC)
+             DLTF       FILE(QS36F/HISTIMPO)
+             DLTF       FILE(HINTF04)
+             DLTF       FILE(BCP100)
+             RUNSQL     SQL('CREATE TABLE QS36F.HISTIMPO (F00001 +
+                          CHAR(480) ) RCDFMT RHIST') COMMIT(*NONE)
+             RUNSQL     SQL('CREATE TABLE QS36F.HISTINTC (F00001 +
+                          CHAR(256) ) RCDFMT RHIST') COMMIT(*NONE)
+             RUNSQL     SQL('CREATE TABLE QS36F.HINTF04 (F00001 +
+                          CHAR(80) ) RCDFMT RHIST') COMMIT(*NONE)
+             RUNSQL     SQL('CREATE TABLE QS36F.BCP100 (K00001 +
+                          CHAR(5), F00001 CHAR(30), CONSTRAINT +
+                          QS36F.PK_BCP100 PRIMARY KEY( K00001) ) +
+                          RCDFMT RBCP') COMMIT(*NONE)
+             SNDPGMMSG  MSG('  ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* --                                                               */
+             CHGVAR     VAR(&WRK01) VALUE(COLBX)
+             CALLSUBR   SUBR(BORRATABLA)
+/* --                                                               */
+             CLRPFM     FILE(QS36F/DIEXTHIS)
+/* /PAUSE TERMINO EL BACKUP MENSUAL DE TODOS LOS SISTEMAS.'         */
+             CALL       PGM(GLOBALC/BORFINMECL)
+/* * ADICIONA REGISTROS DE HOY A ITCHBDU                            */
+             CALL       INTERB01/ITCHBDU
+/* * BORRA REGISTROS DE LA FECHA MAS ANTERIOR DE ITCHBOU            */
+             CALL       INTERB01/ITCHDEL
+/* * GENERA ARCHIVO RESUMEN DE USUARIOS DE INTERCHEQUE              */
+             CALL       ITCHBDU2CL
+/* * SBMJOB CMD(CALL PGM(UTI.LIBR/SAVUSRLIB)) PEDIDO INFRA          */
+             CHGDTAARA  DTAARA(*LDA (415 1)) VALUE('F')
+             CALL       TALIB/TACLRSPLF
+             CALL       SOBREDIA
+/* * SIGUIENTES LINEAS MODIFICADAS POR CESAR DUARTE EL 16/04/09 A PEDIDO DE VIRNA                         */
+/* * ============================================================================                         */
+/* * CALL IBANKING/IB009TCL                                                                               */
+/* * SBMJOB CMD(CALL IBANKING/IB020TCL) JOB(IB020TCL) DATE(?DATE?) **OPTIMIZACION PRBACKUP**              */
+/* * // * ' SE SUBMITIO LA ACTUALIZACION DE HISTORICOS PARA EXTRACTOS HOME BANKING '**OPTIMIZACION PRBACUP*/
+/* * // * ' *** ESPERAR EL MENSAJE DE FINALIZACION PARA ***' **OPTIMIZACION PRBACKUP**                    */
+/* * PAUSE                                                                                                */
+/* * SIGUIENTES LINEAS COMENTADAS, SERAN LLAMADOS DESDE PRCTAH01                                          */
+/* * SNDDST TYPE (*LMSG) TOUSRID((INTERNET MAIL)) +                                                       */
+/* *  TOINTNET((DATACENTERGITAU.COM.PY)) DSTD('EXTRACTOS HOME BANKING.') +                                */
+/* * LONGMSG('SE HA SOMETIDO EL TRABAJO IB020TCL. UNA VEZ  FINALIZADO, VERIFICAR +                        */
+/* * EN CONTROL-M LA EJECUCIÓN DE LOS PROCESOS DE ACTUALIZACIÓN DE EXTRACTOS +                            */
+/* * HOME BANKING.') HASTA AQUI ** OPTIMIZACION PRBACKUP **                                               */
+/* *SBMJOB CMD (CALL PGM(ITBPGLIB/PCB PR145)) DATE(?DATE?) **PROCESO COMENTADO 04-10-18 PEDIDO MARCOS M.* */
+/* ** ARCHIVO DE TASAS DE SOBREGIRO                                                                       */
+             CLRPFM     FILE(QS36F/TASASOB)
+             SBMJOB     CMD(CALL PGM(TASASOB)) DATE(&DATE)
+             CLRPFM     FILE(QS36F/HISTLIBE)
+             CLRPFM     FILE(QS36F/CAMALOG1)
+             CLRPFM     FILE(QS36F/CAMALOG2)
+             CLRPFM     FILE(QS36F/DETACHE02)
+             CLRPFM     FILE(QS36F/DETACHE06)
+             CPYF       FROMFILE(QS36F/MANUOPER) +
+                          TOFILE(QS36F/MANUOPERB) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CLRPFM     FILE(QS36F/MANUOPER)
+             CPYF       FROMFILE(QS36F/MOLDETXS) +
+                          TOFILE(QS36F/MOLDETHS) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CHEQMEPO) +
+                          TOFILE(QS36F/CHEQMEPH) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CHEQMEDE) +
+                          TOFILE(QS36F/CHEQMEDT) MBROPT(*ADD) +
+                          FMTOPT(*NONE)
+             CLRPFM     FILE(QS36F/CHEQMEPO)
+             CLRPFM     FILE(QS36F/CHEQMEDE)
+             CLRPFM     FILE(QS36F/CHEENVS)
+             CLRPFM     FILE(QS36F/CHEENV2S)
+             CLRPFM     FILE(QS36F/CHEQME1W)
+             CLRPFM     FILE(QS36F/IVCLEAN1)
+             CHGVAR     VAR(&WRK01) VALUE(RECIBI17)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ENVIA$17)
+             CALLSUBR   SUBR(BORRATABLA)
+             CLRPFM     FILE(QS36F/MOLDETXS)
+             SBMJOB     CMD(CALL PGM(SG003CCL)) DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/INFCATCL)) DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/MIGPROCL)) DATE(&DATE)
+/* ** PROCESO DE ACTUAL.COMIS.EXC.MOV DESDE DEBCRD   ***            */
+             SBMJOB     CMD(CALL PGM(ONLINE/COBCDBCL)) DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(INTERB02/VECAHSDOCL)) DATE(&DATE)
+/* *VECAHSDO                                                        */
+             CPYF       FROMFILE(QS36F/ROBOT) TOFILE(QS36F/ROBOTFM) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+/* ** INVENTARIO SEMANAL DE CHEQUERAS   ***                         */
+             SBMJOB     CMD(CALL PGM(ONLINE/CHINVENT)) DATE(&DATE)
+             CPYF       FROMFILE(QS36F/TCCOMIS) +
+                          TOFILE(QS36F/TCCOMISB) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CLRPFM     TCCOMIS
+/* *CLRPFM HVEZ **OPTIMIZACION PRBACKUP**                           */
+/*  LIMPIA ARCHIVO DE CORRECCION DIA ANTERIOR                       */
+             CLRPFM     FILE(QS36F/CCMDAN00)
+/* ** SUBMITO PROGRAMA PARA HAB. MOV. DE INFONET SI SE LLENA        */
+/* *SBMJOB CMD(CALL PGM(ONLINE/HINFMOV)) DATE(?DATE?) **OPTIMIZACION PRBACKUP** */
+/*  BORRA ARCHIVOS DE LA BANCA                                      */
+             SBMJOB     CMD(CALL PGM(BALIB/NBAME913C)) DATE(&DATE)
+/* ** LIMPIA ARCHIVOS DE SOLICITUD DE EXTRACTOS ***                 */
+/*  Estas lineas:                                                   */
+/* ** RMVM FILE(QS36F/CTEF04B) MBR(MB)                              */
+/* ** RMVM FILE(QS36F/AHOF048) MBR(MB)                              */
+/*  Se reemplazan por:                                              */
+             CALL       ONLINE/NCHM933L
+/* **                                                               */
+             CPYF       FROMFILE(CCLAVE/TCDEBCRE) +
+                          TOFILE(CCLAVE/TCDEBCHI) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CLRPFM     FILE(CCLAVE/TCDEBCRE)
+/*  INICIALIZA SGDATCLI Y SGDATCTA                                  */
+             SBMJOB     CMD(CALL PGM(INTERB01/SG006CCL)) DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/AMEX01BCL)) DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/NAP008CCL)) DATE(&DATE)
+/*  APLICA SOBREGIRO DE AHORRO (SOBAHO)                             */
+/* *CALL INTERB02/APLSOBAHCL **OPTIMIZACION PRBACKUP**              */
+             CPYF       FROMFILE(QS36F/HISTOCAH) +
+                          TOFILE(QS36F/HMOVICT) MBROPT(*REPLACE) +
+                          FROMRCD(2) INCCHAR(*RCD 11 *EQ &PM02) +
+                          FMTOPT(*NOCHK)
+/*  ACTUALIZA EL ARCHIVO QS36F/NPRCATAS                             */
+             SBMJOB     CMD(CALL PGM(ONLINE/CLNPRCAT)) DATE(&DATE)
+/*  ACTUALIZA ARCHIVOS DEL NUEVO SISTEMA DE APERTURA DE CUENTAS     */
+             SBMJOB     CMD(CALL PGM(ITBPRLIB/AX0021CL)) DATE(&DATE)
+/*  COPIAR REGISTROS DE COMISION 70/28 A UN HISTORICO Y DESPUES LIMPIAR PARA EL DIA SGTE  */
+             CPYF       FROMFILE(QS36F/DEBCRD1) +
+                          TOFILE(QS36F/DEBCRD1H) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CLRPFM     DEBCRD1
+/*  PAB STOCK Y CIERRE CAJAS                                        */
+             SBMJOB     CMD(CALL PGM(ONLINE/CLCIEAGENW)) DATE(&DATE)
+             CPYF       FROMFILE(QS36F/DEBCRD3) +
+                          TOFILE(QS36F/DEBCRD1) MBROPT(*ADD)
+             CPYF       FROMFILE(QS36F/MOLCAJA) +
+                          TOFILE(QS36F/MOLCAJAHI) MBROPT(*ADD)
+             CLRPFM     QS36F/MOLCAJA
+/* *NUEVO SISTEMA CNB.COM**                                         */
+             CPYF       FROMFILE(INFONET/MOLCNB) +
+                          TOFILE(INFONET/MOLCNBHI) MBROPT(*ADD)
+             CLRPFM     INFONET/MOLCNB
+/* *                                                                */
+             CPYF       FROMFILE(INFONET/MOLPSAC) +
+                          TOFILE(QS36F/MOLPSACHI) MBROPT(*ADD) +
+                          FMTOPT(*NOCHK)
+             CLRPFM     INFONET/MOLPSAC
+             CPYF       FROMFILE(QS36F/DEBCRD3) +
+                          TOFILE(QS36F/DEBCRD3H) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CLRPFM     FILE(QS36F/DEBCRD3)
+             CPYF       FROMFILE(QS36F/MANUOPPB) +
+                          TOFILE(QS36F/MANUOPER) MBROPT(*ADD)
+             CLRPFM     FILE(QS36F/MANUOPPB)
+/* *NUEVO SISTEMA CNB                                               */
+             CPYF       FROMFILE(INFONET/MANUOCNB) +
+                          TOFILE(INFONET/MANUHCNB) MBROPT(*ADD)
+             CPYF       FROMFILE(INFONET/MANUOCNB) +
+                          TOFILE(QS36F/MANUOPER) MBROPT(*ADD)
+             CLRPFM     INFONET/MANUOCNB
+/* **                                                               */
+             CLRPFM     FILE(QS36F/HOLBERROR)
+             CALL       PGM(ITBPGLIB/GRABALOGC)
+
+             /* Eliminacion de archivos */
+             /* =========== == ======== */
+             SUBR       SUBR(BORRATABLA)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/&WRK01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/&WRK01))
+             ENDSUBR
+
+             /* Copia de archivos */
+             /* ===== == ======== */
+             SUBR       SUBR(COPIATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(&TABLADES)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/&WRK01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CPYF       FROMFILE(QS36F/&TABLAORI) +
+                          TOFILE(QS36F/&TABLADES) CRTFILE(*YES)
+             ENDDO
+             ENDSUBR
+             ENDPGM

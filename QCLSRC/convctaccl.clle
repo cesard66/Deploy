@@ -1,0 +1,225 @@
+/* *ACT. DIRECCIONES Y TELEFONOS DESDE CATASTRO                     */
+             PGM
+
+             DCL        VAR(&PM11) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM12) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CALL       ONLINE/ACDIR002CL
+             CHGDTAARA  DTAARA(ONLINE/PROCHE (1 1)) VALUE('A')
+             SNDPGMMSG  MSG('CONVCTACCL') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('----------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('       +
+                          *------------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('       * ACTUALIZACION DE CUENTAS CON +
+                          LAS NOVEDADES DEL DIA            *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('       +
+                          *----------------------------------------+
+                          -----------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * VERIFICA VENCIMIENTO DE VALORES ESPECIALES DE TASA Y CAPITALICACION         */
+             CALL       MODIC002
+/* * DESDE SISTEMA APERTURA DE CUENTAS GENERA NOVEDADES DE ACTIVACION DE CUENTAS */
+             CHGJOB     SWS(00000000)
+             CALL       PGM(ITBPRLIB/AX0046CL)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MCLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(MCLBX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/MCLB) TOFILE(QS36F/MCLBX) +
+                          MBROPT(*ADD))
+             ELSE       CMD(CPYF FROMFILE(QS36F/MCLB) +
+                          TOFILE(QS36F/MCLBX) CRTFILE(*YES))
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(MCLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             CPYF       FROMFILE(QS36F/MCLB) TOFILE(QS36F/AUXMCL) +
+                          MBROPT(*ADD) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/MCLB) TOFILE(QS36F/MCLHOY) +
+                          MBROPT(*ADD) CRTFILE(*YES)
+             ENDDO
+
+             RTVMBRD    FILE(QS36F/MCLBX) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *GT 0) THEN(GOTO CMDLBL(DLT01))
+             IF         COND(&RCDNBR *NE 0) THEN(GOTO CMDLBL(SIG01))
+ DLT01:
+             CALL       PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('MCLB') ('CONVCTA') ('  '))
+             CHGVAR     VAR(&PM11) VALUE(((%SST(*LDA 490 021))))
+             CHGVAR     VAR(&PM12) VALUE(((%SST(*LDA 511 002))))
+             IF         COND(&PM12 *EQ '02') THEN(DO)
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             GOTO       CMDLBL(SIG01)
+             ENDDO
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(DO)
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             GOTO       CMDLBL(DLT01)
+             ENDDO
+ SIG01:
+             RTVMBRD    FILE(QS36F/MCLBX) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *GT 0) THEN(CHGJOB SWS(10000000))
+/*                                                                  */
+             SNDPGMMSG  MSG('COLOCA COD. DE AGENCIA 2 DIGITOS AL +
+                          MCLBX') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(MCLBX01)
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MCLU) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(RUNSQL +
+                          SQL('CREATE TABLE QS36F.MCLU (F00001 +
+                          CHAR(280) 9 RCDFMT RMCLU') COMMIT(*NONE))
+             IF         (%SWITCH(1XXXXXXX)) CPYF +
+                          FROMFILE(QS36F/MCLBX) TOFILE(QS36F/MCLU) +
+                          MBROPT(*ADD)
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QSS36F/MCLXX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/MCLXX))
+             IF         COND(%SWITCH(0XXXXXXX)) THEN(GOTO +
+                          CMDLBL(PULO1))
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MCLXX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/MCLXX)
+             ENDDO
+             RUNSQL     SQL('CREATE TABLE QS36F.MCLXX (F00001 +
+                          CHAR(280) ) RCDFMT RMCLXX') COMMIT(*NONE)
+             RUNSQL     SQL('INSERT INTO QS36F.MCLXX SELECT F00001 +
+                          FROM QS36F.MCLBX ORDER BY +
+                          SUBSTRING(F00001 FROM 279 FOR   2) ASC, +
+                          SUBSTRING(F00001 FROM   1 FOR   1) ASC, +
+                          SUBSTRING(F00001 FROM 256 FOR   1) ASC, +
+                          SUBSTRING(F00001 FROM   1 FOR   9) ASC, +
+                          SUBSTRING(F00001 FROM 250 FOR   6) ASC') +
+                          COMMIT(*NONE)
+             DLTF       FILE(QS36F/MCLBX)
+             RNMOBJ     OBJ(MCLXX) OBJTYPE(*FILE) NEWOBJ(MCLBX)
+/* * VERIFICA REGISTROS CON CUENTA CERO EN MCLB                     */
+             CALL       CONTROMCL
+             IF         (%SWITCH(XXXXXX1X)) DO
+             SNDPGMMSG  MSG('NRO DE CUENTA CERO EN MCL AVISE AL +
+                          ANALISTA DE CUENTAS CORRIENTES') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('EL REGISTRO YA FUE OMITIDO Y FIGURA EN +
+                          ERRMCL - INVESTIGAR ORIGEN')
+             ENDDO
+/* * ACTUALIZACION DE ARCHIVOS Y LISTADOS                           */
+             OVRPRTF    FILE(ACTCUE) TOFILE(QPRINT) FORMTYPE(RE66) +
+                          COPIES(1) HOLD(*YES)
+             CALL       (ONLINEC/ACTCUE)
+             DLTOVR     FILE(*ALL)
+             CALL       PGM(COREPGDB2/MIGRACC2)
+/* *** GENERA RELACION CUENTA/AGENCIA, A LAS QUE FALTAN TENER ****  */
+             CALL       AG002L
+             SNDPGMMSG  MSG('---- LISTA DE CUENTAS DADAS DE BAJA EN +
+                          LA FECHA ----') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRPRTF    FILE(BAJAS) FORMTYPE(RE66) COPIES(9) +
+                          OUTPTY(9) HOLD(*YES)
+             CALL       PGM(ONLINEC/LISBAJNW)
+             SNDPGMMSG  MSG('---- CTAS. NUEVAS SIN NRO.DE +
+                          CLIENTE            ----') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRPRTF    FILE(CATAS2) TOFILE(QPRINT) PAGESIZE(66) +
+                          FORMTYPE(RE66) HOLD(*YES)
+             CALL       PGM(ONLINEC/CATAS2NW)
+             DLTOVR     FILE(*ALL)
+ PULO1:
+             IF         COND((%SST(*LDA 051 008)) *EQ CONVCHCL) +
+                          THEN(GOTO CMDLBL(FIN))
+             IF         ((%SST(*LDA 051 009)) *EQ CONVAGECL) CALL +
+                          PGM(COTO) PARM(FIN)
+/* *RENOMBRA PARA LUEGO HACER BACKUP Y BORRADO EN CONVCH O EN  CONVAGE */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MCLBXFH) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             SNDPGMMSG  MSG('AUN NO FUE HECHO BACKUP Y BORRADO DE +
+                          MCLBXFH') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             DLTF       FILE(QS36F/MCLBXFH)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MCLBX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(RNMOBJ +
+                          OBJ(QS36F/MCLBX) OBJTYPE(*FILE) +
+                          NEWOBJ(MCLBXFH))
+ FIN:
+/* * VALIPF **YA NO SE USA                                          */
+             CALL       PGM(CONTMCLCL)
+/* *-/ IF ?F'A,MCLB'?>0 PAUSE 'ERROR-MCLB CON REGISTROS-MIMIX-AB'   */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MCLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(RUNSQL +
+                          SQL('CREATE TABLE QS36F.MCLC (F00001  +
+                          CHAR(280) ) RCDFMT RMCLB)') COMMIT(*NONE))
+/* **** Ticket #118839 Controla ALTAS JMDG *****                    */
+             SNDPGMMSG  MSG('CONTROLA QUE TODAS LAS ALTAS DEL DIA +
+                          ESTEN EN CTESDO/CAHSDO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(RTVFRN) PARM(CONTRCOL &RCDNBR)
+             IF         COND(&RCDNBR *GT 0) THEN(CPYF +
+                          FROMFILE(QS36F/CONTRCOL) +
+                          TOFILE(QS36F/CONTRCOLH) MBROPT(*ADD) +
+                          CRTFILE(*YES))
+             CLRPFM     FILE(CONTRCOL)
+/* *OVRDBF COLB COLBY                                               */
+             CALL       PGM(CONTRCOL)
+             RTVMBRD    FILE(QS36F/CONTRCOL) NBRCURRCD(&RCDNBR)
+             IF         (&RCDNBR *GT 0) DO
+             PAUSE      MSG('ERROR-HAY ALTAS HOY NO ESTAN EN +
+                          CTESDO/CAHSDO')
+             RUNQRY     QRY(CONTRCOL)
+             ENDDO
+/* **** Ticket #118839 Fin Control de ALTAS *****                   */
+             CHGDTAARA  DTAARA(ONLINE/PROCHE (1 1)) VALUE(' ')
+             DLYJOB     DLY(10)
+             CPYF       FROMFILE(QS36F/MCLA) TOFILE(QS36F/MCLB) +
+                          MBROPT(*ADD)
+             RTVMBRD    FILE(QS36F/MCLA) NBRCURRCD(&RCDNBR)
+             IF         COND(*NOT (&RCDNBR *EQ 0)) THEN(CPYF +
+                          FROMFILE(QS36F/MCLA) +
+                          TOFILE(QS36F/MCLA.BK) MBROPT(*REPLACE) +
+                          CRTFILE(*YES))
+             CPYF       FROMFILE(BDIGEN/MCLB) TOFILE(QS36F/MCLB) +
+                          MBROPT(*ADD)
+             CPYF       FROMFILE(BDIGEN/MCLB) TOFILE(QS36F/MCLA.BK) +
+                          MBROPT(*ADD) CRTFILE(*YES)
+             CLRPFM     MCLA
+             CLRPFM     BDIGEN/MCLB
+             CPYF       FROMFILE(QS36F/CTESNCL) +
+                          TOFILE(BALIB/CTESNCL) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CAHSCLIE) +
+                          TOFILE(BALIB/CAHSCLIE) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CALL       ITBPGLIB/CPYDWTJ
+
+             ENDPGM

@@ -1,0 +1,48 @@
+/*                                                                  */
+/*  ADICIONA ARCHIVOS DE 96 DE LONGITUD                             */
+/*                                                                  */
+             PGM        PARM(&PM01 &PM02)
+
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+
+ NEW:
+             IF         COND(&PM01 *EQ ' ') THEN(SNDUSRMSG +
+                          MSG('INTRODUZCA NOMBRE DE ARCHIVO PARA +
+                          ADICIONAR--> 96 DE LONGITUD') +
+                          TOMSGQ(*EXT) MSGRPY(&PM01))
+             IF         (&PM01 *EQ ' ') GOTO NEW
+             IF         COND(&PM02 *EQ ' ') THEN(SNDUSRMSG +
+                          MSG('INTRODUZCA NOMBRE DE ARCHIVO A +
+                          ADICIONARSE-96 DE LONGITUD') TOMSGQ(*EXT) +
+                          MSGRPY(&PM02))
+             IF         (&PM02 *EQ ' ') GOTO NEW
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/&PM02) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) GOTO HACE
+             CPYF       FROMFILE(&LIBF/&PM01) TOFILE(&LIBF/&PM02) +
+                          CRTFILE(*YES)
+             GOTO       CMDLBL(NHACE)
+/*                                                                  */
+ HACE:
+             RTVMBRD    FILE(&LIBF/&PM01) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(GOTO CMDLBL(NHACE))
+
+             OVRDBF     FILE(INPUT) TOFILE(&LIBF/&PM01)
+             OVRDBF     FILE(OUTPUT) TOFILE(&LIBF/&PM02)
+             CALL       PGM(EXP.LIBR/ADD96NW)
+             DLTOVR     FILE(*ALL)
+ NHACE:
+/*                                                                  */
+
+             ENDPGM

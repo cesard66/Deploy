@@ -1,0 +1,18 @@
+             PGM        PARM(&PM01)
+
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(032)
+
+             CHGDTAARA  DTAARA(*LDA (1 32)) VALUE(&PM01)
+             CHGVAR     VAR(&PM01) VALUE('1' *CAT (%SST(*LDA 005 +
+                          002)) *TCAT (%SST(*LDA 003 002)) *TCAT +
+                          (%SST(*LDA 001 002)))
+             CHGVAR     VAR(&PM02) VALUE(((%SST(*LDA 001 006))))
+             CPYF       FROMFILE(BDIGEN/BDBRREP) +
+                          TOFILE(BDIGE2/BDBRREPW) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCREL((*IF BRANDT *EQ &PM01))
+             RUNQRY     QRY(OPECAJ4) QRYFILE((BDIGE2/BDBRREPW))
+             RUNQRY     QRY(OPETAR4H) QRYFILE((BDIGE2/BDBRREPW))
+             RUNQRY     QRY(MOLTARJE) QRYFILE(((MBX *CAT &PM02)))
+
+             ENDPGM

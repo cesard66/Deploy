@@ -1,0 +1,12 @@
+/*  ------------------------------------------------------------- * */
+/*           REPROCESO BAJAS DE CARTAS DE CREDITO                   */
+/*  CER225CL CAMBIA ESTADO FIN DEL DIA                              */
+/*  ------------------------------------------------------------- * */
+/*                                                                  */
+             PGM
+
+             OVRDBF     FILE(CERBAJ) TOFILE(CER.BAJ)
+             CALL       PGM(CER225NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

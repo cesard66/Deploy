@@ -1,0 +1,12 @@
+/*  ----------------------------------------------------  *         */
+/*        FIN PROCESO CARTA DE CREDITO                    *         */
+/*  CER185            MODIFICACION                BUENO   *         */
+/*  ----------------------------------------------------  *         */
+/*                                                                  */
+             PGM
+
+             OVRDBF     FILE(CERMOD) TOFILE(CER.MOD)
+             CALL       PGM(EXP.LIBR/CER185NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

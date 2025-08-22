@@ -1,0 +1,66 @@
+             PGM
+
+             DCL        VAR(&PROC) TYPE(*CHAR) LEN(10) +
+                          VALUE('PRCONTAB')
+
+             SNDPGMMSG  MSG('************    PROCESO UNICO DE +
+                          CONTABILIDAD                  *********') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(RTVDTAARAC) PARM((ERVALCON))
+             IF         ((%SST(*LDA 311 001)) *EQ E) DO
+             SNDPGMMSG  MSG('EXISTEN ERRORES EN LA CONSISTENCIA, NO +
+                          PUEDE CORRER CONTABILIDAD') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * ESTABLECE FECHA DE PROCESO                                     */
+             CALL       PGM(GLOBAL/FIJAFCIE)
+/* * VALIDA FECHA DE PROCESO                                        */
+             CHGJOB     SWS(00000000)
+             CALL       PGM(GLOBAL/CONFECTE)
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('FECHA DE PROCESO NO ES +
+                          CORRECTA-CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* * VERIFICA SI EL USUARIO ESTA AUTORIZADO A EJECUTAR              */
+             CALL       PGM(GLOBAL/PRAUTORJCL)
+             SNDPGMMSG  MSG('PRCONTAB======>          PROCESO UNICO +
+                          DE CONTABILIDAD       <====') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* -- VERIFICA SI EL PROCESO ESTA DISPONIBLE PARA INICIO            */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('1'))
+             IF         (%SWITCH(XXXXXXX1)) DO
+             SNDPGMMSG  MSG('PROCESO NO DISPONIBLE PARA INICIO') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('2'))
+/* * PROCESO DIARIO DE CONTABILIDAD                                 */
+             CALL       PGM(INTERB03/BDIARIXCL)
+/* -- COLOCA MARCA FINALIZADO AL PROCESO                            */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('4'))
+/* -- DEJA DISPONIBLE PROCESO 'PRBACKUP'                            */
+             CALL       PGM(PRCSTATUS) PARM((&PROC))
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                     FIN DEL PROCESO +
+                          DE CONTABILIDAD                     *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+ ALFIN:
+             CHGDTAARA  DTAARA(*LDA (311 1)) VALUE(' ')
+
+             ENDPGM

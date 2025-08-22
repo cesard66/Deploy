@@ -1,0 +1,46 @@
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010 0)
+
+             OVRDBF     CAMAGX CAMAG0
+             CLRPFM     CAMAGGB
+             OVRDBF     CAMAGG CAMAGGB
+             CALL       ONLINEC/CAMAR8R
+/*  EXCLUYO GERENCIA FINANCIERA Y RRHH                              */
+             CPYF       FROMFILE(QS36F/CAMAGGB) +
+                          TOFILE(QS36F/CAMAGGW) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCCHAR(*RCD 5 *NE ' ') +
+                          INCREL((*IF GERENT *NE 'A') (*AND GERENT +
+                          *NE 'D'))
+/*                                                                  */
+             OVRDBF     FILE(CAMAGGB) TOFILE(QS36F/CAMAGGW)
+             OVRDBF     FILE(ROBOT) SHARE(*YES)
+             OVRDBF     FILE(CCTREL) SHARE(*YES)
+             OVRDBF     FILE(CTESDO) SHARE(*YES)
+             OVRDBF     FILE(BDCAREL2) TOFILE(BDIGEN/BDCAREL2) +
+                          SHARE(*YES)
+             OVRDBF     FILE(COL) TOFILE(COLB) SHARE(*YES)
+             OVRDBF     FILE(TCMAECOM) TOFILE(TARJETA/TCMAECOM)
+             OVRDBF     FILE(TCMAECU1) TOFILE(TARJETA/TCMAECU1)
+             OVRPRTF    FILE(CAMAR8PR) TOFILE(ONLINEC/CAMAR8PR)
+             CALL       PGM(ONLINEC/CAMAR8)
+             DLTOVR     FILE(CAMAGGB)
+/* SOLO GERENCIA FINANCIERA Y RRHH                                  */
+             CPYF       FROMFILE(QS36F/CAMAGGB) +
+                          TOFILE(QS36F/CAMAGGW) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCCHAR(*RCD 5 *EQ ' ') +
+                          INCREL((*IF GERENT *EQ 'D') (*OR GERENT +
+                          *EQ 'A'))
+             RTVMBRD    FILE(*LIBL/CAMAGGW) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(GOTO CMDLBL(NOPRT))
+             OVRDBF     FILE(CAMAGGB) TOFILE(QS36F/CAMAGGW)
+             CALL       ONLINEC/CAMAR8
+             DLTOVR     FILE(CAMAGGB)
+ NOPRT:
+             OVRPRTF    FILE(QPQUPRFIL) TOFILE(QPQUPRFIL) HOLD(*YES) +
+                          SAVE(*YES)
+             RUNQRY     CAMAGGB1
+             RUNQRY     CAMAGGB2
+             DLTOVR     FILE(QPQUPRFIL)
+
+             ENDPGM

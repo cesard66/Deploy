@@ -1,0 +1,39 @@
+/* *BLOQUEO DE SALDOS                                               */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+
+             ALCOBJ     OBJ((*LIBL/BLOQUEOCL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('ESTE PROGRAMA ESTA SENDO UTILIZADO EN +
+                          OTRO TERMINAL-CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/BLOQUEO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE TABLE BLOQUEO ( K00001 CHAR(9), +
+                          F00001 CHAR(165) , CONSTRAINT +
+                          QS36F.PK_BLOQUEO PRIMARY KEY( K00001 ) ) +
+                          RCDFMT RBLOQUEO') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+             CHGDTAARA  DTAARA(*LDA (1 38)) VALUE(&USER *TCAT +
+                          '                          ')
+             OVRDBF     FILE(COLO) TOFILE(COLB)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             CALL       PGM(BLOQEONW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

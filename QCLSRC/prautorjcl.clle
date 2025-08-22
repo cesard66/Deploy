@@ -1,0 +1,27 @@
+/* * * '=====> CONTROL SI EL USUARIO ESTA O NO AUTORIZADO A PROCESAR <===== */
+             PGM
+
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             IF         COND((*NOT (&USER *EQ ARMINR)) *AND (*NOT +
+                          (&USER *EQ DANIEL)) *AND (*NOT (&USER *EQ +
+                          BRUNOBA)) *AND (*NOT (&USER *EQ +
+                          MARCELMO)) *AND (*NOT (&USER *EQ +
+                          NESTORO)) *AND (*NOT (&USER *EQ DANIELS)) +
+                          *AND (*NOT (&USER *EQ CONTROLM))) THEN(DO)
+             SNDPGMMSG  MSG('USUARIO NO AUTORIZADO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+             CHGJOB     SWS(00000000)
+             CHGCURLIB  CURLIB(QGPL)
+             CHGLIBL    LIBL(QTEMP QGPL QS36F CAMLIB ONLINE GLOBAL +
+                          INTERB01 INTERB02 INTERB03 INTERB04 +
+                          INTERB05 QSSP EXP.LIBR CONFIN UTI. LIBR +
+                          CATAS INTERB07 IPGCFD3 IPGCFP3 IPGCFF3 +
+                          IMP.KOL IMP.LIBR GX ÑLIBRARY)
+             CHGCURLIB  CURLIB(ÑLIBRARY)
+
+             ENDPGM

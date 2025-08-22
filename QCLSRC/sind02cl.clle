@@ -1,0 +1,9 @@
+             PGM
+
+             OVRDBF     FILE(SINDOPER) TOFILE(SEI.OPER)
+             OVRDBF     FILE(SINDCASA) TOFILE(SEI.CASA)
+             OVRDBF     FILE(NOMINAS) TOFILE(SEIMAES)
+             CALL       PGM(SIND02NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

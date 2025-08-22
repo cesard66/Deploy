@@ -1,0 +1,171 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+
+             CHGJOB     SWS(10000000)
+             ADDLIBLE   LIB(ITBPGLIB) POSITION(*LAST)
+             CALL       PGM(INTERB01/CHISTFMCL)
+             CPYF       FROMFILE(QS36F/HISTORY1) +
+                          TOFILE(QS36F/HISTOR70) MBROPT(*REPLACE) +
+                          INCCHAR(*RCD 7 *EQ '70') FMTOPT(*NOCHK)
+/* *OVRDBF HISTORY1 HISTORY4                                     */
+             CLRPFM     FILE(HISTORPF)
+/* *CALL CHISTORPF                                               */
+/* *DLTOVR FILE(HISTORY1)                                        */
+             CPYF       FROMFILE(QS36F/HISTORSB) +
+                          TOFILE(QS36F/HISTORPO) MBROPT(*REPLACE) +
+                          FMTOPT(*NOCHK)
+             SBMJOB     CMD(CPYF FROMFILE(QS36F/HISTORSB) +
+                          TOFILE(QS36F/HISTORPF) MBROPT(*REPLACE) +
+                          FMTOPT(*NOCHK))
+             CPYF       FROMFILE(QS36F/SOBRESEP) +
+                          TOFILE(QS36F/SOBRESEH) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/DETSOSEP) +
+                          TOFILE(QS36F/DETSOSEH) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CLRPFM     FILE(SDIFESAL)
+             CLRPFM     FILE(SNUMENEG)
+             CLRPFM     FILE(SOBREN)
+             CLRPFM     FILE(DETSOBN)
+             CLRPFM     FILE(SOBRESEP)
+             CLRPFM     FILE(DETSOSEP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/HISTOR4X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(RUNSQL +
+                          SQL('CREATE INDEX QS36F.HISTOR4X ON +
+                          QS36F.HISTORPO ( CTACTE ASC )') +
+                          COMMIT(*NONE))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/HISTOR5X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(RUNSQL +
+                          SQL('CREATE INDEX QS36F.HISTOR5X ON +
+                          QS36F.HISTORPO ( CTACTE ASC )') +
+                          COMMIT(*NONE))
+             OVRDBF     FILE(UCGMACL7) TOFILE(ITBDBLIB/UCGMACL7)
+             OVRDBF     FILE(CCMASL) TOFILE(QS36F/CCMASL1)
+             OVRDBF     FILE(PCDCBASE) TOFILE(IBANKING/PCDCBASE)
+             CALL       PGM(CTES39NN)
+             DLTOVR     FILE(CCMASL)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/POSCCCME) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CRTPF +
+                          FILE(QS36F/POSCCCME) RCDLEN(80) SIZE(50 25))
+             CLRPFM     FILE(POSCCCME)
+             OVRDBF     FILE(INTF04) TOFILE(POSCCCME)
+             CALL       PGM(CTES39NNE)
+/* *************************************************************************** */
+/*  SOBREGIROS CTASCTES EURO                                                   */
+/* *************************************************************************** */
+             CALL       PGM(CTES39NNEU)
+             CALL       PGM(CSOBREGI)
+             RUNQRY     QRY(SDIFESAL) QRYFILE((QS36F/SDIFESAL))
+             RUNQRY     QRY(SNUMENEG) QRYFILE((QS36F/SNUMENEG))
+             RTVMBRD    FILE(QS36F/SDIFESAL) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(DO)
+             SNDPGMMSG  MSG('ERROR GRAVE - HAY SALDOS CON PROBLEMA +
+                          AL CALCULAR SOBREGIRO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EL PROCESO NO PUEDE CONTINUAR +
+                          COMUNIQUESE CON EL ANALISTA DE GUARDIA') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             ENDDO
+/* **************************************************************************** */
+/* ** GENERACION DE ARCHIVO NUEVO DE CUENTAS CON SOBREGIRO (CTASSOB)            */
+/* **************************************************************************** */
+             CALL       PGM(CTES38CL)
+/* **************************************************************************** */
+/* ** SEPARA SOBREGIROS QUE PASAN LA TASA MAXIMA O SON MENORES AL MONTO MINIMO  */
+/* **************************************************************************** */
+             CALL       PGM(SBSEPARA)
+             RUNQRY     QRY(SOBRESEP)
+             RTVMBRD    FILE(QS36F/SDIFESAL) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(DO)
+             PAUSE      MSG('NO PUEDE CONTINUAR POR SOBREGIROS +
+                          EXCLUIDOS SOBREPASANDO LIMITES')
+             ENDDO
+/* **************************************                               */
+/*  MODULO PARA REINTENTAR A MENOR TASA *                               */
+/* **************************************                               */
+/* *CTEP33RE                                                            */
+/* ******************************************************************** */
+/*  DEJA ARCHIVOS EN EL FORMATO ANTERIOR PARA EL RESTO DEL SISTEMA      */
+/* ******************************************************************** */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/SOBRE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CRTPF +
+                          FILE(QS36F/SOBRE) SRCFILE(QS36F/QDDSSRC) +
+                          OPTION(*NOSRC *NOLIST) SIZE(*NOMAX))
+             CLRPFM     FILE(SOBRE)
+             CLRPFM     FILE(DETSOB)
+             CPYF       FROMFILE(QS36F/SOBREN) TOFILE(QS36F/SOBRE) +
+                          MBROPT(*REPLACE) FMTOPT(*NOCHK)
+             CPYF       FROMFILE(QS36F/DETSOBN) TOFILE(QS36F/DETSOB) +
+                          MBROPT(*REPLACE) FMTOPT(*NOCHK)
+/* ******************************************************************** */
+/*  CREA HISTORICO DE SOBREGIROS (DETSOBNH)                             */
+/* ******************************************************************** */
+             CALL       PGM(ONLINE/NDETSOBNH)
+/* ******************************************************************** */
+/* ** DIFIERE APLICACION DE SOBREGIROS A CUENTAS CON CLAS. 'C' 'D' 'E'  */
+/* ******************************************************************** */
+             CALL       PGM(SBVENCID)
+             DLTF       FILE(QS36F/HISTOR4X)
+             DLTF       FILE(QS36F/HISTOR5X)
+/* * AQUI GENERA POSICION DE CAMBIOS, DESPUES DE EXTORNAR SOBREGIROS CLASIFICADOS */
+             CPYF       FROMFILE(QS36F/POSCCCME) +
+                          TOFILE(QS36F/POSCC.B) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CLRPFM     FILE(POSCCCME)
+             CALL       PGM(GENEPOSC)
+/* * Lleva sobregiro ML a FAMAFA                                                  */
+/* ***CALL FAMASOBL      SE LLEVO A CTEP22 DESPUES DE EXTRACTOS                   */
+/* * Lleva sobregiro ME a FAMAFA                                                  */
+/* ***CALL FAMASOBE      SE LLEVO A CTEP22 DESPUES DE EXTRACTOS                   */
+/* ** CONFECCIONA PLANILLA Y GENERA REGISTROS DE TRANSACCIONES P/ACTUALIZ.C/GTOS  */
+/*                                                                                */
+             SNDPGMMSG  MSG('    Impresion de los gastos de +
+                          Sobregiros') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/SOBREGIR) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(QS36F/SOBREGIR) RCDLEN(80))
+             OVRPRTF    FILE(CTES40) TOFILE(QPRINT) COPIES(1)
+             CALL       PGM(CTES40NW) /*CONFEC.PLANILLA DE GASTOS +
+                          P/SOBREGIRO*/
+             OVRPRTF    FILE(CTES40) TOFILE(QPRINT) COPIES(1)
+             CALL       PGM(CTES40ENW) /*CONFEC.PLANILLA DE GASTOS +
+                          P/SOBREGIRO*/
+/*                                                                  */
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('***               SEGUNDO --- +
+                          RE-PROCESO DE LA CONSISTENCIA             +
+                          ***') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * IF DATAF1-SOBREGIR *  'Van a ingresar hoy los Débitos por Sobregiros? ' */
+/* * IF DATAF1-SOBREGIR *  '   Teclee  ... SI  ;  otra entrada asumo ... NO' */
+/* * IF DATAF1-SOBREGIR *  ' -- Ultimo proceso del año, debera ser SI --'    */
+/* * IF DATAF1-SOBREGIR IF ?2R?/SI RENAME SOBREGIR,SGIRO                     */
+             RNMOBJ     OBJ(QS36F/SOBREGIR) OBJTYPE(*FILE) +
+                          NEWOBJ(SGIRO)
+
+             ENDPGM

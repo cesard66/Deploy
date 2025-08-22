@@ -1,0 +1,27 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&FIEM) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&FIAG) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             CHGVAR     VAR(&PM01) VALUE(((%SST(*LDA 003 004))))
+             CLRPFM     IVESTAEM
+             CLRPFM     IVESTAAG
+             CLRPFM     IVMAESWW
+             CALL       IVO17P
+             CALL       IVO18P
+             CALL       IVO19P
+             CHGVAR     VAR(&FIEM) VALUE('IVEM' *TCAT &PM01)
+             CHGVAR     VAR(&FIAG) VALUE('IVAG' *TCAT &PM01)
+             CPYF       FROMFILE(QS36F/IVESTAEM) TOFILE(WRLIB/&FIEM) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/IVESTAAG) TOFILE(WRLIB/&FIAG) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CLRPFM     IVESTAEM
+             CLRPFM     IVESTAAG
+             CLRPFM     IVMAESWW
+
+             ENDPGM

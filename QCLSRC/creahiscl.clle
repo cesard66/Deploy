@@ -1,0 +1,10 @@
+             PGM
+
+             CPYF       FROMFILE(QS36F/HISTORY1) +
+                          TOFILE(QS36F/HISTOR70) MBROPT(*REPLACE) +
+                          INCCHAR(*RCD 7 *EQ '70') FMTOPT(*NOCHK)
+             OVRDBF     FILE(HISTORPF) TOFILE(QS36F/HISTORBK)
+             CLRPFM     FILE(QS36F/HISTORBK)
+             CALL       PGM(INTERB01/CHISTORPF)
+
+             ENDPGM

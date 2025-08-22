@@ -1,0 +1,39 @@
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(008)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG(' Prepara el archivo para listar +
+                          Consistencia de Pedidos Chequeras') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CTEF21) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(CTEF21))
+             CALL       PGM(JUNCHE)
+             RTVMBRD    FILE(*LIBL/CTEF21) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(DO)
+
+             SNDPGMMSG  MSG('NO SE HAN SOLICITADO CHEQUERAS  ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             GOTO       CMDLBL(FIN)
+             ENDDO
+/* CONSISTENCIA DE SOLICITUD DE CHEQUERAS'                          */
+
+/* LOAD CTES48                                                     +
+// FILE NAME-CTEF21                                                +
+// FILE NAME-CTESDO,DISP-SHR                                       +
+// FILE NAME-TABBANC1,DISP-SHR                                     +
+// PRINTER NAME-CTES48,FORMSNO-BORR,COPIES-1,PRIORITY-0            +
+// RUN                                                             +
+// IF SWITCH2-1 * 'SE HA SOLICITADO CHEQUERA P/CTA INEXISTENTE'    +
+// IF SWITCH2-1 * 'IMPRIMA LA CONSISTENCIA PARA SU VERIFICACION'   +
+// IF SWITCH2-1 * 'E INFORME AL RESPONSABLE DE LA AGENCIA.    '    +
+// IF SWITCH2-1 * 'UD. PUEDE CONTINUAR CON SU PROCESO NORMALMENTE' +
+// IF SWITCH2-1 PAUSE                                                */
+
+ FIN:
+             ENDPGM

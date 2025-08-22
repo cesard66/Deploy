@@ -1,0 +1,21 @@
+             PGM
+/*============================================================*/
+/* SISTEMA.: CONTROL DE STOCK                                 */
+/* PROGRAMA: EMISION DE SOLICITUD DE MATERIALES               */
+/* FUNCION.: DA SALIDA, YA SEA POR IMPRESORA O PANTALLA (DE   */
+/*           ACUERDO A LO ESPECIFICADO POR EL OPERADOR) EL    */
+/*           PEDIDO QUE SE DESEA SOLICITAR DE DEPOSITOS A     */
+/*           COMPRAS                                          */
+/*                                                            */
+/*                                                            */
+/*============================================================*/
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             CHGDTAARA  DTAARA(*LDA (1 10)) VALUE(&USER)
+             OVRPRTF    FILE(LSTK101) TOFILE(QPRINT) PAGESIZE(66) +
+                          CPI(15) FORMTYPE(RE66)
+             OVRDSPF    FILE(STKFM) TOFILE(*LIBL/STK04FM)
+             CALL       PGM(STK04NW)
+
+             ENDPGM

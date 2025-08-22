@@ -1,0 +1,151 @@
+             PGM
+
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&TYPEWS) TYPE(*DEC) LEN(001)
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CALL       PGM(QSSP/QEXCVTDV) PARM((&WSID) (&JOBA) +
+                          (&TYPEWS))
+             CHGJOB     SWS(00000000)
+             CHGDTAARA  DTAARA(*LDA (1 12)) VALUE(&WSID *TCAT &USER)
+/* * Verifica datos de proceso                                      */
+             RTVMBRD    FILE(CAMAGW) NBRCURRCD(&RCDNBR)
+             IF         (&RCDNBR *EQ 0) GOTO ALFIN
+/* * -------------- CAMAR10,ONLINE: INICIO ------------------------ */
+             OVRDBF     FILE(UCGMACL9) TOFILE(ITBDBLIB/UCGMACL9)
+             CALL       PGM(INTERB01/CTES52)
+/* * COBRA COMISION POR EXCESO DE SOBREGIRO AUTORIZADO              */
+             CALL       PGM(INTERB01/CTES81)
+/* *--------------- CAMAR10,ONLINE: FIN --------------------------- */
+/* * -------------- CTECOM, ONLINEC: INICIO ----------------------- */
+/* * GENERA DEBITO a partir del proceso de Camara compensador a     */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAMAG0) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(GOTO +
+                          CMDLBL(ALFIN))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PENDXIND) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE INDEX PENDXIND ON PENDX ( +
+                          CAST(SUBSTRING(F00001 FROM 15 FOR  7) AS +
+                          CHAR(7)) AS K00001 ASC)) RCDFMT RPENDX +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+             CHGJOB     SWS(00000000)
+/* *                                                                */
+             OVRDBF     FILE(CAMAGX) TOFILE(QS36F/CAMAG0LG)
+             OVRDBF     FILE(EXCENTOS) TOFILE(QS36F/EXCENTOS)
+             OVRDBF     FILE(TARJOL) TOFILE(QS36F/TARJOL)
+             OVRDBF     FILE(COLB) TOFILE(QS36F/COLB)
+             OVRDBF     FILE(TOLB) TOFILE(QS36F/TOLB)
+             CALL       PGM(ONLINEC/CTECOMNW)
+/* * -------------- CTECOM, ONLINEC: FIN -------------------------  */
+/* * -------------- LISCOM, ONLINEC: INICIO ----------------------  */
+/* * LISTA DE LAS COMISIONES A SER COBRADAS DEL DIA                 */
+             CHGJOB     SWS(00000000)
+/* *                                                                */
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             OVRDBF     FILE(COL) TOFILE(COLB)
+             OVRDBF     FILE(CMAG) TOFILE(CMAGL1)
+             OVRPRTF    FILE(DEBITO) DEV(PR) PAGESIZE(66) CPI(15) +
+                          FORMTYPE(RE66) COPIES(1) HOLD(*YES) OUTPTY(9)
+             CALL       PGM(ONLINEC/LISCOMNW)
+             DLTOVR     FILE(*ALL)
+/* * -------------- LISCOM, ONLINEC: FIN -------------------------  */
+/* * -------------- DEBCOM, ONLINEC: INICIO ----------------------  */
+/* * DEBITA DE CUENTA DEL CLIENTE LAS COMISIONES PENDIENTES Y DEL DIA    */
+/* * ELIMINA LAS COMISIONES PENDIENTES DE CUENTAS PAGO DE SALARIO ACTIVA */
+             CALL       PGM(IN302R)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PENDXX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(PENDXX))
+             RUNSQL     SQL('CREATE TABLE PENDXX AS(SELECT * FROM +
+                          PENDX ORDER BY SUBSTR(F00001, 1, 9) ASC, +
+                          SUBSTR(F00001, 26, 4) ASC, SUBSTR(F00001, +
+                          24, 2) ASC, SUBSTR(F00001, 22, 2) ASC, +
+                          SUBSTR(F00001, 30, 15) ASC) WITH DATA')
+/* *                                                                */
+ VUELTA:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PENDX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PENDXX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(PENDX))
+             ENDDO
+             RTVMBRD    FILE(PENDX) NBRCURRCD(&RCDNBR)
+             IF         COND(*NOT (&RCDNBR *EQ 0)) THEN(GOTO +
+                          CMDLBL(VUELTA))
+/* *                                                                */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PENDXX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/PENDXX) +
+                          TOFILE(QS36F/PENDX) MBROPT(*ADD) +
+                          CRTFILE(*YES))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PENDXX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(PENDXX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PENDXIND) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE INDEX PENDXIND ON PENDX ( +
+                          CAST(SUBSTRING(F00001 FROM 15 FOR  7) AS +
+                          CHAR(7)) AS K00001 ASC)) RCDFMT RPENDX +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PENDXL2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE INDEX PENDXL2 ON PENDX ( +
+                          CAST(SUBSTRING(F00001 FROM  1 FOR 11) AS +
+                          CHAR(11)) AS K00001 ASC, +
+                          CAST(SUBSTRING(F00001 FROM  22 FOR  8) AS +
+                          CHAR(8)) AS K00002 ASC) RCDFMT RPENDXL2 +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+/* *                                                                */
+             CHGJOB     SWS(00000000)
+/* *                                                                */
+             OVRDBF     FILE(COL) TOFILE(COLB)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             OVRDBF     FILE(TASAS) TOFILE(TASAS)
+             OVRDBF     FILE(CTESDO) TOFILE(CTESDO)
+             OVRDBF     FILE(TARBAN) TOFILE(TARBAN)
+             OVRDBF     FILE(MOL) TOFILE(MOL)
+             OVRDBF     FILE(HOL) TOFILE(HOLB)
+             OVRDBF     FILE(MOCO) TOFILE(MOCOB)
+             CALL       (ONLINEC/DEBCOMNWNV)
+             DLTOVR     FILE(*ALL)
+/* * -------------- DEBCOM, ONLINEC: FIN -------------------------  */
+ ALFIN:
+
+             ENDPGM

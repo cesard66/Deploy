@@ -1,0 +1,30 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(1) VALUE('1')
+             DCL        VAR(&HORA) TYPE(*CHAR) LEN(8)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+             RTVSYSVAL  SYSVAL(QTIME) RTNVAR(&HORA)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/PCMOVOK) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/PCMOVOK))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/PCMOV) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(RNMOBJ +
+                          OBJ(QS36F/PCMOV) OBJTYPE(*FILE) +
+                          NEWOBJ(PCMOVOK))
+             CHGVAR     VAR(&CMD) VALUE('CREATE TABLE QS36F.PCMOV( +
+                          K00001 CHAR(8), F00001 CHAR(120), +
+                          CONSTRAINT QS36F.PK_PCMOV' *CAT &HORA +
+                          *CAT ' PRIMARY KEY( K00001 ) ) RCDFMT +
+                          RPCMOV')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CALL       PGM(GLOBAL/INICOINW)
+
+             ENDPGM

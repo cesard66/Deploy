@@ -1,0 +1,12 @@
+/*  ACTUALZA CODIGO ESTADO DE FIN DE PROCESO DEL DIA                */
+/*  ALTA COBRANZAS                                                  */
+             PGM
+
+             SNDPGMMSG  MSG(' REX135 - ACTUALIZA CODIGO DE ESTADO +
+                          DE FIN PROCESO COBRANZA') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRDBF     FILE(REXALT) TOFILE(REX.ALT)
+             CALL       PGM(EXP.LIBR/REX135NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

@@ -1,0 +1,106 @@
+             PGM
+
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM05) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&FILE) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+
+             ALCOBJ     OBJ((*LIBL/LISCONCL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('ESTE PROGRAMA ESTA SIENDO UTILIZADO EN +
+                          OTRO TERMINAL-CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+
+             CALL       PGM(VERAGECL) PARM((&USER))
+             CHGVAR     VAR(&PM01) VALUE(%SST(*LDA 036 001))
+/* EVALUATE PARAMETER LENGTH IGNORED */
+             CHGVAR     VAR(&PM05) VALUE(%SST(*LDA 035 002))
+             CHGVAR     VAR(&FILE) VALUE(COS *CAT &PM01)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&FILE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(&FILE))
+             ELSE       CMD(CRTPF FILE(QS36F/&FILE) RCDLEN(96) +
+                          SIZE(*NOMAX))
+             CHGVAR     VAR(&FILE) VALUE(COI *CAT &PM01)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&FILE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(&FILE))
+             ELSE       CMD(CRTPF FILE(QS36F/&FILE) RCDLEN(96) +
+                          SIZE(*NOMAX))
+             CHGVAR     VAR(&FILE)  VALUE(COT *CAT &PM01)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&FILE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) CLRPFM &FILE
+             ELSE       CMD(CRTPF FILE(QS36F/&FILE) RCDLEN(96) +
+                          SIZE(*NOMAX))
+             CHGVAR     VAR(&FILE) VALUE(COD *CAT &PM01)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&FILE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) CLRPFM &FILE
+             ELSE       CMD(CRTPF FILE(QS36F/&FILE) RCDLEN(96) +
+                          SIZE(*NOMAX))
+             CHGVAR     VAR(&FILE) VALUE(COB *CAT &PM01)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&FILE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) CLRPFM &FILE
+             ELSE       CMD(CRTPF FILE(QS36F/&FILE) RCDLEN(96) +
+                          SIZE(*NOMAX))
+             CHGVAR     VAR(&FILE) VALUE(CO$ *CAT &PM01)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&FILE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) CLRPFM &FILE
+             ELSE       CMD(CRTPF FILE(QS36F/&FILE) RCDLEN(96) +
+                          SIZE(*NOMAX))
+             CHGVAR     VAR(&PM05) VALUE(%SST(*LDA 035 002))
+             CHGVAR     VAR(&FILE) VALUE('CLB' *CAT &PM05)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&FILE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(&FILE))
+             ELSE       CMD(CRTPF FILE(QS36F/&FILE) RCDLEN(96) +
+                          SIZE(*NOMAX))
+
+             OVRDBF     FILE(COLBOUT) TOFILE(('CLB' *CAT &PM05))
+             OVRDBF     FILE(TCMAECOM) TOFILE(TARJETA/TCMAECOM)
+             CALL       PGM(SEPASAG) PARM(('&PM05') ('&USER'))
+             CHGDTAARA  DTAARA(*LDA (1 19)) VALUE(&USER *TCAT +
+                          '       ')
+             CHGVAR     VAR(&PM05) VALUE(%SST(*LDA 035 002))
+             OVRDBF     FILE(COLO) TOFILE(('CLB' *CAT &PM05))
+             OVRDBF     FILE(COSX) TOFILE((COS *CAT &PM01))
+             OVRDBF     FILE(COIX) TOFILE((COI *CAT &PM01))
+             OVRDBF     FILE(CODX) TOFILE((COD *CAT &PM01))
+             OVRDBF     FILE(COTX) TOFILE((COT *CAT &PM01))
+             OVRDBF     FILE(CO$X) TOFILE((CO$ *CAT &PM01))
+             OVRDBF     FILE(COBX) TOFILE((COB *CAT &PM01))
+             CALL       (ONLINE/CRICONNW)
+             DLTOVR     FILE(*ALL)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             OVRDBF     FILE(COS) TOFILE(COS *CAT &PM01)
+             OVRDBF     FILE(COD) TOFILE(COD *CAT &PM01)
+             OVRDBF     FILE(COT) TOFILE(COT *CAT &PM01)
+             OVRDBF     FILE(CO$) TOFILE(CO$ *CAT &PM01)
+             OVRDBF     FILE(COI) TOFILE(COI *CAT &PM01)
+             OVRDBF     FILE(COB) TOFILE(COB *CAT &PM01)
+             OVRDSPF    FILE(LISCON) TOFILE(LISCONFM)
+             OVRPRTF    FILE(LISCUE) FORMTYPE(RE66) COPIES(1) +
+                          SCHEDULE(*IMMED) HOLD(*YES) OUTPTY(9)
+             CALL       (ONLINE/LISCONNW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

@@ -1,0 +1,8 @@
+/* AF1000 CARGA FECHAS EN EL AREA DE MEMORIA QUE LUEGO ES USADO  */
+/* POR TROPSEG.                                                  */
+/* EJECUTA UNA COPIA DEL ORIGINAL QUE ESTA EN INGEN              */
+             PGM
+
+             CALL       PGM(INGEN/AF1000NW)
+
+             ENDPGM

@@ -1,0 +1,21 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(1) VALUE('1')
+
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CONTRANS) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CONTRANS))
+             RUNSQL     SQL('CREATE TABLE QS36F.CONTRANS(K00001 +
+                          CHAR(8), F00001 CHAR(120), CONSTRAINT +
+                          QS36F.PK_CONTRANS PRIMARY KEY( K00001)) +
+                          RCDFMT RCONTRAN') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             OVRDBF     FILE(MOCOO) TOFILE(QS36F/CONTRANS)
+             CALL       PGM(GLOBAL/INICONNW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

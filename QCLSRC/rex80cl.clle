@@ -1,0 +1,59 @@
+/*                                                                  */
+/*  CREACION DE SALDOS A PARTIR DE LAS BAJAS                        */
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  EXP.LIBR
+             CALL       PGM(REX80ACL)
+/*                                                                  */
+/*  INVENTARIO DE REMESA DE COBRANZAS  EXPORTACION                  */
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/REXAL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QTEMP/REXAL))
+             SNDPGMMSG  MSG('Clasificacion de archivo') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CRTPF      FILE(QTEMP/REXAL) RCDLEN(500)
+             CHGVAR     VAR(&CMD) VALUE('INSERT INTO QTEMP.REXAL +
+                          SELECT F00001 || K00001 || F00002 FROM +
+                          "REX.ALT" WHERE SUBSTRING(F00002, 312, +
+                          15) <> ''000000000000000'' AND +
+                          SUBSTRING(F00002 , 486, 1) IN (''0'', +
+                          ''4'') ORDER BY SUBSTRING(F00002 , 13, +
+                          7)M SUBSTRING(K00001, 8, 4), +
+                          SUBSTRING(K00001, 3, 5)')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/REXBAJTMP) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE INDEX QTEMP.REXBAJTMP ON +
+                          "REX.BAJ" ( CAST(SUBSTRING(K00001 FROM  1 +
+                          FOR 11) AS CHAR(11)) K00002 ASC) RCDFMT +
+                          RREXBAJ ADD ALL COLUMNS') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+             CALL       PGM(EXP.LIBR/PARAMCL) PARM((REX80))
+             SNDPGMMSG  MSG('REX80- INVENTARIO DE REMESA COBRANZAS +
+                          (REX)') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(REXALT) TOFILE(QTEMP/REXAL)
+             OVRDBF     FILE(REXBAJ) TOFILE(QTEMP/REXBAJTMP)
+             OVRPRTF    FILE(LREX801) TOFILE(QPRINT) PAGESIZE(66) +
+                          FORMTYPE(RE66) HOLD(*YES)
+             CALL       PGM(EXP.LIBR/REX80NW)
+             DLTOVR     FILE(*ALL)
+             DLTF       FILE(QTEMP/REXAL)
+             DLTF       FILE(QTEMP/REXBAJTMP)
+
+             ENDPGM

@@ -1,0 +1,12 @@
+/*  ACTUALZA CODIGO ESTADO DE FIN DE PROCESO DEL DIA                */
+/*  BAJA DE COBRANZAS                                               */
+             PGM
+
+             SNDPGMMSG  MSG(' REX140 - ACTUALIZA CODIGO DE ESTADO +
+                          DE FIN PROCESO COBRANZA') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRDBF     FILE(REXBAJ) TOFILE(REX.BAJ)
+             CALL       (EXP.LIBR/REX140NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

@@ -1,0 +1,95 @@
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&DATE8) TYPE(*CHAR) LEN(008)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    DATE(&DATE)
+             CVTDAT     DATE(&DATE) TOVAR(&DATE8) TOFMT(*DMYY) +
+                          TOSEP(*NONE)
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+/*                                                                  */
+/*  EXTRACCION ARCHIVO DE TRABAJO PARA CREACION DE ASIENTOS DEL DIA */
+/*                                                                  */
+/*   PARA ALTAS                                                     */
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/REX.DIAA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/REX.DIAA))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/REX.DIA1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/REX.DIA1))
+             RUNSQL     SQL('CREATE TABLE "REX.DIA1" ( F00001 +
+                          CHAR(500) ) RCDFMT REXDIA1') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CHGVAR     VAR(&CMD) VALUE('INSERT INTO "REX.DIA1" +
+                          select F00001 || K00001 || SUBSTR(F00002, +
+                          1, 485) || ''2'' FROM "REX.ALTA" WHERE +
+                          SUBSTRING(F00002, 1, 8) = ''' *CAT &DATE8 +
+                          *CAT ''' AND SUBSTRING(F00002 , 486, 1) +
+                          <> ''A'' ORDER BY SUBSTRING(K00001 , 3, 11)')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+/*                                                                  */
+/*   PARA BAJAS                                                     */
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/REX.DIAB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/REX.DIAB))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&LIBF/REX.DIA2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/REX.DIA2))
+             RUNSQL     SQL('''CREATE TABLE "REX.DIA2" ( F00001 +
+                          CHAR(500) ) RCDFMT REXDIA2)') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CHGVAR     VAR(&CMD) VALUE('INSERT INTO "REX.DIA2" +
+                          select F00001 || K00001 || SUBSTR(F00002, +
+                          1, 483) || ''2'' FROM "REX.BAJ" WHERE +
+                          SUBSTRING(F00002, 57, 8) = ''' *CAT +
+                          &DATE8 *CAT ''' AND SUBSTRING(F00002 , +
+                          484, 1) <> ''A'' ORDER BY +
+                          SUBSTRING(K00001 , 3, 9)')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(REX.DIA1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) DO
+             RUNSQL     SQL('CREATE INDEX "REX.DIAA" ON "REX.DIA1" ( +
+                          SUBSTRING(F00001 FROM  4 FOR 11) ASC) +
+                          RCDFMT RREXDIA1 ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/REX.DIA2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             RUNSQL     SQL('CREATE INDEX "REX.DIAB" ON "REX.DIA2" ( +
+                          SUBSTRING(F00001 FROM  4 FOR 13) ASC) +
+                          RCDFMT RREXDIA2 ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+/*                                                                  */
+
+             ENDPGM

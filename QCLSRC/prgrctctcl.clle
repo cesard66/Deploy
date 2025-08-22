@@ -1,0 +1,42 @@
+             PGM
+
+             SNDPGMMSG  MSG('       ************ GRABACION DE +
+                          CUENTAS CORRIENTES ************         +
+                          ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                      ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                      ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                      ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                      ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             SNDPGMMSG  MSG('PRGRCTCT======>GRABACION MOVIMIENTOS DE +
+                          CTAS.CTES. <====') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* *VERIFICA SI EL USUARIO ESTA AUTORIZADO A EJECUTAR               */
+             CALL       PGM(GLOBAL/PRAUTORINW)
+             CALL       PGM(CTRPROCES) PARM(('PRGRCTCT') ('1'))
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             PAUSE      MSG('PROCESO NO DISPONIBLE PARA INICIO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       PGM(CTRPROCES) PARM(('PRGRCTCT') ('2'))
+/* *GRABACION DE LA TRANSACCION                                     */
+             CALL       PGM(INTERB01/CTEP03CL)
+/* * LISTADO DE VALIDACION                                          */
+             SNDPGMMSG  MSG('AHORA IMPRIMIRA LOS MOVIMIENTOS +
+                          GRABADOS-LOS CUALES DEBEN SER +
+                          VERIFICADOS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGDTAARA  DTAARA(*LDA (51 8)) VALUE('PRGRCTCT')
+             CALL       PGM(INTERB1C/CTEPO5)
+/* --COLOCA MARCA FINALIZADO AL PROCESO                             */
+             CALL       CTRPROCES PARM('?PROC?' '4')
+ ALFIN:
+             ENDPGM

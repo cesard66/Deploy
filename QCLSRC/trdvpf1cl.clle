@@ -1,0 +1,46 @@
+/* ------------------------------------------------------------------ */
+/*  TRDVPF1: GENERA OPERACIONES DE PLAZO FIJO GUARANIES EN EL ARCHIVO */
+/*  AUXILIAR OPEPF PARA TRASLADARSE LUEGO A OPERACIONES.              */
+/* ------------------------------------------------------------------ */
+             PGM
+
+             CLRPFM     FILE(QS36F/DVSS)
+             CLRPFM     FILE(QS36F/MCMB)
+             CLRPFM     FILE(QS36F/OPEDIV)
+             OVRDBF     FILE(CAHSD01) TOFILE(QS36F/CAHSD01)
+             OVRDBF     FILE(OPEPF) TOFILE(QS36F/OPEPF)
+             CALL       PGM(INGEN/TRDVPF1)
+             SNDPGMMSG  MSG('TRASFIERE LOS VENCIMIENTOS DESDE +
+                          CAHSDO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       (INGEN/TRDVPF1VNW)
+/* ---------------------------------------------------------------- */
+/*  TRDVPF2: GENERA OPERACIONES DE PLAZO FIJO DOLARES EN ARCHIVO    */
+/*           AUXILIAR OPEPF PARA TRASLADARLOS LUEGO A OPERACIONES.  */
+/* ---------------------------------------------------------------- */
+             OVRDBF     FILE(TASAS) TOFILE(QS36F/TASAS)
+             OVRDBF     FILE(TADEMER) TOFILE(QS36F/TADEMER)
+             OVRDBF     FILE(DIVISAS) TOFILE(QS36F/DVSS)
+             CALL       (INGEN/TRDVPF2)
+             DLTOVR     FILE(CAHSDO1)
+/*  PROGRAMAS PARA GENERAR MOVIMIENTOS EN ARCHIVO DE DIVISAS/MCAMB  */
+/*  PARA LUEGO GENERAR OPERACIONES RELACIONADAS A DIVISAS.          */
+             OVRDBF     FILE(CAHSDO) TOFILE(QS36F/CAHSDO1)
+             OVRDBF     FILE(CONTAB88) TOFILE(QS36F/CONTAB88)
+             OVRDBF     FILE(TARIFA) TOFILE(QS36F/TARIFA)
+             OVRDBF     FILE(INTFAGEN) TOFILE(QS36F/INTFAGEN)
+             OVRDBF     FILE(MCAMB) TOFILE(QS36F/MCMB)
+             OVRDBF     FILE(PROVIS) TOFILE(QS36F/PROVIS)
+/*                                                                  */
+/* // LOAD TCA202NN,INGEN                                           */
+/* // FILE NAME-CAHSDO,DISP-SHR                                     */
+/* // FILE NAME-CONTAB88,DISP-SHR                                   */
+/* // FILE NAME-TADEMER,DISP-SHR                                    */
+/* // FILE NAME-TASAS,DISP-SHR                                      */
+/* // FILE NAME-MCAMB,EXTEND-10                                     */
+/* // FILE NAME-PROVIS,EXTEND-10                                    */
+/* // RUN                                                           */
+/*                                                                  */
+             CALL       (INGEN/TCA213D)
+             DLTOVR     *ALL
+
+             ENDPGM

@@ -1,0 +1,14 @@
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010 0)
+             OVRDBF     FILE(MOLBT) TOFILE(BTLIB/MOLBT)
+             CALL       PGM(CMOLF1)
+             CALL       PGM(CMOLFZ)
+             CALL       PGM(VMOL)
+             RTVMBRD    FILE(QS36F/ERRORM) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *GT 0) THEN(DO)
+             PAUSE      MSG('PAUSE PROBLEMAS DE FECHA O USUARIO EN +
+                          MOL (AVISAR AL ANALISTA DE GUARDIA)')
+             ENDDO
+
+             ENDPGM

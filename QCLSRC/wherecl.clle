@@ -1,0 +1,7 @@
+/*                                                                  */
+             PGM
+
+             CHGDTAARA  DTAARA(*LDA (1 13)) VALUE('000000F000000')
+             CALL       PGM(WHERENW)
+
+             ENDPGM

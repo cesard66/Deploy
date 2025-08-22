@@ -1,0 +1,28 @@
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             CALL       VERAGECL PARM(&USER)
+             IF         ((%SST(*LDA 036 001)) *NE '0') DO
+             SNDPGMMSG  MSG('LA TRASMISION DEBE HACERSE DESDE CASA +
+                          MATRIZ:') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('USUARIO: ' *CAT &USER *TCAT ' PERTENESE +
+                          A LA AGENCIA ' *CAT (%SST(*LDA 036 001)))
+             ENDDO
+             IF         ((%SST(*LDA 036 001)) *NE '0') GOTO FIN
+             CLRPFM     VALCHED
+             CALL       VALCHED
+             CALL       PGM(RTVFRN) PARM(VALCHED &RCDNBR)
+             IF         COND(&RCDNBR *GT 0) THEN(DO)
+             RUNQRY     QRY(VALCHED)
+             PAUSE      MSG('CHEQUES CON INCONVENIENTES EN EL +
+                          ARCHIVO. VERIFIQUE EN SU SPOOL')
+             ENDDO
+             CPYF       FROMFILE(QS36F/CAMC50N) +
+                          TOFILE(QS36F/CAMC5N00) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCCHAR(*RCD 1 *NE '         ')
+ FIN:
+
+             ENDPGM

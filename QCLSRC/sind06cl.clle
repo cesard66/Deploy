@@ -1,0 +1,54 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             SNDPGMMSG  MSG('ACTUALIZANDO DEPENDENCIA Y +
+                          DEPARTAMENTO EN EL ARCHIVO DE +
+                          OPERACIONES') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(NOMINAS) TOFILE(SEIMAES)
+             OVRDBF     FILE(SINDOPER) TOFILE(SEI.OPER)
+             CALL       PGM(SIND07NW)
+             DLTOVR     FILE(*ALL)
+             SNDPGMMSG  MSG('CLASIFICACION DEL ARCHIVO DE +
+                          OPERACIONES POR DEPENDENCIA Y +
+                          DEPARTAMENTO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CLRPFM     FILE(QTEMP/SINDOPER)
+             MONMSG     MSGID(CPF3142) EXEC(CRTPF +
+                          FILE(QTEMP/SINDOPER) RCDLEN(40) +
+                          SIZE(*NOMAX))
+              CHGVAR     VAR(&CMD) VALUE('INSERT INTO QTEMP.SINDOPER +
+                           SELECT K00001 || F00001 FROM +
+                          QS36F."SEI.OPER" WHERE SUBSTRING(F00001 +
+                          FROM 29 FOR 1) <> ''B'' ORDER BY +
+                          SUBSTRING(F00001 FROM 18 FOR  2) ASC, +
+                          SUBSTRING(F00001 FROM 20 FOR  2) ASC, +
+                          SUBSTRING(K00001 FROM  1 FOR  5) ASC, +
+                          SUBSTRING(F00001 FROM  8 FOR  1) ASC')
+              RUNSQL     SQL(&CMD) COMMIT(*NONE)
+
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CCSEISA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(CCSEISA))
+             CRTPF      FILE(QS36F/CCSEISA) RCDLEN(80) SIZE(*NOMAX)
+             SNDPGMMSG  MSG('IMPRESION DE LA PLANILLA DE +
+                          DESCUENTOS.') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* EXTEND-20                                                        */
+             OVRDBF     FILE(NOMCHAIN) TOFILE(SEIMAES)
+             OVRDBF     FILE(SINDCASA) TOFILE(SEI.CASA)
+             OVRDBF     FILE(NOMINAS) TOFILE(SEIMAES)
+             OVRDBF     FILE(NTDPTO) TOFILE(NT.DPTO)
+             OVRPRTF    FILE(PLANILLA) FORMTYPE(L33) COPIES(2) +
+                          HOLD(*YES) OUTPTY(9)
+             OVRPRTF    FILE(PLANILA1) FORMTYPE(L66) COPIES(3) +
+                          HOLD(*YES) OUTPTY(9)
+             CALL       PGM(SIND06NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

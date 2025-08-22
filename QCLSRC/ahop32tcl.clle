@@ -1,0 +1,223 @@
+PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(10 0)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             SNDPGMMSG  MSG('JUNTAR ARCHIVOS PARA SU PROCESO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/AHOINT) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(RUNSQL +
+                          SQL('CREATE TABLE QS36F.AHOINT (F00001 +
+                          CHAR(86)) RCDFMT RAHOINT') COMMIT(*NONE))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CASUEL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                        VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(1XXXXXXX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MCAONL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(X1XXXXXX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/DBPCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XX1XXXXX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/DAUTOPF) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXXXX1XX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/PRMOVCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXXXXX1X))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXXXXXX1))
+/* *---------------------------------------------------------------- */
+/* *                                                                 */
+/* / PAUSE 'VERIFIQUE QUE NO EXISTA ARCHIVO DBPCA'                   */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/AHOFT03) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/AHOFT03)
+             ENDDO
+             RUNSQL     SQL('CREATE TABLE QS36F.AHOFT03 (F00001 +
+                          CHAR(86)) RCDFMT RAHOFT03') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/AUTOMATA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/AUTOMATA)
+             ENDDO
+             RUNSQL     SQL('CREATE TABLE QS36F.AUTOMATA (F00001 +
+                          CHAR(80)) RCDFMT RAUTOM') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             OVRDBF     FILE(MOVIM10) TOFILE(AHOFT02)
+             OVRDBF     FILE(DISKET) TOFILE(AHOFT03)
+             OVRPRTF    FILE(CONTABIL) TOFILE(QPRINT) FORMTYPE(BORR) +
+                          HOLD(*YES)
+             OVRPRTF    FILE(CONTABIT) TOFILE(QPRINT) FORMTYPE(BORR) +
+                          HOLD(*YES)
+             CALL       PGM(CAXX10NW)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/AHOFT04) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/AHOFT04)
+             ENDDO
+             RUNSQL     SQL('CREATE TABLE QS36F.AHOFT04 (F00001 +
+                          CHAR(86)) RCDFMT RAHOFT04') COMMIT(*NONE)
+             RUNSQL     SQL('INSERT INTO QS36F.AHOFT04 SELECT * FROM +
+                          QS36F.AHOFT03 ORDER BY SUBSTRING(F00001 +
+                          FROM 3 FOR 1) ASC, SUBSTRING(F00001 FROM +
+                          47 FOR 4) ASC, SUBSTRING(F00001 FROM 4 +
+                          FOR 1) ASC') COMMIT(*NONE)
+             DLTF       FILE(QS36F/AHOFT03)
+             RNMOBJ     OBJ(QS36F/AHOFT04) OBJTYPE(*FILE) +
+                          NEWOBJ(AHOFT03)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/AHOFT04) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/AHOFT04)
+             ENDDO
+             RUNSQL     SQL('CREATE TABLE QS36F.AHOFT04 (F00001 +
+                          CHAR(80)) RCDFMT RAHOFT04') COMMIT(*NONE)
+             OVRPRTF    FILE(RESCAML) FORMTYPE(BORR) COPIES(1) +
+                          HOLD(*YES)
+             OVRPRTF    FILE(RESCAME) FORMTYPE(BORR) COPIES(1) +
+                          HOLD(*YES)
+             OVRPRTF    FILE(CONSISCA) FORMTYPE(BORR) COPIES(1) +
+                          HOLD(*YES)
+             CALL       PGM(AHOS02NW)
+             CHGJOB     SWS(00000000)
+             CALL       PGM(CACOTANW)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             PAUSE      MSG('*!* GRAVE FALTA DEBE GRABAR TASAS DE +
+                          CIERRE *!*')
+             RETURN
+             ENDDO
+             SNDPGMMSG  MSG(' CLASIF. DE TRANSACCIONES PARA +
+                          ACTUALIZACION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MOVIMCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/MOVIMCA)
+             ENDDO
+             RUNSQL     SQL('CREATE TABLE QS36F.MOVIMCA (F00001 CHAR +
+                          (80)) RCDFMT RMOVIMCA') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             RUNSQL     SQL('INSERT INTO QS36F.MOVIMCA SELECT +
+                          SUBSTRING(F00001 FROM 1 FOR 80) FROM +
+                          QS36F.AHOFT04 ORDER BY SUBSTRING(F00001 +
+                          FROM 1 FOR 1) ASC, SUBSTRING(F00001 FROM  +
+                          3 FOR  9) ASC, SUBSTRING(F00001 FROM 19 +
+                          FOR  2) ASC, SUBSTRING(F00001 FROM 17 +
+                          FOR  2) ASC, SUBSTRING(F00001 FROM 15 +
+                          FOR  2) ASC, SUBSTRING(F00001 FROM 12 +
+                          FOR  2) ASC, SUBSTRING(F00001 FROM 22 +
+                          FOR  7) ASC, SUBSTRING(F00001 FROM 30 FOR +
+                          11) ASC') COMMIT(*NONE)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/SOBAHOW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/SOBAHOW))
+             RNMOBJ     OBJ(QS36F/SOBAHO) OBJTYPE(*FILE) +
+                          NEWOBJ(SOBAHOW)
+             RUNSQL     SQL('CREATE TABLE QS36F.SOBAHO (F00001 +
+                          CHAR(80)) RCDFMT RSOBAHO') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CPYF       FROMFILE(QS36F/CCMASL) TOFILE(QS36F/CCMASL1) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          --------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* ACTUALIZACION DE SALDOS EN AHORROS Y +
+                          LISTADO DE ANORMALIDADES *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          --------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000001)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CAHSD01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHSDO1))
+             CPYF       FROMFILE(QS36F/CAHSDO) TOFILE(QS36F/CAHSDO1) +
+                          MBROPT(*REPLACE) CRTFILE(*YES) FROMRCD(1) +
+                          TORCD(1)
+                          CLRPFM QS36F/CAHSDO1
+/* ** MARCA DEP. CH. COB - PARA QUE SE CONFIRMEN D+ (FIN DE A#0) */
+             CALL       PGM(INTERB02/CONFIAHCL)
+             OVRDBF     FILE(CCMASL) TOFILE(CCMASL1)
+             OVRPRTF    FILE(AHOS03) TOFILE(QPRINT) FORMTYPE(BORR) +
+                          HOLD(*YES)
+             CALL       PGM(AHOS03NW)
+/*** LA EJECUCION DEL PROGRAMA ACTNUM30 SE OMITE A FIN DE AÑO ***       */
+/* ** ======================================================= ***       */
+/* **SE MODIFICA ESTA LÍNEA POR EL LLAMADO A AHOP33ACL                  */
+/* **IFF ?DATE?/301214' CALL ACTNUM30                                   */
+/* **CALL ONLINE/AHOP33ACL                                              */
+/* IF ?DATE?/'301215' PAUSE 'CONTROL PROCESO FIN AÑO ACTNUM30           */
+/* ** SE AGREGA LA EJECUCION DEL SUMADEPA EN PROCESO DE FIN DE AÑO ***  */
+/* ** SE AGREGA LA EJECUCION DEL SUMADEPA1 EN PROCESO DE FIN DE AÑO *** */
+/* ** ============================================================ ***  */
+/* **SE MODIFICAN ESTAS LÍNEAS POR EL LLAMADO A AHOP33BCL               */
+/* **IF ?DATE?/'301214' CALL SUMADEPA                                   */
+/* **IF ?DATE?/'301214' CALL SUMADEPA1                                  */
+/* **CALL ONLINE/AHOP33BCL                                              */
+/* IF ?DATE?/'301215' PAUSE 'CONTROL PROCESO FIN ANO SUMADEPA'             */
+/* **CALL CHEQME06A                                                        */
+PULOA:
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          --------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* ACTUALIZACION DE LAS CABECERAS DE +
+                          AGENCIA DEL ARCHIVO CAHSD01 *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          --------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(AHOS04NW)
+             CPYF       FROMFILE(QS36F/CCMANUAN) +
+                          TOFILE(QS36F/CCMANU) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CALL       PGM(AHOS03NUC)
+             CALL       PGM(AHOS04NU)
+
+             ENDPGM

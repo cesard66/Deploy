@@ -1,0 +1,12 @@
+/*  ------------------------------------------------------------- * */
+/*           REPROCESO CANCELACIONES  DIVISAS ANTICIPADAS           */
+/*  DAL120CL CANCELACION DE DIVISAS ANTICIPADAS                     */
+/*  ------------------------------------------------------------- * */
+/*                                                                  */
+             PGM
+
+             OVRDBF     FILE(DALCAN) TOFILE(DAL.CAN)
+             CALL       PGM(DAL120NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

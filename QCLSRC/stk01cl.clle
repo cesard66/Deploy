@@ -1,0 +1,21 @@
+                          PGM
+/*==============================================================*/
+/* SISTEMA.:  CONTROL De STOCK                                  */
+/* PROGRAMA:  MANTENIMIENTO DEL MAESTRO DE ARTICULOS            */
+/* FUNCION.:  ACTUALIZA LOS ARTICULOS EN EL MAESTRO DE ARTICULO */
+/*            -STMAESTR- Y SI EL ARTICULO ES UN FORMULARIO FICHA*/
+/*            TECNICA SE ACTUALIZA EL ARCHIVO DE FICHA TECNICA  */
+/*            -STFICHTE-. ADEMAS GENERA UN ARCHIVO DE PROVEEDO- */
+/*            RES POR ARTICULO -STPROVEE-                       */
+/*                                                              */
+/*                                                              */
+/* PROGRAMADO POR CESAR DUARTE MORENO                        MAYO DE 1990 */
+
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             CHGDTAARA  DTAARA(*LDA (1 10)) VALUE(&USER)
+             OVRDBF     FILE(STMAESTR) TOFILE(STMAEST)
+             CALL       PGM(STK01NW)
+
+             ENDPGM

@@ -1,0 +1,17 @@
+/* * RELACION DE CHEQUES POR BANCO                                  */
+             PGM
+
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             CHGDTAARA  DTAARA(*LDA (1 24)) VALUE(&USER *TCAT +
+                          '            ')
+             CALL       VERAGECM PARM(&USER)
+             OVRDBF     FILE(CAMINT) TOFILE((%SST(*LDA 037 008)))
+             OVRPRTF    FILE(CAMARITA) PAGESIZE(66) FORMTYPE(RE66) +
+                          HOLD(*YES)
+             OVRDBF     FILE(CTESDO) TOFILE(CTESDO)
+             CALL       PGM(CAMARINW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

@@ -1,0 +1,67 @@
+/* -- INICIALIZA AREA DE DATOS                                      */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&PROC) TYPE(*CHAR) LEN(010) +
+                          VALUE('PRAHORRO')
+
+             CHGDTAARA  DTAARA(FINAHORRO *ALL) VALUE(' ')
+             SNDPGMMSG  MSG('                   ********PROCESO DE +
+                          AHORROS**************** ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                       ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                       ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * ESTABLECE FECHA DE PROCESO                                     */
+             CALL       PGM(GLOBAL/FIJAFCIE)
+/* * VALIDA FECHA DE PROCESO                                        */
+             CHGJOB     SWS(00000000)
+             CALL       GLOBAL/CONFEPRV
+             IF         (%SWITCH(XX1XXXXX)) DO
+             PAUSE      MSG('FECHA DE PROCESO NO ES CORRECTA-CANCELO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* * VERIFICA SI EL USUARIO ESTA AUTORIZADO A EJECTUAR              */
+             CALL       PGM(GLOBAL/PRAUTORJCL)
+             SNDPGMMSG  MSG('PRAHORRO======> PROCESO UNICO DE +
+                          AHORROS <========') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * VERIFICA SI PROCESO ESTA DISPONIBLE PARA INICIO                */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('1'))
+             IF         (%SWITCH(XXXXXXX1)) DO
+             PAUSE      MSG('PROCESO NO DISPONIBLE PARA INICIO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('2'))
+/* * SI SWITCH1 ESTA ON PROCESO DIARIO / SI SWITH2 ESTA ON PROCESO MENSUAL */
+             CHGJOB     SWS(00000000)
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             CALL       PGM(GLOBAL/ACTIUX)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(CALL +
+                          PGM(INTERB2C/AHOP21CL))
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(CALL +
+                          PGM(INTERB2C/AHOP22CL))
+/* -- COLOCA MARCA FINALIZADO AL PROCESO                            */
+
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('4'))
+/* -- GRABA 'F' PARA INDICARLE A PRCOMEX QUE FINALIZO PRAHORRO      */
+             CHGDTAARA  DTAARA(FINAHORRO *ALL) VALUE('F')
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*        FIN DE PROCESO DE +
+                          AHORROS                                     -
+   *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+ ALFIN:
+
+             ENDPGM

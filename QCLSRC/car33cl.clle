@@ -1,0 +1,34 @@
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             ALCOBJ     OBJ((*LIBL/CAR33CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('PROGRAMA UTILIZADO EN OTRA TERMINAL - +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAR33F) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE TABLE CAR33F ( K00001 CHAR(8), +
+                          F00001 CHAR(1720) , CONSTRAINT PK_CAR33F +
+                          PRIMARY KEY( K00001 ) ) RCDFMT RCAR33F') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+
+             OVRDBF     FILE(ARCHIVO) TOFILE(CAR33F)
+             OVRPRTF    FILE(TINTA) SCHEDULE(*IMMED)
+             CALL       PGM(DIGANW)
+             DLTOVR     FILE(*ALL)
+             CPYF       FROMFILE(CAR33F) TOFILE(CAR33W) CRTFILE(*YES)
+             DLTF       FILE(CAR33F)
+             RNMOBJ     OBJ(CAR33W) OBJTYPE(*FILE) NEWOBJ(CAR33F)
+
+             ENDPGM

@@ -1,0 +1,17 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(6)
+             DCL        VAR(&MESDEC) TYPE(*DEC) LEN(2)
+             DCL        VAR(&MESCHAR) TYPE(*CHAR) LEN(2)
+             RTVJOBA    DATE(&DATE)
+             CHGVAR     VAR(&MESDEC) VALUE(%SST(&DATE 3 2))
+             CHGVAR     VAR(&MESDEC) VALUE(&MESDEC -1)
+             CHGVAR     VAR(&MESCHAR) VALUE(&MESDEC)
+             IF         COND(&MESCHAR *EQ '00') THEN(CHGVAR +
+                          VAR(&MESCHAR) VALUE('12'))
+/* ** PARA PROMEDIO INFERIOR ***                                           */
+             CPYF       FROMFILE(QS36F/(CTESDO *CAT &MESCHAR)) +
+                          TOFILE(QS36F/CTESD02) MBROPT(*REPLACE) +
+                          FMTOPT(*NOCHK)
+
+             ENDPGM

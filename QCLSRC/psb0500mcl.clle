@@ -1,0 +1,16 @@
+             PGM
+
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&CUENTA) TYPE(*CHAR) LEN(009)
+/* 'DECIDE SI EL PROCESO ES CENTRALIZADO O NORMAL'                   */
+             RTVJOBA    USER(&USER)
+             CHGDTAARA  DTAARA(*LDA (1 10)) VALUE(&USER)
+             CHGDTAARA  DTAARA(*LDA (9 9)) VALUE(&CUENTA)
+             OVRDBF     FILE(AUXEQ) TOFILE(AUXEQB)
+             OVRDBF     FILE(SUSTADO) TOFILE(SUSB)
+             OVRDBF     FILE(COLO) TOFILE(COLB)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             OVRDSPF    FILE(PSB0500) TOFILE(*LIBL/PSB0500FM)
+             CALL       PGM(PSB0500NW)
+
+             ENDPGM

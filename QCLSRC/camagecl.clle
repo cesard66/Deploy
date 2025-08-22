@@ -1,0 +1,147 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     &WSID &JOBA
+             CHGDTAARA  DTAARA(*LDA (1 30)) VALUE(&WSID *TCAT +
+                          &USER *TCAT '     ')
+ VERUSU:
+             CHGJOB     SWS(00000000)
+             RTVJOBA    DATE(&DATE)
+             CALL       PGM(COL01EN)
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('USUARIO ACTIVO EN OTRA TERMINAL O HUBO +
+                          UNA ANOMALIA ANTERIORMENTE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('AGUARDE A QUE LE HAGAN LIMPA Y LUEGO +
+                          PRESIONE INTRO P/CONTINUAR ') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(VERUSU)
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMAG0) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+             SNDPGMMSG  MSG('FALTA EN DISCO EL ARCHIVO DE CAMARA +
+                          PARA PROCESO. SE CANCELA.') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*  ACTUALIZACION DE LOS CHEQUES +
+                          PROVENIENTES DE CAMARA  *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*   LISTADO DE MOVIMIENTOS PENDIENTES +
+                          DE AUTORIZACION   *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*   - GENERA MOVIMIENTOS CON CODIGOS +
+                          * 52 Y 53 * -      *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* ******DESDE AQUI PARA WORKFLOW DE SOBREGIROS                     */
+             CPYF       FROMFILE(QS36F/COLB) TOFILE(QS36F/COLBANTE) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+/* ***** HASTA AQUI PARA WORKFLOW DE SOBREGIROS *********           */
+/* ***** RESPALDO ANTES *********                                   */
+             CPYF       FROMFILE(QS36F/COLB) TOFILE(QS36F/COLBBKA) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CAMAG0) +
+                          TOFILE(QS36F/CAMAG0BKA) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/MOL) TOFILE(QS36F/MOLBKA) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/TOLB) TOFILE(QS36F/TOLBKA) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CALL       PGM(ONLINE/CAMGHBCL)
+ REPRZ:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMAG0LG) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *NE &TRUE) DO
+/* // BLDINDEX CAMAG0LG,15,9,CAMAG0,,DUPKEY,,75,1 */
+             RUNSQL     SQL('CREATE INDEX CAMAG0LG ON CAMAG0 ( +
+                          CUENTA ASC, AGECAM ASC )') COMMIT(*NONE)
+             ENDDO
+
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(XEQBC) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+
+/* NO DDS FOR BLDIND   EX PROCEDURE */
+/* // IFF DATAF1-XEQBC BLDINDEX XEQBC,15,9,XEQB,,DUPKEY,,1,7 */
+             RUNSQL     SQL('CREATE INDEX XEQBC ON XEQB ( +
+                          CAST(SUBSTRING(F00001 FROM 8 FOR  9) AS +
+                          CHAR(9)) AS K00002 ASC, K00001 ASC  )  +
+                          RCDFMT RXEQB   ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             ENDDO
+             OVRDBF     CAMAGX CAMAG0A
+             OVRDBF     SUSTAD SUSB
+             OVRDBF     TOL TOLB
+             OVRDBF     COL COLB
+             OVRDBF     XEQ XEQBC
+             OVRDBF     COLTRA COLB
+             OVRDBF     HOL HOLB FRCRATIO(1000)
+             OVRDBF     MOL MOL FRCRATIO(1000)
+             CALL       PGM(ONLINEC/CAMAR1PR)
+             DLTOVR     *ALL
+/* ***** RESPALDO DESPUES ********                                  */
+             CPYF       FROMFILE(QS36F/COLB) TOFILE(QS36F/COLBBKD) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CAMAGO) +
+                          TOFILE(QS36F/CAMAGOBKD) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/MOL) TOFILE(QS36F/MOLBKD) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/TOLB) TOFILE(QS36F/TOLBKD) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+/* ***** FIN RESPALDO ANTES ********                                */
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('Ud. no esta autorizado a utilizar este +
+                          programa') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+
+             IF         (%SWITCH(X1XXXXXX)) DO
+             SNDPGMMSG  MSG('No es permitido reprocesar este item +
+                          despues de los rechazos') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+                          SNDPGMMSG  MSG('hechos por el item 12 de este menú. +
+                          CANCELO ESTE PROCEDIMENTO.') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+/*                                                                  */
+             SNDPGMMSG  MSG('SE PROCESAN CHEQUES ADMINISTRATIVOS') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CPYF       FROMFILE(QS36F/CHEQUESE) +
+                          TOFILE(BDIGEN/CHEQUESE) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CALL       PGM(CACHEA)
+/*                                                                  */
+             CALL       PGM(COL01TN)
+/*                                                                  */
+ REPROZ:
+             SNDPGMMSG  MSG('PLANILLA DE CHEQUES RECHAZADOS, PARA +
+                          AUTORIZAR') TOPGMQ(*EXT) MSGTYPE(*COMP)
+ REP2502:
+             CALL       PGM(ONLINE/CAMAGNCL)
+/* *Listado de contingencia-Proceso de aprobación de sobregiros     */
+             CALL       PGM(SG047C)
+ ALFIN:
+
+             ENDPGM

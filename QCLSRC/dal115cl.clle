@@ -1,0 +1,13 @@
+/*                                                                  */
+/*           REPROCESO DE MOVIMIENTOS DIVISAS ANTICIPADAS           */
+/*  DAL115CL CAMBIA ESTADO FIN DEL DIA                              */
+/*                                                                  */
+             PGM
+
+             SNDPGMMSG  MSG(' DAL115 - CAMBIA ESTADO FIN DEL DIA A +
+                          (5)') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(DALMOV) TOFILE(DAL.MOV)
+             CALL       PGM(EXP.LIBR/DAL115NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

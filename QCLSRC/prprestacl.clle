@@ -1,0 +1,49 @@
+             PGM
+
+             SNDPGMMSG  MSG('****************** PROCESO DE +
+                          PRESTAMOS *******************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                    ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                    ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                    ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                    ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                    ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* / PAUSE                                                          */
+             SNDPGMMSG  MSG('PRPRESTA======> PROCESO DIARIO DE +
+                          PRESTAMOS <==========') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * VERIFICA SI EL USUARIO ESTA AUTORIZADO A EJECUTAR              */
+             CALL       PGM(GLOBAL/PRAUTORI)
+             CALL       PGM(CTRPROCES) PARM(('PRPRESTA') ('1'))
+/* / IF SWITCH8-1 PAUSE 'PROCESO NO DISPONIBLE PARA INICIO'         */
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(GOTO +
+                          CMDLBL(ALFIN))
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       PGM(CTRPROCES) PARM(('PRPRESTA') ('2'))
+/* * PROCESO EN SI                                                  */
+             CALL       PGM(INTERB04/PRDIARIO)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                     FIN DEL PROCESO +
+                          DE PRESTAMOS                        *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* / PAUSE                                                          */
+ ALFIN:
+
+             ENDPGM

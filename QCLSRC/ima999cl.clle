@@ -1,0 +1,11 @@
+/*                                                                  */
+/*  // IMPRIME ARCHIVOS QUE SE UTILIZAN EN EL SISTEMA DE IMPORTACION // */
+/*                                                                  */
+             PGM
+
+             CALL       IMA999
+/* / LOAD IMA999                                                    */
+/* / PRINTER NAME-IMA999P,OPIES-1,LPI-6,CPI-10                      */
+/* / RUN                                                            */
+
+             ENDPGM

@@ -1,0 +1,251 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+
+             RTVJOBA    DATE(&DATE)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(ROBOTCC) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             SNDPGMMSG  MSG('CUIDADO YA SE HA PROCESADO +
+                          ANTERIORMENTE....') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('SE CANCELA ESTE PROCESO. SI ESTA SEGURO +
+                          QUE.') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('ES NECESARIO PROCESAR DE NUEVO, DEBE +
+                          INFORMAR') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('AL RESPONSABLE DE TURNO, QUIEN DEBERA +
+                          SACAR ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EL CANCEL, PARA PODER SEGUIR EL +
+                          PROCESO.    ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             DLTF       FILE(QS36F/ROBOTCC)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/ROBOTCA)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/ROBOTCO)
+             ENDDO
+             CHGJOB     SWS(00000000)
+             RTVMBRD    FILE(QS36F/SOBAHO) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(DO)
+             GOTO       CMDLBL(NOSOB)
+             ENDDO
+/* * TRASFERENCIA DE CTA.CTE. A AHORROS SI AHORRO HAYA QUEDADO EN SOBREGIRO.- */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/IVRECHA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/IVRECHA)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/ROBOTX)
+             ENDDO
+             RUNSQL     SQL('CREATE INDEX QS36F.ROBOTX ON +
+                          QS36F.ROBOT ( CAST(SUBSTRING(F00001 FROM  +
+                          1 FOR 9) AS CHAR(9)) AS K00002 ASC) +
+                          RCDFMT RROBOT ADD ALL COLUMNS') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CHGJOB     SWS(01000000)
+             CRTPF      FILE(QS36F/ROBOTCC) RCDLEN(80)
+             CRTPF      FILE(QS36F/ROBOTCA) RCDLEN(86)
+             CRTPF      FILE(QS36F/ROBOTCO) RCDLEN(80)
+             CRTPF      FILE(QS36F/IVRECHA) RCDLEN(30)
+             OVRDBF     FILE(ROBOT) TOFILE(ROBOTX)
+             OVRPRTF    FILE(TRANSFER) TOFILE(QPRINT) PAGESIZE(66) +
+                          FORMTYPE(RE66) HOLD(*YES)
+             OVRPRTF    FILE(RECHAZO) TOFILE(QPRINT) PAGESIZE(72) +
+                          HOLD(*YES)
+             CALL       PGM(SOBAHONNW)
+             DLTOVR     FILE(*ALL)
+             OVRDBF     FILE(IVLINEL1) TOFILE(INFONET/IVLINEL1)
+             CALL       PGM(GENCRE01)
+/* ** PAUSE 'VERIFICAR ROBOTCC/ROBOTCA - NUEVO (AB)'                */
+             SNDPGMMSG  MSG('   LISTA RECHAZADOS DE SOBAHO ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRPRTF    FILE(RECHAZO) TOFILE(QPRINT) FORMTYPE(RE66) +
+                          COPIES(1) HOLD(*YES)
+             CALL       PGM(SOBALINW)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('EXISTEN MOVIMIENTOS NEGATIVOS... NO +
+                          PUEDE CONTINUAR EL PROCESO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('NI EMPEZAR NINGUNO DE LOS DEMAS +
+                          PROCESOS.. ERROR GRAVE!!!!!!!!') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+/* / PAUSE * 'VERIFICAR LOS MOVIMIENTOS DE TRASFERENCIA GENERADA ANTES DE CONTINUAR' */
+ NOSOB:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/SOBAHOW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) DO
+             DLTF       FILE(QS36F/SOBAHOW)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/ROBOTX)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/SOBAHO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             RNMOBJ     OBJ(QS36F/SOBAHO) OBJTYPE(*FILE) +
+                          NEWOBJ(SOBAHOW)
+             ENDDO
+/* * INCLUI EL PAUSE SOLO POR EL DIA DE HOY 13.06.96                */
+/* * VERIFICAR PARA DAR UNA SOLUCION DEFINITIVA.                    */
+/* / PAUSE                                                          */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTCC) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CRTPF      FILE(QS36F/ROBOTCC) RCDLEN(80)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CRTPF      FILE(QS36F/ROBOTCO) RCDLEN(80)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CRTPF      FILE(QS36F/ROBOTCA) RCDLEN(86)
+             ENDDO
+/* **CALL COPYBAG                                                   */
+             CLRPFM     FILE(ROBOTUNI)
+             OVRDBF     FILE(CCMASL) TOFILE(CCMASL1)
+             OVRPRTF    FILE(TRANSFER) TOFILE(QPRINT) PAGESIZE(66) +
+                          FORMTYPE(RE66) HOLD(*YES)
+             CALL       PGM(CTES12)
+             CALL       CLNCCBU014
+             SNDPGMMSG  +
+                          MSG('+++++++++++++++++++++++++++++++++++++++
+                          +++++++++++++') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('+   COBRANZA AUTOMATICA DE EXTRACTOS A +
+                          PEDIDOS    +') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('+++++++++++++++++++++++++++++++++++++++
+                          +++++++++++++') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRPRTF    FILE(CTES0966) TOFILE(QPRINT) PAGESIZE(66) +
+                          FORMTYPE(RE66) HOLD(*YES)
+             CALL       PGM(CTES09NW)
+             DLTOVR     FILE(*ALL)
+             CLRPFM     FILE(CTEF05)
+             CPYF       FROMFILE(QS36F/CTEF04) TOFILE(QS36F/CTEF05) +
+                          MBROPT(*ADD) INCCHAR(*RCD 18 *NE '**')
+/*  // COPYDATA CTEF04,,CTEF05,RECORDS,200,,T,REORG,OMIT,18,EQ,'**',24,,,,,,,SAME,1,10,NODUPKEY */
+             CLRPFM     FILE(CTEF04)
+/* *DELETE CTEF04,F1                                                */
+/* *RENAME CTEF05,CTEF04                                            */
+             CPYF       FROMFILE(QS36F/CTEF05) TOFILE(QS36F/CTEF04) +
+                          MBROPT(*ADD)
+             CLRPFM     FILE(CTEF05)
+             OVRPRTF    FILE(AHOS0966) TOFILE(QPRINT) PAGESIZE(66) +
+                          FORMTYPE(RE66) HOLD(*YES)
+             CALL       PGM(INTERB02/AHOS09NW)
+             CLRPFM     FILE(AHOF05)
+             CPYF       FROMFILE(QS36F/AHOF04) TOFILE(QS36F/AHOF05) +
+                          MBROPT(*ADD) INCCHAR(*RCD 18 *NE '**')
+/*  // COPYDATA AHOF04,,AHOF05, RECORDS, 200,,T,REORG, OMIT, 18,EQ,'**',24,,,,,,, SAME, 1, 10, NODUPKEY */
+/* *DELETE AHOF04, F1                                               */
+             CLRPFM     AHOF04
+/* *RENAME AHOF05,AHOF04                                            */
+             CPYF       FROMFILE(QS36F/AHOF05) TOFILE(QS36F/AHOF04) +
+                          MBROPT(*ADD)
+             CLRPFM     FILE(AHOF05)
+             SNDPGMMSG  MSG('GENERA TRANSFERENCIA AUTOMÁTICA IVALE +
+                          (para los créditos de intereses de +
+                          ahorro)') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(COREPGDB2/NCPR064CL)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ******************************************'+
+                          ) TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* DEBERA HACER AHORA LOS PROCESOS DE +
+                          AHORROS Y CUENTAS CORRIENTES              +
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ******************************************'+
+                          ) TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('** SOLAMENTE DESPUES DEL TERMINO DE LAS +
+                          DOS CONSISTENCIAS SE PODRA HACER LA... +
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* ULTIMA CONSISTENCIA DE +
+                          CONTABILIDAD...............................+
+                          .......... *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ******************************************'+
+                          ) TOPGMQ(*EXT) MSGTYPE(*COMP)
+/*  // PAUSE 'REVISAR COMISIW'                                      */
+             SNDPGMMSG  MSG('OPERACIONES DE COMISIONES ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(INGENC/TR11CMSC)
+             SNDPGMMSG  MSG('AHORA SE EJECUTA LA SEGUNDA COPIA PARA +
+                          SOFTSHOP') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       (LUILIB/CLCOPIA2)
+             SNDPGMMSG  MSG(' TRANSFIERE SEGUNDA (y última) PARTE DE +
+                          OPERACIONES DE AHORROS') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(INGEN/TRO1AHOC2)
+             SNDPGMMSG  MSG('TRANSFIERE SEGUNDA PARTE DE +
+                          OPERACIONES DE CTA CTE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       INGEN/TR04CCTC2
+             SNDPGMMSG  MSG(' ACTUALIZA FILES DE INFONET') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       (ONLINE/INFACMOC) PARM('ROBOTCC ')
+             CALL       (ONLINE/INFACMOC) PARM('ROBOTCA ')
+             CHGJOB     SWS(00000000)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             CALL       (GLOBAL/ACTIUX)
+/* -- SI ES PROCESO DIARIO, NO FIN DE MES, YA CONTABILIZA ACA LOS REGISTROS DE ROBOTCC Y ROBOTCA */
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             CALL       PGM(INGEN/TRO4CCTC7)
+             CALL       PGM(INGEN/TRO1AHOC7)
+             ENDDO
+             SNDPGMMSG  MSG(' COPIA ROBOTCC Y ROBOTCA PARA +
+                          PREV.LAV.DINERO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             CPYF       FROMFILE(QS36F/ROBOTCA) +
+                          TOFILE(QS36F/AHMOVTR) MBROPT(*REPLACE) +
+                          FMTOPT(*NOCHK)
+             CPYF       FROMFILE(QS36F/ROBOTCC) +
+                          TOFILE(QS36F/CCMOVTR) MBROPT(*REPLACE) +
+                          FMTOPT(*NOCHK)
+             ENDDO
+
+             ENDPGM

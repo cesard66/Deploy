@@ -1,0 +1,25 @@
+PGM
+/*============================================================*/
+/* SISTEMA.: CONTROL DE STOCK                                 */
+/*           IMPRESION DE LICITACION DE PRECIOS               */
+/*============================================================*/
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSIDS36) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&TYPEWS) TYPE(*DEC) LEN(001)
+
+             CHGJOB     SWS(00000000)
+             RTVJOBA    JOB(&WSID) USER(&USER)
+             CALL       PGM(QSSP/QEXCVTDV) PARM((&WSIDS36) (&WSID) +
+                          (&TYPEWS))
+             CHGDTAARA  DTAARA(*LDA (1 12)) VALUE(&WSIDS36 *CAT &USER)
+
+             OVRDBF     FILE(STPRVREL) TOFILE(STPROVEE)
+             OVRDBF     FILE(STMASPRV) TOFILE(STMASPRO)
+             OVRDSPF    FILE(PANTALL) TOFILE(STK09FM)
+             OVRPRTF    FILE(STKPR) TOFILE(OPRINT) PAGESIZE(33) +
+                          OVRFLW(30) FORMTYPE(RE33) COPIES(1)
+             CALL       PGM(STK09NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

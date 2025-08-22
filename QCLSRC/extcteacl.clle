@@ -1,0 +1,72 @@
+             PGM
+
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **************') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*           EMISION DE EXTRACTOS A +
+                          PEDIDO          *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **************') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(HISTORYL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+
+/* // IFF DATAF1-HISTORYL BLDINDEX HISTORYL,2,5,HISTORY1,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX HISTORYL ON HISTORY1 ( +
+                          CAST(SUBSTRING(HISTORY2 FROM 2 FOR  5) AS +
+                          CHAR(5)) AS K00001 ASC ) RCDFMT RCHEDEVT +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(TOL0) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGCURLIB +
+                          CURLIB(INTERB01))
+/* * MODIFICADO 21/10/2005                                          */
+             CALL       PGM(ADDMBR) PARM((CTEF04B))
+/* *                                                                */
+             CHGDTAARA  DTAARA(*LDA (1 27)) VALUE(&PM01 *TCAT +
+                          '               ')
+             CHGDTAARA  DTAARA(*LDA (21 10)) VALUE(&USER)
+             CHGJOB     SWS(00000000)
+             OVRDBF     FILE(CTEFO4) TOFILE(CTEF04B)
+             CALL       PGM(CTES07N)
+             DLTOVR     FILE(*ALL)
+             IF         COND(%SWITCH(XXX1XXXX)) THEN(GOTO CMDLBL(FIN))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CCMASL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXXX1XXX))
+/* *                                                                */
+             OVRDBF     FILE(CTEFO4) TOFILE(CTEF04B)
+             OVRPRTF    FILE(EXTRACTO) PAGESIZE(66) CPI(15) +
+                          FORMTYPE(RE66) COPIES(1) HOLD(*YES)
+             CALL       PGM(CTES08NN)
+             DLTOVR     FILE(*ALL)
+
+FIN:
+
+/* * MODIFICADO 21/10/2005                                          */
+             CALL       DLTMBR PARM(CTEF04B)
+/* *                                                                */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(TOL0) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) CHGCURLIB ONLINE
+             CHGJOB     SWS(00000000)
+
+             ENDPGM

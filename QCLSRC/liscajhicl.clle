@@ -1,0 +1,59 @@
+             PGM
+
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM03) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM04) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM05) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM06) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             CHGDTAARA  DTAARA(*LDA (1 10)) VALUE(&USER)
+             CHGJOB     SWS(00000000)
+             SNDUSRMSG  MSG('INGRESE DIA/MES/AÑO A PROCESAR +
+                          (DDMMAA) O DEJE EN BLANCO PARA FECHA DE +
+                          HOY') TOMSGQ(*EXT) MSGRPY(&PM01)
+             IF         (&PM01 *EQ '*N') GOTO SIGA
+/* EVALUATE PARAMETER LENGTH IGNORED */
+             CHGVAR     VAR(&PM03) VALUE((&PM01))
+             CHGVAR     VAR(&PM04) VALUE('MBX' *TCAT &PM03)
+             CHGVAR     VAR(&PM05) VALUE('TT' *TCAT &PM03)
+             CHGVAR     VAR(&PM06) VALUE('TY' *TCAT &PM03)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&PM05) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+             SNDPGMMSG  MSG('FECHA NO DISPONIBLE PARA LA +
+                          CONSULTA') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             OVRDBF     MOL0 QS36F/&PM04
+             OVRDBF     TOL QS36F/&PM05
+             OVRDBF     TOLAYER QS36F/&PM06
+             OVRPRTF    FILE(AUDICINT) PAGESIZE(66) FORMTYPE(RE66) +
+                          COPIES(1) OUTPTY(9) HOLD(*YES)
+             CALL       PGM(LISCAJ)
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(SNDPGMMSG +
+                          MSG(&USER *TCAT ', USTED NO ESTA +
+                          AUTORIZADO A UTILIZAR ESTE PROGRAMA') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ))
+             GOTO       CMDLBL(ALFIN)
+/* *********************** DE LA FECHA ************************     */
+ SIGA:
+
+             CALL       PGM(LISCAJ)
+
+             OVRDBF     FILE(MOL0) TOFILE(MOL)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             OVRPRTF    FILE(AUDICINT) PAGESIZE(66) FORMTYPE(RE66) +
+                          COPIES(1) HOLD(*YES) OUTPTY(9)
+             DLTOVR     FILE(*ALL)
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(SNDPGMMSG +
+                          MSG(&USER *TCAT ', USTED NO ESTA +
+                          AUTORIZADO A UTILIZAR ESTE PROGRAMA') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ))
+
+ALFIN:
+             ENDPGM

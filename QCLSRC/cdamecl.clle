@@ -1,0 +1,48 @@
+/*  // * 'CONSULTE CON ANALISIS SI HAY CAMBIO DE TASA CDA'          */
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+
+             CLRPFM     CDECONR
+             SNDPGMMSG  MSG('CALCULO DE CDA MONEDA EXTRANJERA') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       CDECAL
+             SNDPGMMSG  MSG('CALCULO DE LOS DEVENGAMIENTOS DE CDA +
+                          S GENERADOS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* *CALL CDEHOYD                                                    */
+             SNDPGMMSG  MSG('IMPRESION DE LOS CDA GENERADOS') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       CDEHOY
+             SNDPGMMSG  MSG('GENERACION DE LAS CONTABILIZACIONES') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/*  NUEVA CONTABILIZACION                                           */
+/* *OVRDBF BDBRRELO BDIGEN/BDBRRELO                                 */
+/* *OVRDBF BDCERELO BDIGEN/BDCERELO                                 */
+/* *RDBF BDCFRELO BDIGEN/BDCFRELO                                   */
+/* *RDBF BDBRREL1 BDIGEN/BDBRREL1                                   */
+/* *RDBF BDBTRELO BDIGEN/BDBTRELO                                   */
+/* *RDBF BDBSRELO BDIGEN/BDBSRELO                                   */
+/* *RDBF BDBQREL2 BDIGEN/BDBQREL2                                   */
+/* *CALL CDECONN                                                    */
+/*  VIEJA CONTABILIZACION (CONCESIONES)                             */
+             CALL       CDECON
+             SNDPGMMSG  MSG('DEVENGAMIENTOS Y SUS +
+                          CONTABILIZACIONES') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* NUEVA CONTABILIZACION                                            */
+/* *CALL CDECONDN                                                   */
+/* *CALL CDECONPN                                                   */
+/* *DLTOVR ALL                                                      */
+/* VIEJA CONTABILIZACION                                            */
+             CALL       CDECOND
+             CALL       CDECONP
+             CALL       CONTDEVD
+             SNDPGMMSG  MSG('IMPRESION DEL RESUMEN CONTABLE') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RTVMBRD    FILE(CDECONR) NBRCURRCD(&RCDNBR)
+             IF         (&RCDNBR *EQ 0) SNDPGMMSG MSG('NO EXISTE +
+                          CDA MONEDA EXTRANJERA') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * IFF ?F'A,CDECONR'?/0 CALL CDEIRC                               */
+
+             ENDPGM

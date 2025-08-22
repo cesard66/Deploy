@@ -1,0 +1,22 @@
+PGM
+/*======================================================*/
+/* SISTEMA.: CONTROL DE STOCK                           */
+/*           CARGA DE PEDIDOS DE DEPENDENCIA A DEPOSITO */
+/*======================================================*/
+
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSIDS36) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&TYPEWS) TYPE(*DEC) LEN(001)
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(10)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+             RTVJOBA    JOB(&WSID) USER(&USER)
+             CALL       PGM(QSSP/QEXCVTDV) PARM((&WSIDS36) (&WSID) +
+                          (&TYPEWS))
+             CHGDTAARA  DTAARA(*LDA (1 12)) VALUE(&WSIDS36 *CAT &USER)
+             OVRDSPF    FILE(PANTALL) TOFILE(STK13FM)
+             CALL       PGM(STK13NW)
+
+             ENDPGM

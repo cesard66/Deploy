@@ -1,0 +1,43 @@
+/*  PARAMETROS COMUNES        POSICION LOCAL--> (21 a 50)           */
+/*  ********** *******        ******** *****                        */
+/*                                                                  */
+/*  02 Fecha DDMMAA             21 a 26                             */
+/*  03 Hora  HHMMSS             27 a 32                             */
+/*  04 Estacion WS              33 a 34                             */
+/*  05 Usuario UUUUUUUU         35 a 42                             */
+/*  01 ??????? UUUUUUUU         43 a 50                             */
+/*                                                                  */
+             PGM        PARM(&PM01)
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM03) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM04) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM05) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TIME) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     &WSID &JOBA
+             RTVJOBA    DATE(&DATE)
+/*                                   */
+             CHGVAR     VAR(&PM02) VALUE((&DATE))
+             CHGDTAARA  DTAARA(*LDA (21 485)) VALUE(' ')
+             CHGDTAARA  DTAARA(*LDA (21 32)) VALUE(&PM02)
+             RTVSYSVAL  SYSVAL(QTIME) RTNVAR(&TIME)
+/*                                   */
+             CHGVAR     VAR(&PM03) VALUE((&TIME))
+             CHGDTAARA  DTAARA(*LDA (27 32)) VALUE(&PM03)
+             CHGVAR     VAR(&PM04) VALUE((&WSID))
+             CHGDTAARA  DTAARA(*LDA (33 32)) VALUE(&PM04)
+             CHGVAR     VAR(&PM05) VALUE((&USER))
+             CHGDTAARA  DTAARA(*LDA (35 32)) VALUE(&PM05)
+             IF         (&PM01 *EQ ' ') SNDUSRMSG ('Enter Required +
+                          Parameter') TOMSGQ(*EXT) MSGRPY(&PM01)
+             CHGDTAARA  DTAARA(*LDA (43 32)) VALUE(&PM01)
+
+             ENDPGM

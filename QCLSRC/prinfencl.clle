@@ -1,0 +1,15 @@
+             PGM
+
+             SNDPGMMSG  MSG('Verifica si es primer día hábil del +
+                          mes') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       PGM(INTERB02/VERIF2)
+             IF         COND(*NOT (%SWITCH(XX1XXXXX))) THEN(GOTO +
+                          CMDLBL(ALFIN))
+             SNDPGMMSG  MSG('Copia ASINFO01 del mes a Procesar') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SBMJOB     CMD(CALL PGM(ONLINE/PPAC001CL))
+             CALL       PGM(ITBPGLIB/TRSBM38CL)
+ ALFIN:
+
+             ENDPGM

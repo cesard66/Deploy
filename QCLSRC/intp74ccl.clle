@@ -1,0 +1,33 @@
+/** PROCESO DIARIO DE COMEX (ADICION DE IVA CALCUADOS A SALIVA)     */
+/** SE SEPARO DEL PROCESO PRINCIPAL PORQUE DUPLICABA EN FINMES-JMAQ */
+             PGM
+
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CPYF       FROMFILE(&LIBF/SALIV1) TOFILE(&LIBF/SALIVA) +
+                          MBROPT(*ADD) FMTOPT(*MAP *DROP)
+             CPYF       FROMFILE(&LIBF/SALIV2) TOFILE(&LIBF/SALIVA) +
+                          MBROPT(*ADD) FMTOPT(*MAP *DROP)
+             CPYF       FROMFILE(&LIBF/SALIV3) TOFILE(&LIBF/SALIVA) +
+                          MBROPT(*ADD) FMTOPT(*MAP *DROP)
+             CPYF       FROMFILE(&LIBF/SALIV4) TOFILE(&LIBF/SALIVA) +
+                          MBROPT(*ADD) FMTOPT(*MAP *DROP)
+             CPYF       FROMFILE(&LIBF/SALIV5) TOFILE(&LIBF/SALIVA) +
+                          MBROPT(*ADD) FMTOPT(*MAP *DROP)
+             CPYF       FROMFILE(&LIBF/SALIV7) TOFILE(&LIBF/SALIVA) +
+                          MBROPT(*ADD) FMTOPT(*MAP *DROP)
+             CPYF       FROMFILE(&LIBF/SALIV8) TOFILE(&LIBF/SALIVA) +
+                          MBROPT(*ADD) FMTOPT(*MAP *DROP)
+             CPYF       FROMFILE(&LIBF/SALIV9) TOFILE(&LIBF/SALIVA) +
+                          MBROPT(*ADD) FMTOPT(*MAP *DROP)
+             CLRPFM     FILE(&LIBF/SALIV1)
+             CLRPFM     FILE(&LIBF/SALIV2)
+             CLRPFM     FILE(&LIBF/SALIV3)
+             CLRPFM     FILE(&LIBF/SALIV4)
+             CLRPFM     FILE(&LIBF/SALIV5)
+             CLRPFM     FILE(&LIBF/SALIV7)
+             CLRPFM     FILE(&LIBF/SALIV8)
+             CLRPFM     FILE(&LIBF/SALIV9)
+
+             ENDPGM

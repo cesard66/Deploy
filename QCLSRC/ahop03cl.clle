@@ -1,0 +1,125 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*      GRABACION DE MOVIMIENTOS DEL DIA +
+                          PARA CUENTAS DE AHORROS      *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/AHOP05CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/AHOP05CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('CONSISTENCIA DE CUENTAS CORRIENTES EN +
+                          EJECUCION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('AGUARDE SU TERMINACION PARA GRABAR +
+                          MOVIMIENTOS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CANCELO ESTE PROCEDIMIENTO DESPUES DEL +
+                          PAUSE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             GOTO       CMDLBL(NOK)
+             ENDDO
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/AHOP21CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/AHOP21CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('PROCESO DE CUENTAS CORRIENTES EN +
+                          EJECUCION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('NO SE PERMITE MAS GRABAR MOVIMIENTOS +
+                          HOY') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CANCELO ESTE PROCEDIMIENTO DESPUES DEL +
+                          PAUSE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             GOTO NOK
+             ENDDO
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/AHOP22CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/AHOP22CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('PROCESO DE CUENTAS CORRIENTES EN +
+                          EJECUCION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('NO SE PERMITE MAS GRABAR MOVIMIENTOS +
+                          HOY') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CANCELO ESTE PROCEDIMIENTO DESPUES DEL +
+                          PAUSE!') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             GOTO       CMDLBL(NOK)
+             ENDDO
+             ENDDO
+             CHGJOB     SWS(00000000)
+             CALL       PGM(AHOS44NW)
+             IF         COND((%SWITCH(XXXXX0XX)) *AND +
+                          (%SWITCH(XXXX0XXX))) THEN(GOTO CMDLBL(OK))
+             IF         (%SWITCH(XXXXX0XX)) GOTO SNOK
+             SNDPGMMSG  +
+                          MSG('??????????????????????????????????????+
+                          ????????????????????????????????') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('?    NO ES PERMITIDO ALTA DE +
+                          MOVIMIENTOS PARA CUENTAS DE AHORROS     +
+                          ?') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('?    DESPUES DE INICIADO EL PROCESO DEL +
+                          DIA.                         ?') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('?                                      -
+                              ?') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('?    ESTE PROCEDIMENTO SE AUTO +
+                          CANCELARA AL SALIR DEL PAUSE          ?') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('??????????????????????????????????????+
+                          ????????????????????????????????') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+ SNOK:
+             IF         COND(%SWITCH(XXXXX1XX)) THEN(GOTO CMDLBL(NOK))
+             SNDPGMMSG  MSG('LA FECHA DE CAHSDO NO ES PARA EL +
+                          PROCESO DE HOY - VERIFIQUE DATE ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EL PROCEDIMIENTO SE CANCELARA DESPUES +
+                          DEL PAUSE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+ NOK:
+             SNDPGMMSG  MSG('SYX3726 Opciones (0)') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE      MSG('Pausa--TECLEE 0 Y DESPUES INTRO')
+             CHGJOB     SWS(00000000)
+             RETURN
+ OK:
+             CHGJOB     SWS(00000000)
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(GOTO CMDLBL(FUER))
+             CHGJOB     SWS(00000000)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MOVIMCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/MOVIMCA))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAHSDO1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CAHSDO1))
+/* * - CARGA DE TRANSACCIONES PARA AHORROS. SE CAMBIARA A CONVAGE NUEVO PROCESO ** */
+             CHGDTAARA  DTAARA(*LDA (1 10)) VALUE(&USER)
+ FUER:
+
+             ENDPGM

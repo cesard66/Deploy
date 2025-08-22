@@ -1,0 +1,51 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&FILE) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             CHGJOB     SWS(00000000)
+             CHGDTAARA  DTAARA(*LDA (1 10)) VALUE(&USER)
+             CALL       PGM(VERAGECM$) PARM((&USER))
+             CHGVAR     VAR(&FILE) VALUE(%SST(*LDA 037 008))
+             CHGJOB     SWS(00000000)
+             IF         COND(&FILE *EQ ' ') THEN(DO)
+             SNDPGMMSG  MSG('NO EXISTE PROCESO DE CAMARA EN SU +
+                          AGENCIA') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&FILE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+             SNDPGMMSG  MSG('FALTA EN DISCO EL ARCHIVO DE CAMARA +
+                          PARA PROCESO.') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* CAMLS1, TOTALES POR BCOS. | CAMLS2, +
+                          TOTALES POR AGENC.*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+
+             OVRDBF     FILE(CAMINT) TOFILE(&FILE)
+             OVRPRTF    FILE(PRINLS1) PAGESIZE(66) FORMTYPE(RE66) +
+                          COPIES(1)
+             CALL       PGM(CAMLS1)
+
+             OVRDBF     FILE(CAMINT) TOFILE(&FILE)
+             OVRPRTF    FILE(PRINLS2) PAGESIZE(66) FORMTYPE(RE66) +
+                          COPIES(1)
+             CALL       PGM(CAMLS2NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

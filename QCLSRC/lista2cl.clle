@@ -1,0 +1,30 @@
+             PGM
+
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM05) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WORK) TYPE(*CHAR) LEN(032)
+
+             RTVJOBA    USER(&USER)
+
+             ALCOBJ     OBJ((*LIBL/LISTA2CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             PAUSE      MSG('SE ESTA UTILIZANDO EL PROCESO EN ESTE +
+                          MOMENTO, POR FAVOR INTENTE MAS TARDE')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             SNDUSRMSG  MSG('INGRESE LA FECHA EN 8 DIGITOS +
+                          (DDMMAAAA) ') TOMSGQ(*EXT) MSGRPY(&WORK)
+             CHGVAR     VAR(&PM01) VALUE(&WORK)
+             IF         COND(&PM01 *EQ ' ') THEN(GOTO CMDLBL(ALFIN))
+             CALL       PGM(VERAGECL) PARM((&USER))
+/* EVALUATE PARAMETER LENGTH IGNORED */
+             CHGVAR     VAR(&PM05) VALUE(%SST(*LDA 035 002))
+             CPYF       FROMFILE(QS36F/CHEQENVI) +
+                          TOFILE(QS36F/CHEQENVIW) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCREL((*IF FRECIB *EQ +
+                          &PM01) (*AND AGECOM *EQ &PM05))
+             RUNQRY     QRY(LISTA2) QRYFILE((QS36F/CHEQENVIW))
+ ALFIN:
+
+             ENDPGM

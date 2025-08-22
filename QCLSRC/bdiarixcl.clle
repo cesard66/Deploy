@@ -1,0 +1,1209 @@
+             PGM
+
+             DCL        VAR(&PM30) TYPE(*DEC) LEN(002)
+             DCL        VAR(&PM30C) TYPE(*char) LEN(002)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&GOTO) TYPE(*CHAR) LEN(002)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             GOTO       RUBEN
+             SNDPGMMSG  MSG('BDIARIX') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('-------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°+
+                          °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('°                        PROCESO DE +
+                          CONTABILIDAD                      °') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°+
+                          °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTA88I) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTA881))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMDIA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMDIA))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/HISTCOIN) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/HISTCOIN))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/CTEP05CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/CTEP05CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('CONSISTENCIA CUENTAS CORRIENTES ACTIVA +
+                          - CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ENDDO
+ V1:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/AHOP05CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/AHOP05CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('CONSISTENCIA DE AHORROS +
+                          ACTIVA-CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ENDDO
+ V2:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/CTEP32CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/CTEP32CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('1RA. PARTE PROCESO DE CTAS/CTES +
+                          ACTIVO-CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ENDDO
+ V3:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/AHOP32CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/AHOP32CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('1RA. PARTE PROCESO DE AHORROS ACTIVO - +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ENDDO
+ V4:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/CTEP33CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/CTEP33CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('1RA. PARTE PROCESO CTAS/CTES +
+                          MENS.ACTIVO-CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ENDDO
+ V5:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/AHOP33CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/AHOP33CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('1RA. PARTE PROCESO AHORROS +
+                          MENS.ACTIVO-CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ENDDO
+ V6:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTAB88) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(V7))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTAB07) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(V7))
+             SNDPGMMSG  MSG(' NO ESTA EN DISCO EL FICHERO CONTAB88 - +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+ V7:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/HISTCONT) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(V8))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTHIST) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(V8))
+             SNDPGMMSG  MSG('* NO ESTA EN DISCO EL FICHERO HISTCONT +
+                          - CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+ V8:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(V9))
+             SNDPGMMSG  MSG('*** NO ESTA EN DISCO EL FICHERO +
+                          CONTMOV1 - CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+ V9:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CTESDO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(V10))
+             SNDPGMMSG  MSG('*** NO ESTA EN DISCO EL FICHERO CTESDO +
+                          - CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+ V10:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/TASAS) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(V11))
+             SNDPGMMSG  MSG('*** NO ESTA EN DISCO EL FICHERO TASAS - +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+ V11:
+/* / GOTO V12                                                       */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/BCOSPAIS) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) DO
+             GOTO       V12
+/* TAMBIEN EL DE ARRIVA GOTO V12                                    */
+             ENDDO
+             SNDPGMMSG  MSG('*** NO ESTA EN DISCO EL FICHERO +
+                          BCOSPAIS - CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+ V12:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTAB07) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(XVX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTHIST) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(GOTO CMDLBL(XVX))
+             SNDPGMMSG  +
+                          MSG('°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°+
+                          °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('°                                      -
+                                °') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('°                   REPROCESO DE LA +
+                          CONSISTENCIA                       °') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('°                                      -
+                                °') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°+
+                          °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CHGDTAARA  DTAARA(*LDA (51 7)) VALUE('BDIARIX')
+             CALL       PGM(BCONSIXCL)
+             CHGDTAARA  DTAARA(*LDA (51 7)) VALUE('       ')
+             SNDPGMMSG  MSG('Reorganiza *CONTAB88* con las +
+                          Modificaciones del día, si hubieren °  +
+                          ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' Si no hubieren, se asume que +
+                          hubieron   como condición forzada  °   +
+                          ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTAB99) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTAB99))
+             CPYF       FROMFILE(&LIBF/CONTAB88) +
+                          TOFILE(&LIBF/CONTAB99) CRTFILE(*YES)
+             DLTF       FILE(&LIBF/CONTAB88)
+             RNMOBJ     OBJ(&LIBF/CONTAB99) OBJTYPE(*FILE) +
+                          NEWOBJ(CONTAB88)
+ XVX:
+             CHGJOB     SWS(00000000)
+             CALL       PGM(WHERECL)
+             CHGDTAARA  DTAARA(*LDA (1 13)) VALUE('000000I000000')
+             CALL       PGM(WHERECL)
+             IF         COND(%SWITCH(XXXXX1XX)) THEN(SNDPGMMSG +
+                          MSG('PROCESO CONTABLE EJECUTADO +
+                          ANTERIORMENTE-CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ))
+             IF         COND(%SWITCH(XXXXX1XX)) THEN(RETURN)
+             IF         COND((%SST(*LDA 008 003)) *EQ '007') THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTAB88) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(&LIBF/CONTAB88)
+             RNMOBJ     OBJ(&LIBF/CONTAB07) OBJTYPE(*FILE) +
+                          NEWOBJ(CONTAB88)
+             GOTO       CMDLBL(SOS06)
+             ENDDO
+             ENDDO
+             IF         COND((%SST(*LDA 008 003)) *EQ '000') +
+                          THEN(GOTO CMDLBL(SOS01))
+             CHGVAR     VAR(&GOTO) VALUE(%SST(*LDA 009 002))
+             SELECT
+             WHEN       COND(&GOTO = '01') THEN(GOTO CMDLBL(SOS01))
+             WHEN       COND(&GOTO = '02') THEN(GOTO CMDLBL(SOS02))
+             WHEN       COND(&GOTO = '03') THEN(GOTO CMDLBL(SOS03))
+             WHEN       COND(&GOTO = '04') THEN(GOTO CMDLBL(SOS04))
+             WHEN       COND(&GOTO = '05') THEN(GOTO CMDLBL(SOS05))
+             WHEN       COND(&GOTO = '06') THEN(GOTO CMDLBL(SOS06))
+             WHEN       COND(&GOTO = '07') THEN(GOTO CMDLBL(SOS07))
+             WHEN       COND(&GOTO = 'JV') THEN(GOTO CMDLBL(SOSJV))
+             WHEN       COND(&GOTO = '08') THEN(GOTO CMDLBL(SOS08))
+             WHEN       COND(&GOTO = '09') THEN(GOTO CMDLBL(SOS09))
+             WHEN       COND(&GOTO = '10') THEN(GOTO CMDLBL(SOS10))
+             WHEN       COND(&GOTO = '29') THEN(GOTO CMDLBL(SOS29))
+             WHEN       COND(&GOTO = '36') THEN(GOTO CMDLBL(SOS36))
+             WHEN       COND(&GOTO = '40') THEN(GOTO CMDLBL(SOS40))
+             WHEN       COND(&GOTO = '46') THEN(GOTO CMDLBL(SOS46))
+             WHEN       COND(&GOTO = '47') THEN(GOTO CMDLBL(SOS47))
+             WHEN       COND(&GOTO = '48') THEN(GOTO CMDLBL(SOS48))
+             WHEN       COND(&GOTO = '49') THEN(GOTO CMDLBL(SOS49))
+             WHEN       COND(&GOTO = '50') THEN(GOTO CMDLBL(SOS50))
+             WHEN       COND(&GOTO = '51') THEN(GOTO CMDLBL(SOS51))
+             WHEN       COND(&GOTO = '52') THEN(GOTO CMDLBL(SOS52))
+             WHEN       COND(&GOTO = '53') THEN(GOTO CMDLBL(SOS53))
+             WHEN       COND(&GOTO = '54') THEN(GOTO CMDLBL(SOS54))
+             WHEN       COND(&GOTO = '55') THEN(GOTO CMDLBL(SOS55))
+             WHEN       COND(&GOTO = '56') THEN(GOTO CMDLBL(SOS56))
+             WHEN       COND(&GOTO = '57') THEN(GOTO CMDLBL(SOS57))
+             WHEN       COND(&GOTO = '58') THEN(GOTO CMDLBL(SOS58))
+             WHEN       COND(&GOTO = '59') THEN(GOTO CMDLBL(SOS59))
+             WHEN       COND(&GOTO = '60') THEN(GOTO CMDLBL(SOS60))
+             WHEN       COND(&GOTO = '61') THEN(GOTO CMDLBL(SOS61))
+             WHEN       COND(&GOTO = '62') THEN(GOTO CMDLBL(SOS62))
+             WHEN       COND(&GOTO = '63') THEN(GOTO CMDLBL(SOS63))
+             WHEN       COND(&GOTO = '64') THEN(GOTO CMDLBL(SOS64))
+             WHEN       COND(&GOTO = '65') THEN(GOTO CMDLBL(SOS65))
+             WHEN       COND(&GOTO = '66') THEN(GOTO CMDLBL(SOS66))
+             WHEN       COND(&GOTO = '67') THEN(GOTO CMDLBL(SOS67))
+             WHEN       COND(&GOTO = '68') THEN(GOTO CMDLBL(SOS68))
+             WHEN       COND(&GOTO = '69') THEN(GOTO CMDLBL(SOS69))
+             WHEN       COND(&GOTO = '70') THEN(GOTO CMDLBL(SOS70))
+             WHEN       COND(&GOTO = '71') THEN(GOTO CMDLBL(SOS71))
+             WHEN       COND(&GOTO = '72') THEN(GOTO CMDLBL(SOS72))
+             WHEN       COND(&GOTO = '73') THEN(GOTO CMDLBL(SOS73))
+             WHEN       COND(&GOTO = '74') THEN(GOTO CMDLBL(SOS74))
+/*           WHEN       COND(&GOTO = '75') THEN(GOTO CMDLBL(SOS75)) */
+             WHEN       COND(&GOTO = '76') THEN(GOTO CMDLBL(SOS76))
+/*           WHEN       COND(&GOTO = '77') THEN(GOTO CMDLBL(SOS77)) */
+             WHEN       COND(&GOTO = '78') THEN(GOTO CMDLBL(SOS78))
+             WHEN       COND(&GOTO = '79') THEN(GOTO CMDLBL(SOS79))
+             WHEN       COND(&GOTO = '80') THEN(GOTO CMDLBL(SOS80))
+             WHEN       COND(&GOTO = '82') THEN(GOTO CMDLBL(SOS82))
+             WHEN       COND(&GOTO = '83') THEN(GOTO CMDLBL(SOS83))
+             WHEN       COND(&GOTO = '84') THEN(GOTO CMDLBL(SOS84))
+             ENDSELECT
+ SOS01:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTAB07) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(GOTO +
+                          CMDLBL(V13))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTAB88) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTAB88))
+             RNMOBJ     OBJ(&LIBF/CONTAB07) OBJTYPE(*FILE) +
+                          NEWOBJ(CONTAB88)
+ V13:
+             SNDPGMMSG  MSG('*°EX°° ....Verifica fecha ultima +
+                          actualizacion con fecha movimiento.....') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+/* / LOAD CONS32                                                    */
+/* / FILE NAME-CONTAB88                                             */
+/* / FILE NAME-CONTMOV1                                             */
+/* / RUN                                                            */
+             CALL       PGM(WHERECL)
+ SOS02:
+             IF         (%SWITCH(XX1XXXXX)) DO
+             SNDPGMMSG  MSG('Fecha ult.actualiz. > fecha movimiento +
+                          Cancelo') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(do)
+             CHGDTAARA  DTAARA(*LDA (11 3)) VALUE('006')
+             GOTO       CMDLBL(V14)
+             ENDDO
+/* * IF SWITCH1-1 PAUSE 'Fecha ultima actualizacion no corresponde a fe-' */
+/* * IF SWITCH1-1 PAUSE 'cha habil enterior por lo tanto --Cancelo-'      */
+/* * IF SWITCH1-1 CANCEL                                                  */
+             SNDPGMMSG  MSG('°°02°° .... Cuando es primer dia del +
+                          año - Crea movtos. de apertura ....') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CO1024NW)
+             CALL       PGM(WHERECL)
+ SOS03:
+             IF         (%SWITCH(XXXXXX1X)) DO
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*          PRIMER DIA DEL +
+                          AÑO                  *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CONS30)
+             ENDDO
+             CHGJOB     SWS(00000000)
+             CALL       PGM(WHERECL)
+ SOS04:
+             SNDPGMMSG  MSG('°°3°° .... Actualizacion de los saldos +
+                          con los movimientos del dia ....') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/CONTMOV2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QTEMP/CONTMOV2))
+             RUNSQL     SQL('CREATE TABLE QTEMP.CONTMOV2 LIKE CONTMOV1') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             RUNSQL     SQL('INSERT INTO QTEMP.CONTMOV2 SELECT * +
+                          FROM CONTMOV1 ODER BY SUBSTR(F00001, 2, +
+                          10) ASC') COMMIT(*NONE)
+             CALL       PGM(WHERECL)
+ SOS05:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QTEMP/CONTAB88TM) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QTEMP/CONTAB88TM))
+             RUNSQL     SQL('CREATE INDEX QTEMP.CONTAB88TM ON +
+                          CONTAB88 ( AGEN ASC, CUENTA ASC) RCDFMT +
+                          RCONTAB ADD ALL COLUMNS') COMMIT(*NONE)
+             CALL       PGM(WHERECL)
+ SOS06:
+             SNDPGMMSG  MSG('°°EX°°                   Copia de +
+                          protecion de CONTAB88.') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* / LOAD $COPY                                                     */
+/* / FILE NAME-COPYIN,LABEL-CONTAB88                                */
+/* / FILE NAME-COPYO,LABEL-CONTAB07,RECORDS-?F'A,CONTAB88'?         */
+/* / RUN                                                            */
+/* / COPYFILE OUTPUT-DISK                                           */
+/* / END                                                            */
+             CPYF       FROMFILE(QS36F/CONTAB88) +
+                          TOFILE(QS36F/CONTAB07) CRTFILE(*YES)
+             CALL       PGM(WHERECL)
+ SOS07:
+             OVRDBF     FILE(CONTAB88) TOFILE(CONTAB88TM)
+             CALL       PGM(CONS10NW)
+/* ************************************* INCLUIDO CADPA 31.10.1989  */
+             SNDPGMMSG  MSG('°°SOS°° .... Recalcula Saldos con +
+                          Cambio del día .... AAAA10...') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/CONTAB88TM) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QTEMP/CONTAB88TM))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/VIEJONTA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QTEMP/VIEJONTA))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/VIEJOS) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QTEMP/VIEJOS))
+             RUNSQL     SQL('CREATE INDEX QTEMP.CONTAB88TM ON +
+                          CONTAB88 ( AGEN ASC, CUENTA ASC) RCDFMT +
+                          RCONTAB ADD ALL COLUMNS') COMMIT(*NONE)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/VIEJONTA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QTEMP/VIEJONTA))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/VIEJONTA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(QTEMP/VIEJONTA) RCDLEN(250))
+             OVRDBF     FILE(CONTAB88) TOFILE(QTEMP/CONTAB88TM)
+             CALL       PGM(AAAA10NW)
+             SNDPGMMSG  MSG('°°SOS°° .... Impresión de cuentas que +
+                          sufrieron cambios .... AAAA11 ....') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CLRPFM     FILE(QTEMP/VIEJOS)
+             MONMSG     MSGID(CPF3142) EXEC(CRTPF FILE(QTEMP/VIEJOS) +
+                          RCDLEN(250) SIZE(*NOMAX))
+             RUNSQL     SQL('INSERT INTO QTEMP.VIEJOS SELECT * FROM +
+                          QTEMP.VIEJONTA ORDER BY SUBSTR(F00001, 1, +
+                          10) ASC') COMMIT(*NONE)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/DIFCAMBX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(&LIBF/DIFCAMBX))
+             ELSE       CMD(CRTPF FILE(&LIBF/DIFCAMBX) RCDLEN(80))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/DIFERFLU) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(&LIBF/DIFERFLU))
+             ELSE       CMD(CRTPF FILE(&LIBF/DIFERFLU) RCDLEN(80))
+             OVRDBF     FILE(VIEJONTA) TOFILE(VIEJOS)
+             OVRDBF     FILE(CONTAB) TOFILE(CONTAB88)
+             OVRDBF     FILE(DIFCAMB) TOFILE(DIFCAMBX)
+             OVRDBF     FILE(ASIENTO) TOFILE(DIFERFLU)
+             OVRPRTF    FILE(INFORME) TOFILE(QTEMP) COPIES(1) +
+                          HOLD(*YES)
+             CALL       PGM(AAAA11)
+             DLTF       FILE(QTEMP/VIEJOS)
+             DLTOVR     FILE(*ALL)
+             SNDPGMMSG  MSG('°°SOS°° .... Actualiza las cuentas +
+                          con ajuste moneda    .... AAAA01 ....') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CARCON2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CARCON2))
+             RTVMBRD    FILE(&LIBF/DIFCAMBX) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(GOTO CMDLBL(SOSJV))
+             RUNSQL     SQL('CREATE TABLE CARCON2 LIKE DIFCAMX') +
+                          COMMIT(*NONE)
+             RUNSQL     SQL('INSERT INTO CARCON2 SELECT * FROM +
+                          DIFCAMBX ORDER BY SUBSTR(F00001, 2, 10) +
+                          ASC') COMMIT(*NONE)
+             OVRDBF     FILE(CONTMOV2) TOFILE(CARCON2)
+             OVRDBF     FILE(CONTAB88) TOFILE(QTEMP/CONTAB88TM)
+             CALL       PGM(AAAA01NW)
+             DLTF       FILE(CARCON2)
+             DLTOVR     FILE(*ALL)
+ SOSJV:
+/* ************************************** HASTA ACA FUE LA INCLUSION ************* */
+ LOOP:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/CONVAGE1CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/CONVAGE1CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('AGUARDE QUE FINALICE LA EJECUCION DE +
+                          CONVAGE1 EN QBATCH') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             GOTO       CMDLBL(LOOP)
+             ENDDO
+             ENDDO
+             CALL       PGM(WHERECL)
+ SOS08:
+ V14:
+             SNDPGMMSG  MSG('°°04°° ....  Balance RUBRICADO para +
+                          el Banco Central del Paraguay   ....') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTABEN) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTABEN))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTAB8S) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTAB8S))
+             CPYF       FROMFILE(QS36F/CONTAB88) +
+                          TOFILE(QS36F/CONTABEN) CRTFILE(*YES)
+             CALL       PGM(ENTERO)
+             RUNSQL     SQL('CREATE TABLE QTEMP.CONTAB8S AS( SELECT +
+                          CAST(''00'' AS CHAR(2)) AGE, CUENTA, DV, +
+                          MAX(DENOM) DENOM, CAST(SUM(DBDIA) AS +
+                          DEC(17, 2)) DBDIA, CAST(SUM(CRDIA) AS +
+                          DEC(17, 2)) CRDIA, CAST(SUM(DBMES) AS +
+                          DEC(17, 2)) DBMES, CAST(SUM(CRMES) AS +
+                          DEC(17, 2)) CRMES, CAST(SUM(DBTRI) AS +
+                          DEC(17, 2)) DBTRI, CAST(SUM(CRTRI) AS +
+                          DEC(17, 2)) CRTRI, CAST(SUM(DBEJE) AS +
+                          DEC(17, 2)) DBEJE, CAST(SUM(CREJE) AS +
+                          DEC(17, 2)) CREJE, CAST(SUM(DBDIAX) AS +
+                          DEC(17, 2)) DBDIAX, CAST(SUM(CRDIAX) AS +
+                          DEC(17, 2)) CRDIAX, CAST(SUM(DBMESX) AS +
+                          DEC(17, 2)) DBMESX, CAST(SUM(CRMESX) AS +
+                          DEC(17, 2)) CRMESX, CAST(SUM(DBTRIX) AS +
+                          DEC(17, 2)) DBTRIX, CAST(SUM(CRTRIX) AS +
+                          DEC(17, 2)) CRTRIX, CAST(SUM(DBEJEX) AS +
+                          DEC(17, 2)) DBEJEX, CAST(SUM(CREJEX) AS +
+                          DEC(17, 2)) CREJEX, MAX(FULDIA) FULDIA, +
+                          MAX(FULMES) FULMES, MAX(FULAÑO) FULANO, +
+                          MAX(CODMON) CODMON, MAX(TRIMES) TRIMES, +
+                          MAX(FEADIA) FEADIA, MAX(FEAMES) FEAMES, +
+                          MAX(FEAAÑO) FEAAÑO, MAX(MAREXT) MAREXT, +
+                          MAX(MESPRO) MESPRO, MAX(LIBRE1) LIBRE1 +
+                          FROM QS36F.CONTABEN WHERE SUBSTR(CUENTA, +
+                          5, 4)= ''0000'' GROUP BY CUENTA, DV  +
+                          ORDER BY CUENTA, DV) WITH DATA') +
+                          COMMIT(*NONE)
+             CALL       PGM(WHERECL)
+ SOS09:
+             CALL       PGM(C01027)
+/* *----------------------------------------------                  */
+ RUBEN:
+/* *----------------------------------------------                  */
+ SOS10:
+             CLRPFM     SALBCP
+/* * LOAD CONS04                                                    */
+/* * FILE NAME-CONTAB8S,RETAIN-S                                    */
+/* * FILE NAME-CONTAB88,DISP-SHR                                    */
+/* * FILE NAME-SALBCP                                               */
+/* * PRINTER NAME-RUBRICA,FORMSNO-RE88,COPIES-2,PRIORITY-0,LINES-96,LPI-8 */
+/* * RUN                                                            */
+ SOS29:
+ SOS36:
+/* ** * '°°19°° ....      Planilla de resolucion 14/29 de encaje legal' */
+             CHGDTAARA  DTAARA(*LDA (201 11)) VALUE('00000000000')
+             OVRDBF     FILE(ICADREL1) TOFILE(BDIGEN/ICADREL1)
+/* *CALL CONS31                                                     */
+/* *CALCULO DE ENCAJE MONEDA LOCAL Y EXTRANJERA DE CDA              */
+/* *CALL CDLENC                                                     */
+/* *CALL CDEENC                                                     */
+             CALL       PGM(WHERECL)
+/* // TAG SOS37                                                     */
+/* // * '°°20°° ....         Planilla de encaje legal en  guaranies'*/
+/* // LOAD CONS24                                                   */
+/* // FILE NAME-CONTAB88,DISP-SHR                                   */
+/* // FILE NAME-CTESDO,DISP-SHR                                     */
+/* // FILE NAME-FLUENC,DISP-SHR                                     */
+/* // FILE NAME-CDAENC,DISP-SHR                                     */
+/* * PRINTER NAME-ENCAJEGS,COPIES-4,FORMSNO-BORR,PRIORITY-0,LINES-66,CPI-15 */
+/* ** RUN                                                           */
+             CALL       PGM(WHERECL)
+/* * TAG SOS38                                                      */
+/* * * '°°21°° ....           Planilla de encaje legal en moneda extranjera' */
+/* * LOAD CONS25                                                    */
+/* * FILE NAME-CONTAB88,DISP-SHR                                    */
+/* * FILE NAME-CTESDO,DISP-SHR                                      */
+/* * FILE NAME-TASAS,DISP-SHR                                       */
+/* * FILE NAME-FLUENC,DISP-SHR                                      */
+/* * FILE NAME-CDAENC,DISP-SHR                                      */
+/* * PRINTER NAME-ENCAJEUS,COPIES-4,FORMSNO-BORR,LINES-66,PRIORITY- */
+/* * RUN                                                            */
+             CALL       PGM(WHERECL)
+/* * TAG SOS39                                                      */
+/* ** * '°°22°° ....          Avisos de advertencia a Gerentes'     */
+/* * LOAD CONS26                                                    */
+/* * FILE NAME-CONTAB88,DISP-SHR                                    */
+/* * FILE NAME-INTFAGEN,DISP-SHR                                    */
+/* * FILE NAME-TARIFA,DISP-SHR                                      */
+/* * FILE NAME-CTESDO,DISP-SHR                                      */
+/* * FILE NAME-TASAS,DISP-SHR                                       */
+/* * PRINTER NAME-AVISOS,COPIES-1,FORMSNO-1348,LINES-24,PRIORITY-0  */
+/* * RUN                                                            */
+             CALL       PGM(WHERECL)
+ SOS40:
+/* * * '°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°' */
+/* * * '°                      VIERNES O ULTIMO DIA DEL MES                    °' */
+/* * * '°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°' */
+/* * * '°°25°° .... Posicion del pasivo contingente y de las aceptac. banc. ....' */
+/* * LOAD CONS29                                                                  */
+/* * FILE NAME-CONTAB88,DISP-SHR                                                  */
+/* * FILE NAME-CTESDO,DISP-SHR                                                    */
+/* * PRINTER NAME-CO1020,COPIES-2                                                 */
+/* * RUN                                                                          */
+/* * WHERE                                                                        */
+ SOS46:
+/* * CONPECOV                                                                     */
+ NOVIER:
+/* * IFF SWITCH4-1 EVALUATE P30,3-?L'11,3'?+003                                   */
+/* * IFF SWITCH4-1 LOCAL OFFSET-11,DATA-'?30?'                                    */
+/* * IFF SWITCH4-1 GOTO NOQUINCE                                                  */
+/* * * '°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°' */
+/* * * '°                       DIA 15 O DIA UTIL SIGUIENTE                    °' */
+/* * * '°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°' */
+/* * * '°°26°° ...    Extractos contables de la primera quincena del mes    ....' */
+/* * IF DATAF1-EXTQ DELETE EXTQ,F1                                  */
+/* * LOAD ÑGSORT                                                    */
+/* * FILE NAME-INPUT,LABEL-CONTAB88,DISP-SHR                        */
+/* * FILE NAME-OUTPUT,LABEL-EXTQ,RECORDS-50,EXTEND-10               */
+/* * RUN                                                            */
+/* *   HSORTR    10A        3X 250 N N                              */
+/* *   I C 206 206EQCQ                                              */
+/* *   FNC   3  10                                                  */
+/* *   FNC   1   2                                                  */
+/* *   FDC   1 250                                                  */
+/* * END                                                            */
+/* * WHERE                                                          */
+ SOS47:
+/* * LOAD CONS33                                                    */
+/* * FILE NAME-PEDIDOS,LABEL-EXTQ,RETAIN-S                          */
+/* * FILE NAME-HISTCONT,DISP-SHR                                    */
+/* * PRINTER NAME-EXTRATOC,PRIORITY-0,FORMSNO-RE36,LINES-36         */
+/* * PRINTER NAME-EXTRATOI,PRIORITY-0,FORMSNO-RE36,LINES-36         */
+/* * RUN                                                            */
+/* * WHERE                                                          */
+ SOS48:
+/* * 72                                                             */
+/* **** ELIMINADO A PEDIDO POR EL CONTADOR DEL INTERBANCO ***********/
+/* * * '°°27°° ....               Listado del plan de cuentas'      */
+/* * LOAD CONS41                                                    */
+/* * FILE NAME-CONTAB01,LABEL-CONTAB88,DISP-SHR                     */
+/* * PRINTER NAME-PLANCTAS,LINES-72,COPIES-1                        */
+/* * RUN                                                            */
+             CALL       PGM(WHERECL)
+ SOS49:
+ NOQUINCE:
+             IF         (*NOT (%SWITCH(1XXXXXXX))) DO
+             CHGVAR     VAR(&PM30C) VALUE(%SST(*LDA 011 003))
+             CHGVAR     VAR(&PM30) VALUE(&PM30C)
+             CHGVAR     VAR(&PM30) VALUE(&PM30 + 035)
+             CHGDTAARA  DTAARA(*LDA (11 15)) VALUE(&PM30)
+             GOTO DIARIO
+             ENDDO
+/* * * '°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°' */
+/* * * '°                              FIN DE MES                              °' */
+/* * * '°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°' */
+/* * * '°°28°° ...    Impreso RUBRICADO de ley 1003/64, Resolucion 62/78    ....' */
+/* * IF DATAF1-CONS34 DELETE CONS34,F1                                            */
+/* * LOCAL OFFSET-1,DATA-'?DATE?'                                                 */
+/* * LOAD ÑGSORT                                                                  */
+/* * FILE NAME-INPUT,LABEL-HISTCONT,DISP-SHR                                      */
+/* * FILE NAME-OUTPUT,LABEL-CONS34,RECORDS-1999,EXTEND-999                        */
+/* * RUN                                                                          */
+/* *   HSORTA    12A        3X                                                    */
+/* *   O C  15  16NEC?L'3,2'?            ...SOLO INCLUYE EL MES DEL DATE          */
+/* *   I C   4   9EQC258902              ...PARRAFO LEY 1003/64                   */
+/* *   FNC  17  18                       ...AÑO DEL MOVIMIENTO                    */
+/* *   FNC  15  16                       ...MES DEL MOVIMIENTO                    */
+/* *   FNC  13  14                       ...DIA DEL MOVIMIENTO                    */
+/* *   FNC   9  10                       ...NRO.DE CUENTA QUINTO NIVEL            */
+/* *   FNC   2   3                       ...SUCURSAL                              */
+/* * END                                                                          */
+/* * WHERE                                                                        */
+ SOS50:
+/* * LOAD CONS34                                                                  */
+/* * FILE NAME-HISTCONT,DISP-SHR                                                  */
+/* * FILE NAME-CONTAB88,DISP-SHR                                                  */
+/* * FILE NAME-ADDROUT,LABEL-CONS34,RETAIN-S                                      */
+/* * PRINTER NAME-LEY1003,LINES-72,COPIES-1,FORMSNO-0001,PRIORITY-0               */
+/* * RUN                                                                          */
+             CALL       PGM(WHERE)
+ SOS51:
+/* * * '°°29°° ...        Movimientos de depositos y creditos del mes'            */
+/* * SACADO SOLO POR NO ARRIESGAR PROCESO DE FIN DE MES   .CONS35.                */
+             CALL       PGM(WHERE)
+ SOS52:
+/* * * '°°30°° ...                      Balance analitico '                       */
+/* * IF DATAF1-CONTAB8S DELETE CONTAB8S,F1                                        */
+/* * IF DATAF1-CONTAB8M CLRPFM CONTAB8M                                           */
+/* * IFF DATAF1-CONTAB8M BLDFILE CONTAB8M,I,RECORDS,5000,80,,T,1,10,NDFILE,NODUPKEY */
+/* * LOAD CONS07                                                                  */
+/* * FILE NAME-CONTAB88,DISP-SHR                                                  */
+/* * FILE NAME-CONTAB8M,EXTEND-50                                   */
+/* * RUN                                                            */
+/* * WHERE                                                          */
+ SOS53:
+/* * IF DATAF1-ADDROUT DELETE ADDROUT,F1                            */
+/* * LOAD NGSORT                                                    */
+/* * FILE NAME-INPUT,LABEL-CONTAB8M                                 */
+/* * FILE NAME-OUTPUT,LABEL-ADDROUT,RECORDS-?F'S,CONTAB8M'?         */
+/* * RUN                                                            */
+/* *   HSORTA    10D        3X                                      */
+/* *   FNC  1   10                       CODIGO DE CUENTA           */
+/* * END                                                            */
+/* * WHERE                                                          */
+ SOS54:
+/* * LOAD CONS08                                                    */
+/* * FILE NAME-CONTAB8M                                             */
+/* * FILE NAME-ADDROUT,RETAIN-S                                     */
+/* * RUN                                                            */
+/* * CALL AUC005                                                    */
+/* * WHERE                                                          */
+ SOS55:
+/* * IF DATAF1-CONTAB8S DELETE CONTAB8S,F1                          */
+/* * LOAD NGSORT                                                    */
+/* * FILE NAME-INPUT,LABEL-CONTAB8M                                 */
+/* * FILE NAME-OUTPUT,LABEL-CONTAB8S,RECORDS-200,EXTEND-50          */
+/* * RUN                                                            */
+/* *   HSORTRS   11A        3   64                                  */
+/* *   FFC         0                     .. AGENCIA 1               */
+/* *   FFC         0                     .. AGENCIA 1               */
+/* *   FNC   3  11                       .. CUENTA                  */
+/* *   FDC  12  46                       .. NOMBRE                  */
+/* *   FSP  47  54                       .. SALDO ML                */
+/* *   FSP  55  62                       .. SALDO ME                */
+/* *   FDC  63  64                       .. COD.MONEDA Y BLANCO     */
+/* * END                                                            */
+/* * WHERE                                                          */
+ SOS56:
+/* * LOAD CONS05                                                    */
+/* * FILE NAME-CONTAB8S                                             */
+/* * FILE NAME-CONTAB8M                                             */
+/* * FILE NAME-TASAS,DISP-SHR                                       */
+/* * PRINTER NAME-ANALITIC,COPIES-5                                 */
+/* * PRINTER NAME-ANALITIX,COPIES-5                                 */
+/* * PRINTER NAME-ANALIDET,COPIES-5                                 */
+/* * PRINTER NAME-ANALIRES,COPIES-5                                 */
+/* * PRINTER NAME-ANALIESD,COPIES-5                                 */
+/* * PRINTER NAME-ANALIESX,COPIES-5                                 */
+/* * RUN                                                            */
+/* * OVRPRTF SALIDA IMP66C1                                         */
+/* * OVRPRTF SALID1 IMP66C2                                         */
+/* * CALL NCONS5                                                    */
+/* * CALL NCONS5L                                                   */
+/* * IF DATAF1-CONTAB8M DELETE CONTAB8M,F1                          */
+/* * IF DATAF1-CONTAB8S DELETE CONTAB85,F1                          */
+/* * * '°°31°° ...        Impresión de Extractos Contables mensuales' */
+/* * WHERE                                                          */
+ SOS57:
+/* * IF DATAF1-CONS33 DELETE CONS33,F1                              */
+/* * LOCAL OFFSET-1,DATA-'?DATE?'                                   */
+/* * LOAD NGSORT                                                    */
+/* * FILE NAME-INPUT,LABEL-CONTAB88,DISP-SHR                        */
+/* * FILE NAME-OUTPUT,LABEL-CONS33,RECORDS-3000,EXTEND-1000         */
+/* * RUN                                                            */
+/* *   HSORTR    10A        3X 250 N N                              */
+/* *   I C 206 206EQCQ                                              */
+/* *   IOC 206 206EQCM                                              */
+/* *   IOC 206 206EQCN                                              */
+/* *   IAC   9  10NEC00                                             */
+/* *   FNC   3  10                                                  */
+/* *   FNC   1   2                                                  */
+/* *   FDC   1 250                                                  */
+/* * END                                                            */
+/* * WHERE                                                          */
+ SOS58:
+/* * LOAD CONS33                                                    */
+/* * FILE NAME-PEDIDOS,LABEL-CONS33,RETAIN-S                        */
+/* * FILE NAME-HISTCONT,DISP-SHR                                    */
+/* * PRINTER NAME-EXTRATOC,FORMSNO-RE36,LINES-36,PRIORITY-0         */
+/* * PRINTER NAME-EXTRATOI,FORMSNO-RE36,LINES-36,PRIORITY-0         */
+/* * RUN                                                            */
+/* * WHERE                                                          */
+ SOS59:
+/* * * '°°32°° ...          Activo Exigible  -  Consolidado mensual'*/
+/* * LOAD CONS37                                                    */
+/* * FILE NAME-CONTAB88                                             */
+/* * PRINTER NAME-PLANILLA,COPIES-2                                 */
+/* * RUN                                                            */
+/* * * '°°33°° ...    Informe mensual de Saldos Ctas. Ctes. y Ahorros' */
+/* * WHERE                                                          */
+ SOS60:
+/* * LOAD CONS38                                                    */
+/* * FILE NAME-CONTAB88,DISP-SHR                                    */
+/* * FILE NAME-CTESDO,DISP-SHR                                      */
+/* * PRINTER NAME-CONS38,COPIES-2,FORMSNO-BL88,LINES-66,PRIORITY-0,CPI-15,DEVICE-P3 */
+/* * RUN                                                            */
+/* * WHERE                                                          */
+ SOS61:
+/* * * '°°34°° ...        Extracto de Corresponsales para Conciliación ' */
+/* * IF DATAF1-HIST36 DELETE HIST36,F1                              */
+/* * LOCAL OFFSET-251,DATA-'?DATE?'                                 */
+/* * LOAD NGSORT                                                    */
+/* * FILE NAME-INPUT,LABEL-HISTCONT,DISP-SHR                        */
+/* * FILE NAME-OUTPUT,LABEL-HIST36,BLOCKS-50,EXTEND-20              */
+/* * RUN                                                            */
+/* *   HSORTRE   34A        3X  80 X                                */
+/* *   I C  15   18EQC?L'253,4'?         Selecciona solo movimientos del mes */
+/* *   IAC   4    7EQC1165               de los corresponsales en el exterior*/
+/* *   FNC  10   11                      El imputable - ULTIMO NIVEL*/
+/* *   FNC  13   14                      Dia del mes                */
+/* *   FNC   8    9                      PENULTIMO NIVEL            */
+/* *   FNC   2    3                      Agencia                    */
+/* *   FNP  73   80                      Importe en moneda extranjera */
+/* *   FDC   1   80                      TODO EL REGISTRO           */
+/* * END                                                            */
+/* * WHERE                                                          */
+ SOS62:
+/* * LOAD CONS36                                                    */
+/* * FILE NAME-HISTCONT,LABEL-HIST36,RETAIN-S                       */
+/* * FILE NAME-CONTAB88,DISP-SHR                                    */
+/* * PRINTER NAME-LCORRES,COPIES-1                                  */
+/* * RUN                                                            */
+/* * WHERE                                                          */
+ SOS63:
+/* * * '°°35°° ...       Balance Mensual de Sumas y Saldos por Agencias'     */
+/* * LOAD CONS44                                                    */
+/* * FILE NAME-CONTAB88,DISP-SHR                                    */
+/* * PRINTER NAME-BALANCE,COPIES-1                                  */
+/* * RUN                                                            */
+/* * WHERE                                                          */
+ SOS64:
+/* * * '°°36°° ...       Balance Mensual de Sumas y Saldos CONSOLIDADO'        */
+/* * IF DATAF1-CONS45B DELETE CONS45B,F1                            */
+/* * LOAD ÑGSORT                                                    */
+/* * FILE NAME-INPUT,LABEL-CONTAB88,DISP-SHR                        */
+/* * FILE NAME-OUTPUT,LABEL-CONS45B,RECORDS-1999,EXTEND-99          */
+/* * RUN                                                            */
+/* *   HSORTR    11A        3  250                                  */
+/* *   FFC         0                     ...FORCET Ø                */
+/* *   FFC         0                     ...FORCET 0                */
+/* *   FNC  3   11                       ...CUENTA                  */
+/* *   FDC 12   64                       ...NOMBRE/ ETC.            */
+/* *   FDC 65   73                       ...DEBMES                  */
+/* *   FDC 74   82                       ...CREMES                  */
+/* *   FDC 83  100                       ...TOTALES                 */
+/* *   FDC 101 109                       ...DBEJE                   */
+/* *   FDC 110 118                       ...CREJE                   */
+/* *   FDC 119 250                       ...VARIOS                  */
+/* * END                                                            */
+/* * WHERE                                                          */
+ SOS65:
+/* * CPYF FROMFILE(QS36F/CONS45B) TOFILE(QS36F/CONS45) CRTFILE(*YES)*/
+/* *CLRPFM CONS45                                                   */
+/* *CALL SUMS45                                                     */
+/* * LOAD CONS45                                                    */
+/* * FILE NAME-CONTAB88,LABEL-CONS45,RETAIN-S                       */
+/* * PRINTER NAME-BALANCE,COPIES-4                                  */
+/* * RUN                                                            */
+/* * WHERE                                                          */
+ SOS66:
+/* * * '°°37°° ...    Balance Mensual de Sumas y Saldos por Agencias M/E' */
+/* * IF DATAF1-CADDROUT DELETE CADDROUT,F1                          */
+/* * LOAD ÑGSORT                                                    */
+/* * FILE NAME-INPUT,LABEL-CONTAB88,DISP-SHR                        */
+/* * FILE NAME-OUTPUT,LABEL-CADDROUT,RECORDS-?F'A,CONTAB88'?        */
+/* * RUN                                                            */
+/* *   HSORTA    12A        3X                                      */
+/* *   I C   9  10NEC00              ...NO AL NIVEL 0, 1 Y 2        */
+/* *   IAC 197 198NEC00              ...NO A MONEDA LOCAL           */
+/* *   FNC  1    2                   ...CODIGO DE AGENCIA           */
+/* *   FNC 197 198                   ...CODIGO DE MONEDA            */
+/* *   FNC   3   3                   ...NUMERO DE CUENTA ... GRADO  */
+/* *   FNC   4   4                   ...NUMERO DE CUENTA ... GRADO  */
+/* *   FNC   5   6                   ...NUMERO DE CUENTA ... GRADO  */
+/* *   FNC   7   8                   ...NUMERO DE CUENTA ... GRADO  */
+/* *   FNC   9  10                   ...NUMERO DE CUENTA ... GRADO  */
+/* * END                                                            */
+/* * WHERE                                                          */
+ SOS67:
+/* * LOAD CONS46                                                    */
+/* * FILE NAME-CONTAB88,DISP-SHR                                    */
+/* * FILE NAME-ADDROUT,LABEL-CADDROUT,RETAIN-S                      */
+/* * PRINTER NAME-BALANME,COPIES-2                                  */
+/* * RUN                                                            */
+/* * RE                                                             */
+ SOS68:
+/* * * '°°38°° ...     Balance Mensual de Sumas y Saldos M/E CONSOLIDADO' */
+/* * IF DATAF1-CONS47 DELETE CONS47,F1                              */
+/* * LOAD ÑGSORT                                                    */
+/* * FILE NAME-INPUT,LABEL-CONTAB88,DISP-SHR                        */
+/* * FILE NAME-OUTPUT,LABEL-CONS47,RECORDS-1999,EXTEND-99           */
+/* * RUN                                                            */
+/* *   HSORTRS   11A        3  128                                                        */
+/* *   IC    9  10NEC00                  ...NO NIVEL 0,1,2 Y 3                            */
+/* *   IAC 197 198NEC00                  ...NO COD. DE MONEDA LOCAL                       */
+/* *   FNC 197 198                       ...COD. DE MONEDA                                */
+/* *   FNC   3  11                       ...NRO. CUENTA CON DIG.VERIF.                    */
+/* *   FDC  12  46                       ...NOMBRE                                        */
+/* *   FSP  65  73                       ...DBMES - DEBITOS...DEL MES...... *             */
+/* *   FSP  74  82                       ...CRMES - CREDITOS..DEL MES...... I MONEDA      */
+/* *   FSP 101 109                       ...DBEJE - DEBITOS...DEL EJERCICIO I LOCAL       */
+/* *   FSP 110 118                       ...CREJE - CREDITOS..DEL EJERCICIO *             */
+/* *   FSP 137 145                       ...DBMESE- DEBITOS...DEL MES...... *             */
+/* *   FSP 146 154                       ...CRMESE CREDITOS...DEL MES...... I MONEDA      */
+/* *   FSP 173 181                       ...DBEJEE- DEBITOS...DEL EJERCICIO I EXTRANJERA  */
+/* *   FSP 182 190                       ...CREJEE CREDITOS...DEL EJERCICIO *             */
+/* ** END                                                                                 */
+/* ** WHERE                                                                               */
+ SOS69:
+/* * LOAD CONS47                                                                          */
+/* * FILE NAME-CONTAB,LABEL-CONS47,RETAIN-S                                               */
+/* * PRINTER NAME-BALANME,COPIES-2                                                        */
+/* * RUN                                                                                  */
+/* * RE                                                                                   */
+ SOS70:
+/* * * '°°39°° ....       Planilla descriptiva del presupuesto  mensual'                  */
+/* * IF DATAF1-CONTRESB DELETE CONTRESB,F1                                                */
+/* * LOAD ÑGSORT                                                                          */
+/* * FILE NAME-INPUT,LABEL-CONTAB88                                                       */
+/* * FILE NAME-OUTPUT,LABEL-CONTRESB,RECORDS-150,EXTEND-50                                */
+/* * RUN                                                                                  */
+/* *   HSORTR     9A        3X 250                                                        */
+/* *   I C   3   3EQC4                                                                    */
+/* *   IAC   7   8GTC00                                                                   */
+/* *   IAC   9  10EQC00                                                                   */
+/* *   IOC   3   6EQC4289                                                                 */
+/* *   IAC   7   8GTC00                                                                   */
+/* *   IOC   3   3EQC5                                                                    */
+/* *   IAC   7   8GTC00                                                                   */
+/* *   IAC   9  10EQC00                                                                   */
+/* *   FNC   3  11                          CTA                                           */
+/* *   FDC   1 100                          NOMBRE                                        */
+/* *   FDC 101 109                          DBEJE                                         */
+/* *   FDC 110 118                          CREJE                                         */
+/* *   FDC 119 250                                                                        */
+/* * END                                                                                  */
+/* *ERE                                                                                   */
+ SOS71:
+/* * IF DATAF1-CONTRES CLRPFM CONTRES                                                     */
+/* * IFF DATAF1-CONTRES BLDFILE CONTRES,I,RECORDS,?F'A,CONTAB88'?,250,,T,1,10             */
+/* * OVRDBF CONS43B CONTRESB                                                              */
+/* * OVRDBF CONS43 CONTRES                                                                */
+/* * CALL SUMS43                                                                          */
+/*  // IF DATAF1-PRESUT DELETE PRESUT,F1                                                  */
+/*  // LOAD CONS42                                                                        */
+/*  // FILE NAME-CONTRES                                                                  */
+/*  // FILE NAME-PRESUF,EXTEND-10                                                         */
+/*  // RUN                                                                                */
+/* *WHERE                                                                                 */
+ SOS72:
+/*  // LOAD NGSORT                                                                        */
+/*  // FILE NAME-INPUT,LABEL-PRESUF                                                       */
+/*  // FILE NAME-OUTPUT,LABEL-PRESUT,RECORDS-150,EXTEND-50                                */
+/*  // RUN                                                                                */
+/* *     HSORTR     8A        3X   8                                                      */
+/* *     FNC  1    8                        NOMBRE                                        */
+/* *     FDC  1    8                                                                      */
+/* * END                                                                                  */
+/* *ERE                                                                                   */
+ SOS73:
+/* * LOAD CONS43                                                                          */
+/* * FILE NAME-PRESUF,LABEL-PRESUF                                                        */
+/* * FILE NAME-CONTAB88                                                                   */
+/* * PRINTER NAME-PRESUPUE,COPIES-1                                                       */
+/* * RUN                                                                                  */
+/* * * 'Planilla descriptiva del presupuesto mensual POR AGENCIA'                         */
+/* * IF DATAF1-CONTRESA DELETE CONTRESA,F1                                                */
+/* * LOAD ÑGSORT                                                                          */
+/* * FILE NAME-INPUT,LABEL-CONTAB88                                                       */
+/* * FILE NAME-OUTPUT,LABEL-CONTRESA,RECORDS-1000,EXTEND-150                              */
+/* * RUN                                                                                  */
+/* *   HSORTRS   11A        3X 250                                                        */
+/* *   I C   3   3EQC4                                                                    */
+/* *   IAC   7   8GTC00                                                                   */
+/* *   IAC   9  10EQC00                                                                   */
+/* *   IOC   3   6EQC4289                                                                 */
+/* *   IAC   7   8GTC00                                                                   */
+/* *   IOC   3   3EQC5                                                                    */
+/* *   IAC   7   8GTC00                                                                   */
+/* *   IAC   9  10EQC00                                                                   */
+/* *   FNC   1   11                         CTA                                           */
+/* *   FDC   1  250                         TODO                                          */
+/* * END                                                                                  */
+/* * LOAD CON42A                                                                          */
+/* * FILE NAME-CONTRES,RETAIN-S,LABEL-CONTRESA                                            */
+/* * FILE NAME-PRESUF,EXTEND-10,LABEL-PRESUFA                                             */
+/* * RUN                                                                                  */
+/* * LOAD CON43A                                                                          */
+/* * FILE NAME-PRESUF,LABEL-PRESUFA                                                       */
+/* * FILE NAME-NTDCIA,LABEL-NT.DCIA                                                       */
+/* * FILE NAME-CONTAB88                                                                   */
+/* * PRINTER NAME-PRESUPUE,COPIES-1,PRIORITY-0                                            */
+/* * RUN                                                                                  */
+/* * WHERE                                                                                */
+ SOS74:
+/* * * '°°40°° ....               Extractos para Bancos del pais.'                        */
+/* * IF DATAF1-EBCOS DELETE EBCOS,F1                                                      */
+/* * LOAD ÑGSORT                                                                          */
+/* * FILE NAME-INPUT,LABEL-CONTAB88,DISP-SHR                                              */
+/* * FILE NAME-OUTPUT,LABEL-EBCOS,BLOCKS-10,EXTEND-5                                      */
+/* * RUN                                                                                  */
+/* *   HSORTR    11A        3X 250                                                        */
+/* *   I C   3   6EQC1130                BANCOS                                           */
+/* *   IAC   9  10NEC00                  QUINTO NIVEL                                     */
+/* *   FNC   3  11                       CUENTA                                           */
+/* *   FNC   1   2                       CUENTA                                           */
+/* *   FDC   1 250                                                                        */
+/* * END                                                                                  */
+             CALL       PGM(WHERECL)
+/* * TAG SOS75                                                                            */
+/* * LOAD CO1070                                                                          */
+/* * FILE NAME-BCOSPAIS                                                                   */
+/* * FILE NAME-EBCOS,RETAIN-S                                                             */
+/* * FILE NAME-HISTCONT,DISP-SHR                                                          */
+/* * PRINTER NAME-EXTBCOS,LINES-48,PRIORITY-0,FORMSNO-1436                                */
+/* * RUN                                                                                  */
+             CALL       PGM(WHERECL)
+ SOS76:
+/* * * '°°41°° ....Saldos de Entes Autarquicos e Intermediarios Financieros ....'         */
+/* * LOAD CONS58                                                                          */
+/* * FILE NAME-PRCATAST,DISP-SHR                                                          */
+/* * FILE NAME-PRCATASX,RECORDS-?F'A,PRCATAST'?                                           */
+/* * RUN                                                                                  */
+/* * WHERE                                                                                */
+/* * IF DATAF1-CONS57B DELETE CONS57B,F1                                                  */
+/* * TAG SOS77                                                                            */
+/* * LOAD ÑGSORT                                                                          */
+/* * FILE NAME-INPUT,LABEL-PRCATASX,RETAIN-S                                              */
+/* * FILE NAME-OUTPUT,LABEL-CONS57B,RECORDS-1999                                          */
+/* * RUN                                                                                  */
+/* *   HSORTR    10A        3X 250                                                        */
+/* *   FNC 67 67                         ...NIVEL PARA SUBTOTALES                         */
+/* *   FNC 65 66                         ...NUMERO DEL RUBRO                              */
+/* *   FNC  1  7                         ...NUMERO DE CLIENTE                             */
+/* *   FDC  1 67                         TODO EL REGISTRO                                 */
+/* * END                                                                                  */
+/* * WHERE                                                                                */
+ SOS78:
+/* * LOAD CONS57                                                                          */
+/* * FILE NAME-PRCATAST,LABEL-CONS57B,RETAIN-S                                            */
+/* * FILE NAME-PRCUENTA,DISP-SHR                                                          */
+/* * FILE NAME-PRPRESTA,DISP-SHR                                                          */
+/* * FILE NAME-CAHSDO,DISP-SHR                                                            */
+/* * FILE NAME-CTESDO,DISP-SHR                                                            */
+/* * FILE NAME-PRESTAMO,DISP-SHR                                                          */
+/* * FILE NAME-PRCUOTA,DISP-SHR                                                           */
+/* * FILE NAME-DDCUOTA,DISP-SHR                                                           */
+/* * PRINTER NAME-CONS57,COPIES-2                                                         */
+/* * RUN                                                                                  */
+             CALL       PGM(WHERECL)
+ SOS79:
+/*                                                                                        */
+/* * LISTADO GENERAL DE RIESGOS DE TODOS LOS CLIENTES EN U$S                              */
+/*                                                                                        */
+/*  SE ELIMINA INDIVIDUALMENTE LA SUBMISION PARA HACERLO EN PRRIETO EN                    */
+/*  CONJUNTO PARA EVITAR PROBLEMAS EN FIN DE MES EN CASO DE ERROR                         */
+             SBMJOB     CMD(CALL PGM(INTERB04/PRRIETOCL)) JOB(PRRIETO)
+/* / JOBQ INTERB04,PRRIES3                                                                */
+/* / JOBQ INTERB04,PRRIES4                                                                */
+/* / JOBQ INTERB04,PRRIES5                                                                */
+/*                                                                                        */
+/* * * '°°42°° ....  Planilla de Cobros y Gastos por Servicios  Prestados    ....'        */
+/* * LOAD CONS60                    *********************************************         */
+/* * FILE NAME-CONTAB88,DISP-SHR    * ELIMINADO POR JV EN FECHA 3/04/90 A PEDIDO*         */
+/* * PRINTER NAME-CONS60,COPIES-2   * DE LOURDES GUPPY, SE CREO PROC.CONS60 PARA*         */
+/* * RUN                            * LISTAR OCASIONALMENTE A PEDIDO.MENU COMENU*         */
+             CALL       PGM(WHERECL)
+ SOS80:
+             IF         (%SWITCH(XX0XXXXX)) DO
+             CHGVAR     VAR(&PM30C) VALUE(%SST(*LDA 011 003))
+             CHGVAR     VAR(&PM30) VALUE(&PM30C)
+             CHGVAR     VAR(&PM30) VALUE(&PM30 + 002)
+             CHGDTAARA  DTAARA(*LDA (11 15)) VALUE(&PM30)
+             GOTO NOTRIMES
+             ENDDO
+             SNDPGMMSG  +
+                          MSG('°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°+
+                          °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('°                           FIN DE +
+                          TRIMESTRE                           °') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°+
+                          °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* / GOTO NOTRIMES                                                                        */
+/*  GOTO PUESTO PARA LA NO EJECUCION EXTRACTO, SE EJECUTARA EN BANUALIX                   */
+/* * * '°°28°° ....                   EXTRACTO TRIMESTRAL....'                            */
+/* * IF DATAF1-EXTRAC1 DELETE EXTRAC1,F1                                                  */
+/* * LOAD ÑGSORT                                                                          */
+/* * FILE NAME-INPUT,LABEL-CONTAB88                                                       */
+/* * FILE NAME-OUTPUT,LABEL-EXTRAC1,RECORDS-?F'A,CONTAB88'?                               */
+/* * RUN                                                                                  */
+/* *   HSORTR    18A        3X 250                                                        */
+/* *   I C   9  10GTC00                                                                   */
+/* *   FNC   3  10                       NUMERO DE CUENTA                                 */
+/* *   FNC   1   2                       AGENCIA                                          */
+/* *   FDC   1 250                       TODO EL REGISTRO                                 */
+/* * END                                                                                  */
+/* * WHERE                                                                                */
+/* * TAG SOS81                                                                            */
+/* * LOAD CONS39                                                                          */
+/* * FILE NAME-CONTAB88,LABEL-EXTRAC1,RETAIN-S                                            */
+/* * FILE NAME-HISTCONT                                                                   */
+/* * PRINTER NAME-EXTMAYOR,LINES-36,FORMSNO-RE36,PRIORITY-0                               */
+/* * RUN                                                                                  */
+/* * WHERE                                                                                */
+ SOS82:
+/* SET 72                                                                                 */
+ NOTRIMES:
+             CALL       PGM(WHERECL)
+ SOS83:
+             CALL       PGM(WHERECL)
+ SOS84:
+ DIARIO:
+/* * * 'ACUMULA SALDOS CONTABLES DEL DIA PARA CALCULO DE'                                 */
+/* * * 'SALDOS PROMEDIOS MENSUALES.'                                                      */
+/* * LOAD COPROM                                                                          */
+/* * FILE NAME-CONTAB01,LABEL-CONTAB88,DISP-SHR                                           */
+/* * FILE NAME-PRESTAMO,DISP-SHR                                                          */
+/* * FILE NAME-CONTPROM                                                                   */
+/* * RUN                                                                                  */
+/* * IF SWITCH1-1 'EL PROCESO DE HOY YA FUE REALIZADO ANTERIORMENTE'                      */
+/* * IF SWITCH1-1 PAUSE 'AVISAR AL MASTERCO P/REPROCESAR ESTA PARTE'                      */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTRO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTRO))
+/* * IFF DATAF1-COL0Z * 'AGUARDE PROCESO FINALIZACION PROCESO DE CTA.CTE                  */
+/* * IFF DATAF1-COL0Z PAUSE                                                               */
+/* * PROCESO DE AGREGADO DE NUEVOS CDA A MAECDA Y MOVDEV                                  */
+/* ALL CALCDAD **PUESTO EN CDAME, EN INTERB02                                             */
+/* * PROCESO DE ACTUALIZACION DE DEVENGAMIENTOS DE MAÑANA                                 */
+             CALL       PGM(CDDEVE)
+/* *PROCESO DE ACREDITACION DE CUPONES PARA MAÑANA                                        */
+             CALL       PGM(CDACRE)
+             CALL       PGM(CDACRED)
+/* * PROCESO DE IMPRESION DE ESTADO DE CDAS                                               */
+             CLRPFM     FILE(&LIBF/ARCCDA)
+             CALL       PGM(LISCDA)
+/* *FIN PROCESO CDA-NESTOR                                                                */
+             CALL       PGM(CONTROCL)
+/* * LCONTR                                                                               */
+             CHGJOB     SWS(00000000)
+             CHGDTAARA  DTAARA(*LDA (1 12)) VALUE('000000F00000')
+             CALL       PGM(WHERECL)
+             OVRDBF     FILE(CALMAE) TOFILE(CAL.MAE)
+             OVRDBF     FILE(CALTAS) TOFILE(CAL.TAS)
+/* * CALL BCPTAP - ELIMINADO POR JMAQ-                                                    */
+             CHGCURLIB  INTERB03
+/* * IMPRESION DE ASIENTOS DE AJUSTES                                                     */
+             CHGJOB     SWS(00000000)
+/* *CREAJU                                                                                */
+/* * '°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°'           */
+/* * '°           IMPRESION DE FLUJO DE CAJA EN SUBSISTEMA BATCH             °'           */
+/* * '°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°'           */
+/* *IB CONFIN                                                                             */
+/* * JOBQ 3,CONFIN,FLU00                                                                  */
+             CHGCURLIB  INTERB03
+             SNDPGMMSG  +
+                          MSG('°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°+
+                          °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('°           FINAL DEL PROCESO DE +
+                          CONTABIDAD - BUENAS NOCHES            °') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°+
+                          °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RUNQRY     QRY(QEXTCHE)
+ FUER:
+
+             ENDPGM

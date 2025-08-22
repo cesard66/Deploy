@@ -1,0 +1,24 @@
+/* *** '         ************************************************************' */
+/* *** '         *   Cierre final ag46, impacta extornos fuera de hora  *   *' */
+/* *** '         ************************************************************' */
+/* * Adiciona al TOLB user que va a ejecutar el proceso, para asignar agencia  */
+             PGM
+
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM05) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             CALL       PGM(SETUSER) PARM(&USER '46')
+             CALL       VERAGECL PARM(&USER)
+/* EVALUATE PARAMETER LENGTH IGNORED */
+             CHGVAR     VAR(&PM05) VALUE(((%SST(*LDA 035 002))))
+/* EVALUATE PARAMETER LENGTH IGNORED */
+             CHGVAR     VAR(&PM01) VALUE(((%SST(*LDA 035 002))))
+             CALL       ONLINE/LISRESCL
+/* * Remueve del tolb el user que      ejecutó el proceso           */
+             CALL       PGM(RMVUSER) PARM(&USER '46')
+             SNDPGMMSG  MSG('-------> FIN DEL PROCESO DE CIERRE +
+                          <-------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+
+             ENDPGM

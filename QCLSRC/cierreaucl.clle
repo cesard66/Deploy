@@ -1,0 +1,1447 @@
+/* * ************************************************************** */
+/* * SE COMENTAN LAS SGTES LINEAS POR PEDIDOS DE TICKETS Y PETICIONES **  */
+/* * APPR270CL/AAPR270CL PEDIDO DE NILSA - JUN/2022                 */
+/* * NCCBU000/ TICKET 304767 - JUN/2022                             */
+/* * TICKET 305858 - SE ADICIONA A LISTA DE BIBLIOTECAS - JUN/2022  */
+/* *               - NUEVA CL-LISTABIBL              - JUN/2022     */
+/* *                                                                */
+/* ** Modifica: JOSE DUARTE - Junio/2022                            */
+/* ** Motivo  : Discontinuar PROINDO2CL, MANUOPER, HABICU02         */
+/* **           MANUOPERC                                           */
+/* **                                                               */
+/* ** Modifica: AUGUSTO BAGNOLI JOSE DUARTE - Octubre/2022          */
+/* ** Motivo  : Submitir TR36CMSCL y TRNOMCTCL                      */
+/* **           Mover IA001CCL a una tarea CONTROL separada         */
+/* **                                                               */
+/* ** Modifica: JOSE DUARTE - Octubre/2022                          */
+/* ** Motivo  : Discontinuar QRYS: CAMWCIE, HABICQRY y sus          */
+/* **           sentencias relaciondas                              */
+/* ***************************************************************  */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM07) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM11) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM12) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&FITT) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&FITY) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    JOB(&JOBA)
+             RTVJOBA    DATE(&DATE)
+             CHGVAR     VAR(&WSID) VALUE(&JOBA)
+             CHGVAR     VAR(&PM01) VALUE((&DATE))
+             CHGDTAARA  DTAARA(*LDA (101 06)) VALUE(&DATE)
+             CHGVAR     VAR(&PM07) VALUE('20' *CAT (%SST(&DATE 5 2)) +
+                          *TCAT (%SST(&DATE 3 2)) *TCAT (%SST(&DATE +
+                          01 02)))
+
+             SNDPGMMSG  MSG('----->COMPLEMENTO DEL CIERRE DE CASA +
+                          <--------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COLBX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) SNDPGMMSG MSG(' +
+                          """""""""""""""""""""""""""""""""""""""""+
+                          """""" ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COLBX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(SNDPGMMSG MSG(' +
+                          ESTE PROCESO YA HA SIDO EJECUTADO +
+                          ANTERIORMENTE.') TOPGMQ(*EXT) MSGTYPE(*COMP))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COLBX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) SNDPGMMSG MSG(' ES +
+                          NECESARIA LA INTERVENCION DEL ANALISTA +
+                          DE    ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COLBX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(SNDPGMMSG MSG(' +
+                          TURNO PARA ENTENDER Y SOLUCIONAR EL +
+                          PROBLEMA.   ') TOPGMQ(*EXT) MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COLBX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             SNDPGMMSG  MSG(' +
+                          """""""""""""""""""""""""""""""""""""""""""+
+                          """" ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+             CALL       ITBPRLIB/AX0049CL
+/* * AGREGAR LISTA DE BIBLIOTECAS - JUN/2022  **                    */
+             CALL       ONLINE/LISTABIBL
+/* *** INICIALIZA ESTADO DEL PROCESO DE RES 1/07                    */
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/PNR704CL)) DATE(&DATE)
+/* ** PROCESA EXTORNOS DE DEPOSITOS EN CHEQUES COB TAUSER           */
+/*  Ajustes en el Core de Cuentas TIOP_20210603_1- Inicio           */
+             CALL       ONLINE/REVETA01
+/* *** APLICA LOS PAGOS DE AGUINALDO YA DE CTAS. AGNYA RECIBIDOS EN EL DIA (CESAR DUARTE) */
+             CALL       AGUI0009
+             CALL       AGUIYA
+             CALL       PGM(AGUIYA3) PARM(('&PM07') ('&PM07'))
+/* *** TRANSFER. SALDO TESORERIA A SALDO CAJA CONFIRMACIONES TAUSER 20090610 (NESTORV)    */
+/* *** GENERA LOS PREASIENTOS CONTABLES DE LA TRANSFERENCIA                               */
+/* * SBMJOB CMD(CALL PGM(TALIB/NTABU1CL)) JOB(TRANSER) DATE(?DATE?)                       */
+/* ** CONTABILIZA DESDE NUEVO SISTEMA DE CDA                                              */
+             CALL       PGM(INGEN/TR30CDANC)
+/* *** CONTABILIZACION DE CONTRATO DE PARTICIPACION CONTABILIZACION   (CESAR DUARTE)      */
+/* *** APLICA CREDITO POR VTO. DE CONTRATO O CANCELACION ANTICIPADA                       */
+             CALL       ONLINE/TRNAPCL
+/* *** MARCA EXTORNOS DE DESPOSITOS CONFIRMADOS EN EL DIA COB PLAZA LOCAL US$             */
+             CALL       PGM(CHEQME91)
+/* *** CONTROLA CUENTAS INACTIVAS                                                         */
+             CALL       ACESTA1
+/* *** CANCELA CUENTAS QUE ESTAN EN LISTA NEGRA DESPUES DE 30 DIAS DE ENVIO DE COLACIONADO ** (ZPHG) */
+             CALL       NCCMR011CL
+/* *** CANCELA CUENTAS FIRMANTE UNICO POR LEY 2835/05 ****          */
+             CALL       NL8BU037C
+/* ****** SUBMITE CREACION DE HISTORICOS DE EXTRACTOS ****          */
+             CALL       EXGENHIS
+/* ****** SUBMITE CREACION DE TABLAS DE COPACO (JOSED - 27/12/2011) ****  */
+             CALL       PGM(PRO001CL) PARM(('TEMPORAL') ('QMSG001') +
+                          ('C'))
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(GENCOPAC)) DATE(&DATE) +
+                          MSGQ(TEMPORAL/QMSG001)
+/* ** CONTABILIZA PAGOS DE AMEX ***                                 */
+             CALL       AMEX44CL
+/* ** CONTABILIZA COMISIONES 70/28 DE CAJA *** (ZPHG/DIC/2008)      */
+             CALL       INGEN/TR28COMICL
+/* ** COMISIONES POR REDEPOSITOS ***                                */
+             OVRDBF     CAMC500 QS36F/CAMC500T
+             CALL       PGM(NCTES47)
+             DLTOVR     FILE(CAMC500)
+/* ** COMISIONES POR ANULACION DE CHEQUES **                        */
+             CALL       NCTES45
+/* ** COMISIONES POR DEBITOS COMANDADOS *** (RODNEYP/NOV/2009)      */
+             CALL       PGM(IBANKING/IBTRA1CL)
+/* ** COMISIONES POR DEBITOS NETEL *** (MARIAVC/14/DIC/2009)        */
+             CALL       PGM(IBANKING/NIBCOBCL01)
+/* ** PREPARA ARCHIVOS PARA CLICK BANKING *** (JOSED - 27/12/2011)  */
+             SNDPGMMSG  MSG('PREPARA ARCHIVOS PARA CLICK/BANKING') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(PRO001CL) PARM(('TEMPORAL') ('QMSG002') +
+                          ('C'))
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(CB001NCL)) DATE(&DATE) +
+                          MSGQ(TEMPORAL/QMSG002)
+/* ** AVISA CH. ANULAC.TEMPORAL RECHAZADOS EN EL PROCESO ***        */
+             CALL       PGM(NCTES48C)
+/* ** GENERA INFORME DIARIO DE DEP. A PLAZO VENCIDOS EN EL DIA      */
+/* ** CALL ONLINE/PROIND02CL                                        */
+/* ** CONTROLA CANCELACION DE TASAS DE SOBREGIRO                    */
+             CALL       PGM(ONLINE/TS0000CL)
+/* ** ENVIA REPORTE DE ADELANTOS EN EFECTIVO PROCESADOS POR CAJA    */
+             CALL       ONLINE/ADEFECL
+             SNDBRKMSG  MSG('Estimados usuarios: por favor liberar +
+                          los sistemas durante 5 minutos. Es con el +
+                          fin de preparar el ambiente para que +
+                          puedan seguir trabajando durante el +
+                          cierre ...') TOMSGQ(*ALLWS)
+/* **************************************************************** */
+/*   PREPARA/DISPONIBILIZA AMBIENTE PARA TRABAJAR DURANTE EL CIERRE     *  */
+/* **************************************************************** */
+/* ** COPIA ARCHIVOS PARA TAUSER 24 HS - AGREGADO X NESTORV 20090424  *** */
+/* ** SE SUBMITE TACIER1 POR CONTROLM, DEPENDIENTE DE PRCOMPLE      */
+/* **CALL TALIB/TACIER                                              */
+             CHGDTAARA  DTAARA(ONLINE/ENCIERRE (1 1)) VALUE('S')
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(GLOBAL/CREFU)) JOB(CREFU) +
+                          DATE(&DATE)
+/* **************************************************************** */
+/* *   BLDFILE CONVAGE, S, RECORDS,1,1                              */
+/* *RUNQRY CHMENORES                                                */
+/* *   PAUSE 'SE HA GENERADO LISTADO NUEVO PARA EL DIRECTOR'        */
+/* ------------------------------*                                  */
+/*  Verifica fecha errada en mol *                                  */
+/* ------------------------------*                                  */
+             CALL       PGM(VMOLPCL)
+/* ------------------------------*                                  */
+/*  Verifica ASIENTOS PENDIENTES * Eliminado por Cesar Duarte el 13/07/2010 (verasie) */
+/* ------------------------------*                                  */
+/* *OVRDBF ICAHREL8 BDIGEN/ICAHREL8                                 */
+/* *OVRDBF BDHJREL2 BDIGEN/BDHJREL2                                 */
+/* *OVRDBF BDHJREL3 BDIGEN/BDHJREL3                                 */
+/* *OVRDBF BDHJRELW BDIGEN/BDHJRELW                                 */
+/* *CALL VERASIE                                                    */
+             SNDPGMMSG  MSG('PROCESA ACTIVACION MASIVA DE +
+                          CUENTAS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* ** CALL HABICU02                                                 */
+/* *** SE DISCONTINUA LA LLAMADA AL PROCESO (JOSED)                 */
+/* * CALL HABICU03CL                                                */
+/* ***                                                              */
+/* ** RUNQRY HABICQRY                                               */
+             SNDPGMMSG  MSG('PROCESO DE INTERCHEQUE AUTOMATICO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* ** CALL IA001CCL                                                 */
+/* LLEVÉ A PRCOMPLE01 - SUBMITIDO // * 'PROCESO DE INTERVALE AUTOMATICO' */
+/* ** CALL IV001PCL                                                 */
+/* ** // IF ?F'A,IVMCL'?>0 CPYF FROMFILE(QS36F/IVMCL) +
+                         TOFILE(QS36F/MCLB) MBROPT(*ADD)            */
+/* ** // IF ?F'A,IVMCL'?>0 CPYF FROMFILE(QS36F/IVMCL) +
+             TOFILE(QS36F/IVMCL.B) MBROPT(*ADD) CRTFILE(*YES)       */
+/* ** CLRPFM IVMCL                                                  */
+             CALL       PGM(IV013PCL)
+/* *  PAUSE 'POR FAVOR VERIFIQUE GENERACION DE CARTAS/INTERVALE (PARA JAVIER D)' */
+             SNDPGMMSG  MSG('IMPRIME OPERACIONES DE CAJA CON +
+                          SUBCÓDIGO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* ** RUNQRY MANUOPER                                               */
+/* *** // * 'PREPARA ARCHIVOS PARA CLICK/BANKING'                   */
+/* *** CALL CB001NCL                       <|LLEVADO MAS ARRIBA 27/12/2011  */
+/* *** // PAUSE 'TERMINO PREPARAION DE ARCHIVOS P/ CLICK-BANKING'   */
+             SNDPGMMSG  MSG('   ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CONTROL DE CUENTAS SIN FIRMANTES') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/CONTRCAT)) JOB(CONTRCAT) +
+                          DATE(&DATE)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MOLITBER) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(MOLITBER))
+             RUNQRY     QRY(MOLITBCT)
+             RTVMBRD    FILE(MOLITBER) NBRCURRCD(&RCDNBR)
+             IF         (&RCDNBR *GT 0) DO
+             PAUSE      MSG('NO PUEDE CONTINUAR EL PROCESO, ERROR +
+                          GRAVE (BAGNOLI)')
+             ENDDO
+/* * HASTA AQUI CONTROLES                                           */
+             SNDPGMMSG  MSG('COLOCA CODIGO DE AGENCIA A MOVIMIENTOS +
+                          INFONET DEL MOL') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CPYF       FROMFILE(QS36F/MOL) TOFILE(QS36F/MOL.BKINF) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CALL       ONLINEC/CHGINFMV
+/* * MOVIMIENTOS EXTENDIDOS DE INFONET E INTERHOME                  */
+             CLRPFM     QS36F/MOLEXTEN
+             OVRDBF     INFOMOV INFONET/INFOMOV
+             CALL       ONLINEC/SBAH01
+             DLTOVR     INFOMOV
+/* * EXTORNA TRANSACCIONES NO COMPLETADAS DE INFONET - MOLEXTEN     */
+             CALL       ONLINE/REVOPIN8
+             OVRDBF     MOLIB IBANKING/MOLIB
+             OVRDBF     IBDEBCRD IBANKING/IBDEBCRD
+             CALL       ONLINEC/SBAH02V
+             DLTOVR     MOLIB
+             DLTOVR     IBDEBCRD
+             OVRDBF     INFOMOV INFONET/INFOMOV
+             OVRDBF     DEBCRDI INFONET/DEBCRDI
+             OVRDBF     INFOTAR INFONET/INFOTAR
+             OVRDBF     MOLPPL1 INFONET/MOLPPL1
+             CALL       ONLINEC/SBAH03
+             CALL       ONLINEC/SBAH02
+             DLTOVR     FILE(INFOMOV)
+             DLTOVR     FILE(INFOTAR)
+             DLTOVR     FILE(DEBCRDI)
+             DLTOVR     FILE(MOLPPL1)
+             CALL       ONLINEC/CHGRETMV
+/* *         continuar                                             */
+
+             RTVMBRD    FILE(MOLEXTEN) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *GT 0) THEN(CPYF +
+                          FROMFILE(QS36F/MOLEXTEN) +
+                          TOFILE(QS36F/MOL) MBROPT(*ADD))
+/* * FIN MOVIMIENTOS EXTENDIDOS                                     */
+/* * EXTORNA TRANSACCIONES NO COMPLETADAS DE INFONET - MOL          */
+/* *                                                                */
+             SNDPGMMSG  MSG(' MONEDA EXTRANJERA, GENERA DEBITOS Y +
+                          CREDITOS ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       CHEQME04C
+             CHGJOB     SWS(XXXX000X)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(BLOQUEOY) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(BLOQUEOY))
+             CPYF       FROMFILE(QS36F/BLOQUEO) +
+                          TOFILE(QS36F/BLOQUEOY) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CALL       PGM(ONLINE/LIBRENW)
+/*  INFONET CIERRE CENTRAL                                          */
+/* *** // * 'COBRO DE PRESTAMO UNICO A DEMANDA'                     */
+/* ***CALL PGM (ONLINE/AGUICODCL) PARM ('N')                        */
+             SNDPGMMSG  MSG('RECALCULO DE INTERESES DE AGUINALDO +
+                          YA') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       AGUI003
+/* *** PREASIENTOS CONTABLES DE AHORRO PROGRAMADO EN ML (JOSED)     */
+/* *CALL PGM (ITBPGLIB/APPR270CL) PARM ('6900') **SE COMENTA A PEDIDO DE NILSA*/
+/* *** PREASIENTOS CONTABLES DE AHORRO AUTOMATICO EN ML (JOSED)     */
+/* ** --- INICIO - VERIFICACION DE PROCESOS PARALELIZADOS --- (JOSED -16/01/2012) */
+             SNDPGMMSG  MSG('*** ESPERANDO QUE SE GENEREN DATOS DE +
+                          COPACO ***') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(PRO002CL) PARM(('TEMPORAL') ('QMSG001'))
+             CALL       PGM(PRO001CL) PARM(('TEMPORAL') ('QMSG001') +
+                          ('E'))
+             SNDPGMMSG  MSG('*** FINALIZO GENERACION DE DATOS DE +
+                          COPACO ****') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*** ESPERANDO QUE SE GENEREN DATOS DE +
+                          CLICK BANKING ****') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(PRO002CL) PARM(('TEMPORAL') ('QMSGO02'))
+             CALL       PGM(PRO001CL) PARM(('TEMPORAL') ('QMSG002') +
+                          ('E'))
+             SNDPGMMSG  MSG(' *** FINALIZO GENERACION DE DATOS DE +
+                          CLICK BANKING ****') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * --- FIN - VERIFICACION DE PROCESOS PARALELIZADOS ---           */
+             CALL       PGM(ONLINE/PPOPGO12) PARM('ONL_OFF')
+             CALL       PGM(ONLINE/PSOPG017) PARM('CIE_BCO' +
+                          'EXT_DEB')
+             CALL       ONLINEC/INFCICEC
+             CALL       PGM(ITBPGLIB/NFNPR349)
+             CALL       PGM(ONLINE/PSOPGO17) PARM('CIE_BCO' +
+                          'GEN_DEB')
+             CALL       PGM(ONLINE/PPOPGO12) PARM(('ONL_ON '))
+             CHGDTAARA  DTAARA(TARJETA/NTC026DTA (1 1)) VALUE('N')
+             CHGDTAARA  DTAARA(INFONET/CIEDBM (1 1)) VALUE('N')
+             CHGDTAARA  DTAARA(INFONET/CIEDBC (1 1)) VALUE('N')
+             CALL       PGM(ONLINE/CLREVOPE01)
+/* *   * 'GENERA COMISIONES POR PAGO DE SERVICIOS -INTERNET BANKING' */
+             CALL       IBANKING/IBCOMICL
+             CALL       INGEN/TRIHBSRVCL
+             SNDPGMMSG  MSG('INSERTA REGISTROS DE QS36F/MOLITB A +
+                          INFONET/INFOMOV') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RTVMBRD    FILE(MOLITB) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *GT 0) THEN(CALL +
+                          PGM(ONLINE/BORITBD))
+             RTVMBRD    FILE(MOLITB) NBRCURRCD(&RCDNBR)
+             IF         COND((&RCDNBR *GT 0) *AND +
+                          (%SWITCH(XXXXXXX1))) THEN(DO)
+             PAUSE      MSG('NO PUEDE CONTINUAR EL PROCESO, ERROR +
+                          GRAVE (BAGNOLI)')
+             ENDDO
+             CALL       PGM(BTLIBC/BT050CL) PARM(('D'))
+/* ****** DESDE AQUI BLOQUE MUDADO DE CONVAGE 02/12/15 ***          */
+/*  ALTAS Y MODIFICACIONES DE CUENTAS.............................. */
+
+             CHGDTAARA  DTAARA(*LDA (51 7)) VALUE('CONVAGE')
+/*  AGREGA CUENTAS DE PLAZO FIJO DE HOMEBANKING                     */
+             CALL       IBANKING/IBAPCTACL
+/* *** DEPURA EL ARCHIVO DE CTAS. DE AGUINALDO YA]] *****           */
+/* *** ELIMINA LAS QUE ESTAN DADAS DE BAJA                          */
+             CALL       AGUY003
+/* *** GENERA NUEVAS CUENTAS DE AGUINALDO YA]] *****                */
+             OVRDBF     ITBAGUIN INFONET/ITBAGUIN
+             CALL       AGUY001
+             DLTOVR     ITBAGUIN
+/* ***************                                                  */
+/* *** GENERA NUEVAS CUENTAS DE AGUINALDO YA]] VIA INTERHOME BANKING ***** */
+/* **CALL IBANKING/IBAGUISQ                                         */
+             OVRDBF     ITBAGUIN IBANKING/IHBAGUIN
+             OVRDBF     INFTARJ2 IBANKING/IHBTARJ2
+             OVRDBF     INFTARJ3 IBANKING/IHBTARJ3
+             CALL       PGM(AGUY001)
+             DLTOVR     FILE(ITBAGUIN)
+             DLTOVR     FILE(INFTARJ2)
+             DLTOVR     INFTARJ3
+/* ***************                                                  */
+/* *** PROCESO DE BAJA DE CUENTAS INTERNAS DE CLIENTES INHABILTIADOS POR BCP (NEGON */
+             CALL       PGM(IH001MCL)
+             CALL       PGM(ITBPRLIB/AX0047CL)
+             CALL       PGM(ONLINEC/CONVCTACL)
+/* *** SUBMITE INTERFACE PARA CRC Y CONTABILIDAD CC Y CA            */
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(INGEN/TRNOMCTCL)) DATE(&DATE)
+/* *** GENERA DEBITO EN CUENTAS DE AGUINALDO YA! *****              */
+             OVRDBF     ITBAGUIN INFONET/ITBAGUIN
+             CALL       AGUY002
+             DLTOVR     ITBAGUIN
+/* ***************                                                  */
+/* *** GENERA DEBITO EN CUENTAS DE AGUINALDO YA! INTERHOME BANKING  */
+             OVRDBF     ITBAGUIN IBANKING/IHBAGUIN
+             OVRDBF     INFTARJ2 IBANKING/IHBTARJ2
+             OVRDBF     INFTARJ3 IBANKING/IHBTARJ3
+             CALL       AGUY002
+             DLTOVR     ITBAGUIN
+             DLTOVR     INFTARJ2
+             DLTOVR     INFTARJ3
+/* *** GENERA COMISION DE CONCESION DE LINEA DE AGUINALDO YA! ***** */
+             CALL       AGUI007CL
+             CALL       ONLINE/COBPEN
+/* *** SUBMITE CONTABILIZACIÓN DE COMISIONES                        */
+             CALL       PGM(PRO001CL) PARM(('TEMPORAL') ('QMSGCOMI') +
+                          ('C'))
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(INGEN/TR36CMSCL)) DATE(&DATE) +
+                          MSGQ(TEMPORAL/QMSGCOMI)
+ DLT01:
+             CALL       PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('PENDEB') ('CIERREAUCL') (' '))
+             CHGVAR     VAR(&PM11) VALUE(%SST(*LDA 490 021))
+             CHGVAR     VAR(&PM12) VALUE(%SST(*LDA 511 002))
+             IF         COND(&PM12 *EQ '02') THEN(DO)
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         COND(&PM12 *EQ '02') THEN(GOTO CMDLBL(SIG01))
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(DO)
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(GOTO CMDLBL(DLT01))
+ SIG01:
+/* *****************                                                */
+             RTVJOBA    DATE(&DATE)
+             CPYF       FROMFILE(QS36F/MCLU) TOFILE(QS36F/MCLUUH) +
+                          MBROPT(*REPLACE) CRTFILE(*YES) +
+                          INCCHAR(*RCD 216 *EQ &DATE)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(MCLUUHL1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-MCLUUHL1 BLDINDEX MCLUUHL1,88,2,MCLUUH,,DUPKEY,,1,9,256,1 */
+             RUNSQL     SQL('CREATE INDEX MCLUUHL1 ON MCLUUH ( +
+                          CAST(SUBSTRING(F00001 FROM 88 FOR 2) AS +
+                          CHAR(2)) AS K00001 , +
+                          CAST(SUBSTRING(F00001 FROM 1 FOR 9) AS +
+                          CHAR(9)) AS K00002, CAST(SUBSTRING(F00001 +
+                          FROM 256 FOR 1) AS CHAR(1) AS K00003) +
+                          RCDFMT RMCLUUH ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             ENDDO
+             CALL       PGM(MCLAGEN)
+             CALL       PGM(LABMCTA)
+/* ****** HASTA AQUI BLOQUE MUDADO DE CONVAGE 02/12/15  ***         */
+             SNDPGMMSG  MSG('PREPARA ARCHIVOS PARA HORARIOS DEL +
+                          CIERRE PARA BANCA (IVR) ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(BALIB/NBAME910C)) +
+                          JOB(NBAME910C) DATE(&DATE)
+/* *JVLG *COPIA ARCHIVOS MOL DE TAUSER Y CAJERO AUTOMATICO*         */
+             RTVMBRD    FILE(INFMOLT) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *GT 0) THEN(CPYF +
+                          FROMFILE(QS36F/INFMOLT) +
+                          TOFILE(QS36F/INFMOLTHI) MBROPT(*REPLACE) +
+                          CRTFILE(*YES))
+             CALL       ONLINEC/INFCHMOL
+ DLT02:
+             CALL       PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('INFMOLT') ('CIERREAUCL') ('  '))
+             CHGVAR     VAR(&PM11) VALUE(%SST(*LDA 490 021))
+             CHGVAR     VAR(&PM12) VALUE(%SST(*LDA 511 002))
+             IF         (&PM12 *EQ '02') DO
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         (&PM12 *EQ '02') GOTO SIG02
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(DO)
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(GOTO CMDLBL(DLT02))
+ SIG02:
+/* ** CONTROLA QUE CADA DEP. EN CHE. PLAZA LOCAL, TENGA SU PAR 61 (AL COBRO) */
+             CLRPFM     MSINPAR
+             CALL       PGM(CHEQME23)
+             CALL       ONLINE/CICORSAL
+             CALL       INGEN/TRO1SEGUC
+             RTVMBRD    FILE(MSINPAR) NBRCURRCD(&RCDNBR)
+             IF         COND(*NOT (&RCDNBR *EQ 0)) THEN(DO)
+             SNDPGMMSG  MSG('PROCESO NO PUEDE SEGUIR-A.BAGNOLI ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('FALTAN COD.61 PARA DEPOSITOS EN CHEQUE +
+                          M/E') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('VER EL ARCHIVO MSINPAR') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CPYF       FROMFILE(QS36F/MSINPAR) +
+                          TOFILE(QS36F/MSINPAH) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             PAUSE
+             ENDDO
+/* ** FIN/CONTROLA QUE CADA DEP. EN CHE. PLAZA LOCAL, TENGA SU PAR 61 (AL COBRO) */
+/* ** CIERR DE AGENCIA 46 (ULTIMO CIERRE SI HUBO EXTOROS FUERA DE HORA) COBRO) */
+             CALL       PGM(ONLINEC/CIE46FINCL)
+/* *JVLG FIN COPIA DE ARCHIVOS MOL DE TAUSER Y CAJERO AUTOMATICO*   */
+             SNDPGMMSG  MSG(' COPIA CON TERMINACION "X" LOS +
+                          ARCHIVOS PARA EL PROCESO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CPYF       FROMFILE(QS36F/COLB) TOFILE(QS36F/COLBX) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/TOLB) TOFILE(QS36F/TOLBX) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/TARJOL) +
+                          TOFILE(QS36F/TARJOLX) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/SUSB) TOFILE(QS36F/SUSBX) +
+                          CRTFILE(*YES)
+/* / CPYF FROMFILE(QS36F/CAMAGO) TOFILE(QS36F/CAMAGOX) CRTFILE(YES) */
+             CPYF       FROMFILE(QS36F/XEQB) TOFILE(QS36F/XEQBX) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/MOL) TOFILE(QS36F/MOLBX) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/MOCOB) TOFILE(QS36F/MOCOBX) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/BLOQUEO) +
+                          TOFILE(QS36F/BLOQUEOX) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CAMCAB) +
+                          TOFILE(QS36F/CAMCABX) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/SALDOAG) +
+                          TOFILE(QS36F/SALDOAGX) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/TOLAYER) +
+                          TOFILE(QS36F/TOLAYERX) CRTFILE(*YES)
+             CHGVAR     VAR(&FITT) VALUE('TT' *TCAT &PM01)
+             CPYF       FROMFILE(QS36F/TOLB) TOFILE(QS36F/&FITT) +
+                          CRTFILE(*YES)
+             CHGVAR     VAR(&FITY) VALUE('TY' *TCAT &PM01)
+             CPYF       FROMFILE(QS36F/TOLAYER) TOFILE(QS36F/&FITY) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/MANUOPER) +
+                          TOFILE(QS36F/MANUOPEH) MBROPT(*ADD)
+/*                                                                  */
+/*  PROCESO PARA GENERAR INTERFACE CAJA-CAMBIOS                     */
+/*                                                                  */
+             CHGCURLIB  CAMLIB
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MOLL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+/* // IFF DATAF1-MOLL BLDINDEX MOLL,17,7,MOL,,DUPKEY,,15,2,77,2 */
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(RUNSQL +
+                          SQL('CREATE INDEX QS36F.MOLL ON QS36F.MOL +
+                          (DOCUM ASC , CODIGO ASC , FILLE2 ASC ) +
+                          RFDFMT RMOLL ADD ALL COLUMNS') COMMIT(*NONE))
+             CALL       PGM(CAMLIB/MOLCAM)
+             CHGCURLIB  ONLINE
+/*                                                                  */
+/* *---------------------                                           */
+/* * A FIN DE UNIFICAR EL BACKUP EN UN SOLO PROCEDIMIENTO, SE COMPIA TODO */
+/* * LOS ARCHIVOS A OTRA BIBLIOTECA, PARA QUE AL FINAL DEL DIA SE HAGA BA */
+/* * BACKUP CON BACKDITC/ ARCHIVO QS36BK                            */
+/* *---------------------                                           */
+             SNDPGMMSG  MSG('AHORA SE COPIA LOS ARCHIVOS EN QS36BK +
+                          P/SU POSTERIOR BACKUP ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('---------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(MCLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/MCLB) TOFILE(QS36BK/MCLB) +
+                          CRTFILE(*YES))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMAGO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) CPYF +
+                          FROMFILE(QS36F/CAMAGO) +
+                          TOFILE(QS36BK/CAMAGO) CRTFILE(*YES)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMC50) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/CAMC50) +
+                          TOFILE(QS36BK/CAMC50) CRTFILE(*YES))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMC50DL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) CPYF +
+                          FROMFILE(QS36F/CAMC50DL) +
+                          TOFILE(QS36BK/CAMC50DL) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/MOL) TOFILE(QS36BK/MOL) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/COLB) TOFILE(QS36BK/COLB) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/MOCOB) TOFILE(QS36BK/MOCOB) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/BLOQUEO) +
+                          TOFILE(QS36BK/BLOQUEO) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/TOLB) TOFILE(QS36BK/TOLB) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/SEÑALES) +
+                          TOFILE(QS36BK/SEÑALES) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/SUSB) TOFILE(QS36BK/SUSB) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/TARJOL) TOFILE(QS36BK/TARJOL) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/RENDCAJ) +
+                          TOFILE(QS36BK/RENDCAJ) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CHEENTR) +
+                          TOFILE(QS36BK/CHEENTR) CRTFILE(*YES)
+             SNDPGMMSG  MSG('DESACTIVA TRIGER PARA SAC DEL ARCHIVO +
+                          COLO Y FIRMAN1') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * CALL SAC/UNCOLO                                                */
+             CALL       SAC/UNFIRMAN1
+/*  LLAMA AL PROGRAMA DE FINALIZACIÓN DE REGISTRACIÓN POR DIARIO *  */
+/* * SE DEJA JRN PERMANENTEMENTE ACTIVO-MIMIX                       */
+/* *       CALL PGM(JRNLIB/JRN002)                                  */
+             SNDPGMMSG  MSG('COPIA ARCHIVOS FINALES DE HOY CON "Y" +
+                          AL FINAL PARA USO POSTERIOR') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+ DLT03:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COLBY) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('COLBY') ('CIERREAUCL') ('  ')))
+             CHGVAR     VAR(&PM11) VALUE(%SST(*LDA 490 021))
+             CHGVAR     VAR(&PM12) VALUE(%SST(*LDA 511 002))
+             IF         COND(&PM12 *EQ '02') THEN(DO)
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         (&PM12 *EQ '02') GOTO SIG03
+             IF         ((*NOT (&PM12 *EQ '00')) *AND (*NOT (&PM12 +
+                          *EQ '01'))) DO
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(GOTO CMDLBL(DLT03))
+ SIG03:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COLB) TOFILE(QS36F/COLBY) +
+                          MBROPT(*ADD) CRTFILE(*YES))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CTASEMOV) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL PGM(CLRCTAS))
+             CPYF       FROMFILE(QS36F/COLB) TOFILE(QS36F/CTASEMOV) +
+                          MBROPT(*ADD) INCCHAR(*RCD 1 *NE +
+                          '999999999') INCREL((*IF SECMOV *GT 500)) +
+                          FMTOPT(*MAP *DROP)
+/* * TAG DLT04                                                      */
+/* * IF DATAF1-COLB CALL ITBPGLIB/NFNPR198 +                        */
+/* *                PARM('QS36F' 'COLB' 'CIERREAU' '   ')           */
+/* * EVALUATE P11-?L'490,21'?                                       */
+/* * EVALUATE P12,2=?L'511,2'?                                      */
+/* * IF ?12?/'02' PAUSE 'NO EXISTE ARCHIVO ?11?'                    */
+/* * IF ?12?/'02' GOTO SIG04                                        */
+/* * IFF ?12?/'00' PAUSE 'NO SE PUDO BORRAR REGISTROS DE ?11?'      */
+/* * IFF ?12?/'00' GOTO DLT04                                       */
+/* * TAG SIG04                                                      */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ONLINE/LIMPIACOL))
+             RTVMBRD    FILE(COLB) NBRCURRCD(&RCDNBR)
+             IF         COND(*NOT (&RCDNBR *EQ 0)) THEN(DO)
+             PAUSE      MSG('ERROR GRAVE-COLB TIENE REGISTROS')
+             ENDDO
+ DLT05:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MOLY) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('MOLY') ('CIERREAUCL') ('  ')))
+             CHGVAR     VAR(&PM11) VALUE(((%SST(*LDA 490 021))))
+             CHGVAR     VAR(&PM12) VALUE(((%SST(*LDA 511 002))))
+             IF         (&PM12 *EQ '02') DO
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         COND(&PM12 *EQ '02') THEN(GOTO CMDLBL(SIGO5))
+             IF         ((*NOT (&PM12 *EQ '00')) *AND (*NOT (&PM12 +
+                          *EQ '01'))) DO
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         ((*NOT (&PM12 *EQ '00')) *AND (*NOT (&PM12 +
+                          *EQ '01'))) GOTO DLT05
+ SIGO5:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MOL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/MOL) TOFILE(QS36F/MOLY) +
+                          MBROPT(*ADD) CRTFILE(*YES))
+ DLT11:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MOL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('MOL') ('CIERREAUCL') ('  ')))
+             CHGVAR     VAR(&PM11) VALUE(((%SST(*LDA 490 021))))
+             CHGVAR     VAR(&PM12) VALUE(((%SST(*LDA 511 002))))
+             IF         (&PM12 *EQ '02') DO
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         COND(&PM12 *EQ '02') THEN(GOTO CMDLBL(SIG11))
+             IF         COND(*NOT (&PM12 *EQ '00')) THEN(DO)
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         COND(*NOT (&PM12 *EQ '00')) THEN(GOTO +
+                          CMDLBL(DLT11))
+ SIG11:
+             RTVMBRD    FILE(MOL) NBRCURRCD(&RCDNBR)
+             IF         (*NOT (&RCDNBR *EQ 0)) DO
+             PAUSE      MSG('ERROR GRAVE-MOL TIENE REGISTROS')
+             ENDDO
+             OVRDBF     FILE(IBSECUEN) TOFILE(IBANKING/IBSECUEN)
+             CALL       PGM(IBANKING/IBNROSEC) PARM('001' +
+                          '000000000' '0')
+             DLTOVR     FILE(IBSECUEN)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MOCOBY) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) CLRPFM MOCOBY
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MOCOB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/MOCOB) +
+                          TOFILE(QS36F/MOCOBY) MBROPT(*ADD) +
+                          CRTFILE(*YES))
+/* // IF DATAF1-AUXEQB DELETE AUXEQB,F1                             */
+/* // IF DATAF1-XEQBC DELETE XEQBC,F1                               */
+/* // IF DATAF1-XEQBY DELETE XEQBY,F1                               */
+/* // IF DATAF1-XEQB RENAME XEQB,XEQBY                              */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(SUSBY) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(SUSBY))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(SUSB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/SUSB) TOFILE(QS36F/SUSBY) +
+                          MBROPT(*ADD) CRTFILE(*YES))
+/* *   IF DATAF1-SUSB CALL CLRSUSB                                  */
+/* *   IFF ?F'A,SUSB'?/O PAUSE 'ERROR GRAVE-SUSB TIENE REGISTROS'   */
+/*    IF DATAF1-TARJOLY DELETE TARJOLY,F1                           */
+/*    IF DATAF1-TARJOL RENAME TARJOL,TARJOLY                        */
+ DLT06:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(TOLBY) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('TOLBY') ('CIERREAUCL') ('  ')))
+             CHGVAR     VAR(&PM11) VALUE(%SST(*LDA 490 021))
+             CHGVAR     VAR(&PM12) VALUE(%SST(*LDA 511 002))
+             IF         COND(&PM12 *EQ '02') THEN(DO)
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         COND(&PM12 *EQ '02') THEN(GOTO CMDLBL(SIG06))
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(DO)
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(GOTO CMDLBL(DLT06))
+ SIG06:
+             CPYF       FROMFILE(QS36F/TOLB) TOFILE(QS36F/TOLBY) +
+                          MBROPT(*ADD) CRTFILE(*YES)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MCLBY) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(MCLBY))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(MCLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/MCLB) TOFILE(QS36F/MCLBY) +
+                          MBROPT(*ADD) CRTFILE(*YES))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(HOLBY) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(HOLBY))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(HOLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/HOLB) TOFILE(QS36F/HOLBY) +
+                          MBROPT(*ADD) CRTFILE(*YES))
+ DLT07:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(HOLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('HOLB') ('CIERREAUCL') ('  ')))
+             CHGVAR     VAR(&PM11) VALUE(%SST(*LDA 490 021))
+             CHGVAR     VAR(&PM12) VALUE(%SST(*LDA 511 002))
+             IF         (&PM12 *EQ '02') DO
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         COND(&PM12 *EQ '02') THEN(GOTO CMDLBL(SIG07))
+             IF         COND(*NOT (&PM12 *EQ '00')) THEN(DO)
+             PAUSE      MSG('NO SE PUDO BORRAR REGISROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         COND(*NOT (&PM12 *EQ '00')) THEN(GOTO +
+                          CMDLBL(DLT07))
+ SIG07:
+             RTVMBRD    FILE(HOLB) NBRCURRCD(&RCDNBR)
+             IF         COND(*NOT (&RCDNBR *EQ 0)) THEN(DO)
+             PAUSE      MSG('ERROR GRAVE-HOLB TIENE REGISTROS')
+             ENDDO
+/*                                                                  */
+             CLRPFM     COMISIW
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COMISI) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI01) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISIO2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISIO2) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISIO3) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISIO3) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI04) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISIO4) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISIO5) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISIO5) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI06) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI06) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI07) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI07) +
+                          TOFILE(QS6F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI08) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI08) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI71) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI71) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI72) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI72) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI73) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI73) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI74) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI74) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI75) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI75) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI76) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI76) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI77) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI77) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI78) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI78) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI79) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI79) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI32) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI32) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI33) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI33) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI34) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI34) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI35) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI35) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI36) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI36) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI37) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI37) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI38) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI38) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI43) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI43) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI44) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI44) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI45) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI45) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI46) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI46) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI47) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI47) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI48) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI48) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI54) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI54) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI55) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI55) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI56) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/COMISI56) +
+                          TOFILE(QS36F/COMISIW) MBROPT(*ADD) +
+                          CRTFILE(*NO))
+             CPYF       FROMFILE(QS36F/COMISIW) +
+                          TOFILE(QS36F/COMISIH) MBROPT(*ADD) +
+                          CRTFILE(*YES) FMTOPT(*NOCHK)
+/*  LIMPIA ARCHIVOS DE COMISIONES                                   */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISIO1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISIO1))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISIO2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI02))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI03) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI03))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI04) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI04))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISIO5) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISIO5))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI06) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI06))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI07) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI07))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI08) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI08))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI71) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI71))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI72) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI72))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI73) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI73))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI74) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI74))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COMISI75) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI75))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COMISI76) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI76))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COMISI77) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI77))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI78) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI78))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI79) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI79))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI32) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI32))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI33) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI33))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI34) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI34))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI35) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI35))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI36) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI36))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI37) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI37))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI38) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI38))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI43) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI43))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COMISI44) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI44))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COMISI45) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI45))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COMISI46) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI46))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/COMISI47) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI47))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COMISI48) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI48))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(COMISI54) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI54))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI55) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI55))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COMISI56) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/COMISI56))
+/*  HACE BACKUP DE ARCHIVO DE COMISIONES                            */
+             CPYF       FROMFILE(QS36F/COMISIW) +
+                          TOFILE(QS36BK/COMISIW) CRTFILE(*YES)
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(TARJBL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/TARJBL))
+             CPYF       FROMFILE(QS36F/SALDOAG) +
+                          TOFILE(QS36F/SALDOAGY) MBROPT(*REPLACE)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMC50Y) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(CAMC50Y))
+             CPYF       FROMFILE(QS36F/CAMC50) TOFILE(QS36F/CAMC50Y) +
+                          MBROPT(*ADD) CRTFILE(*YES)
+ DLT08:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMC50) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('CAMC50') ('CIERREAUCL') ('  ')))
+             CHGVAR     VAR(&PM11) VALUE(%SST(*LDA 490 021))
+             CHGVAR     VAR(&PM12) VALUE(%SST(*LDA 511 002))
+             IF         COND(&PM12 *EQ '02') THEN(DO)
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         COND(&PM12 *EQ '02') THEN(GOTO CMDLBL(SIG08))
+             IF         ((*NOT (&PM12 *EQ '00')) *AND (*NOT (&PM12 +
+                          *EQ '01'))) DO
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         ((*NOT (&PM12 *EQ '00')) *AND (*NOT (&PM12 +
+                          *EQ '01'))) GOTO DLT08
+ SIG08:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMC50) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(RNMOBJ +
+                          OBJ(CAMC50) OBJTYPE(*FILE) NEWOBJ(CAMC50Y))
+ DLT09:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMC50DL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('CAMC50DL') ('CIERREAUCL') ('  ')))
+             CHGVAR     VAR(&PM11) VALUE(%SST(*LDA 490 021))
+             CHGVAR     VAR(&PM12) VALUE(%SST(*LDA 511 002))
+             IF         (&PM12 *EQ '02') DO
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         (&PM12 *EQ '02') GOTO SIG09
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(DO)
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(GOTO CMDLBL(DLT09))
+ SIG09:
+/* // IF DATAF1-CAMAGOA DELETE CAMAGOA,F1                           */
+/* // IF DATAF1-CAMAGOB DELETE CAMAGOB,F1                           */
+/* / IF DATAF1-CAMAGOC DELETE CAMAGOC,F1                            */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMAGOY) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) CLRPFM CAMAGOY
+             CPYF       FROMFILE(QS36F/CAMAGO) +
+                          TOFILE(QS36F/CAMAGOY) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+/* ***CLRPFM CAMAGO                                                 */
+/* // BLDFILE CAMC50,I, RECORDS,500,82,,T,1,20, DFILE,NODUPKEY,50   */
+/* // BLDFILE CAMC50DL,I, RECORDS,500,82,,T,1,20,DFILE,NODUPKEY,50  */
+/* // BLDFILE COMISI,I,RECORDS,100,80,,T,1,16, DFILE, NODUPKEY,10   */
+/* *                                                                */
+             CALL       PGM(ZERAGENW)
+/* *                                                                */
+             CPYF       FROMFILE(QS36F/TOLB) TOFILE(QS36F/TOLAYER) +
+                          MBROPT(*REPLACE) CRTFILE(*YES) FMTOPT(*NOCHK)
+             SNDPGMMSG  MSG('MARCA STATUS DE FIN PROCESO DE CIERRE +
+                          AGENCIA') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGDTAARA  DTAARA(*LDA (1 2)) VALUE(&WSID)
+             CHGDTAARA  DTAARA(*LDA (3 8)) VALUE('        ')
+             CHGJOB     SWS(00100000)
+             OVRDBF     FILE(TOL) TOFILE(TOLBX)
+             CALL       PGM(CIEAGE)
+             DLTOVR     FILE(*ALL)
+/* * VUELVE A CARGO ORIGINAL (J) BACKUPS QUE ENTRARON A CAJA EN EL DIA  */
+             CALL       PGM(CHGUSU1)
+             SNDPGMMSG  MSG('CONTROLA EMISION DE EXTRACTOS DE +
+                          TARJETAS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CLRPFM     FILE(TCEXNEMI)
+             OVRDBF     TCCIETA2 TARJETA/TCCIETA2
+             OVRDBF     TCHISEX1 TARJETA/TCHISEX1
+             CALL       PGM(TARJETA/TC505I)
+             CPYF       FROMFILE(QS36F/EXP.MOL) +
+                          TOFILE(QS36F/EXP.MOLH) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/PENDX) TOFILE(QS36F/PENDXH) +
+                          MBROPT(*ADD) CRTFILE(*YES) INCCHAR(*RCD +
+                          105 *NE '  ')
+             CPYF       FROMFILE(QS36F/CAMAGO) TOFILE(QS36F/CAMAGC1) +
+                          MBROPT(*REPLACE) FMTOPT(*NOCHK)
+/* * CARGA MOVIMIENTOS PARA TRUNCAMIENTO DE CHEQUE                  */
+/* * PASAMOS EL PROCESO A CONVAGE - ZPH/2022/JUN                    */
+/* *RDBF FILE (MOL) TOFILE (QS36F/MOLBX)                            */
+/* *LL ONLINE/NCCBU000                                              */
+             RTVMBRD    FILE(TCEXNEMI) NBRCURRCD(&RCDNBR)
+             IF         (*NOT (&RCDNBR *EQ 0)) DO
+             PAUSE      MSG('GENERACION DE EXTRACTO DE TARJETAS ESTA +
+                          PENDIENTE')
+             ENDDO
+/* ** RUNQRY MANUOPERC                                              */
+/*  CPYF FROMFILE(QS36F/CAMAGX) TOFILE(QS36F/CAMWCIE)   +           */
+/* MBROPT(*REPLACE) FMTOPT(*NOCHK)                                  */
+/* RUNQRY CAMWCIE                                                   */
+ DLT10:
+             CALL       PGM(ITBPGLIB/NFNPR198) PARM(('BANCARD') +
+                          ('CFINA43') ('CIERREAUCL') ('  '))
+             CHGVAR     VAR(&PM11) VALUE(%SST(*LDA 490 021))
+             CHGVAR     VAR(&PM12) VALUE(%SST(*LDA 511 002))
+             IF         (&PM12 *EQ '02') DO
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             ENDDO
+             IF         (&PM12 *EQ '02') GOTO SIG10
+             IF         ((*NOT (&PM12 *EQ '00')) *AND (*NOT (&PM12 +
+                          *EQ '01'))) DO
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             ENDDO
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(GOTO CMDLBL(DLT10))
+ SIG10:
+/* * PAUSE 'FAVOR DISTRIBUIR A AGENCIAS NUEVO LISTADO DE CHEQUES RECHAZADOS X CTA. CANCELADA' */
+             SNDPGMMSG  MSG(' FINAL DE COMPLEMENTO DE PROCESO DE +
+                          CASA MATRIZ         *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+
+             ENDPGM

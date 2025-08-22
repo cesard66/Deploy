@@ -1,0 +1,50 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WRK01) TYPE(*CHAR) LEN(032)
+
+             RTVJOBA    USER(&USER)
+             CHGDTAARA  DTAARA(*LDA (1 28)) VALUE(&USER *TCAT '    -
+            ')
+             CHGJOB     SWS(00000000)
+             CALL       VERAGECM PARM(&USER)
+             CHGJOB     SWS(00000000)
+             IF         COND((%SST(*LDA 037 008)) *EQ ' ') THEN(DO)
+             SNDPGMMSG  MSG('NO EXISTE PROCESO DE CAMARA EN SU +
+                          AGENCIA') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&WRK01) VALUE((%SST(*LDA 037 008)))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&WRK01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('FALTA EN DISCO EL ARCHIVO DE CAMARA +
+                          PARA PROCESO. SE CANCELA.') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+/*                                                                  */
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* CAMLS1, TOTALES POR BCOS. I CAMLS2, +
+                          TOTALES POR AGENC.*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRDBF     FILE(CAMINT) TOFILE((%SST(*LDA 037 008)))
+             OVRPRTF    FILE(PRINLS1) PAGESIZE(66) FORMTYPE(RE66) +
+                          COPIES(1)
+             CALL       PGM(CAMLS1)
+             DLTOVR     FILE(*ALL)
+             OVRDBF     FILE(CAMINT) TOFILE((%SST(*LDA 037 008)))
+             OVRPRTF    FILE(PRINLS2) PAGESIZE(66) FORMTYPE(RE66) +
+                          COPIES(1)
+             CALL       PGM(CAMLS2)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

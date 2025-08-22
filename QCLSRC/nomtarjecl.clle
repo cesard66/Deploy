@@ -1,0 +1,8 @@
+             PGM
+
+/*                          WORK STATION                            */
+             OVRDBF     FILE(NOMINA) TOFILE(SEIMAES)
+             CALL       PGM(NOM000NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

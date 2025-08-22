@@ -1,0 +1,538 @@
+/* ** SUBMITIDO POR CONTROLM, DESPUES DE PRCONVAG - FEB/23          */
+/* ** EXDBPICC, INTERB01 (EN UNA CL DENOMINADA INTERB01/EXDBPICCCL) */
+/* ** DISCONTINUADOS - FEB/23                                       */
+/* **    CALL CTES91A                                               */
+/* **    CALL CTES91B                                               */
+/* **    // LOAD CTES05                                             */
+/* **    // LOAD CTES05E                                            */
+/* **    // LOAD CTES34                                             */
+/* **    // LOAD CTES34E                                            */
+/* **    // LOAD CTES25                                             */
+/* **    // LOAD CTES42                                             */
+/* **    // LOAD CTES42E                                            */
+/* **    CTES89                                                     */
+/* **    CTES99                                                     */
+/* **    RUNQRY INTERB01/CTES67T1                                   */
+/* **    RUNQRY INTERB01/CTES67T2                                   */
+/* **    CALL PGM(CTES67)                                           */
+/* **    ** CALCULA SOBREGIROS VENCIDOS                             */
+/* **    CALL INTERB01/ITCHCONT                                     */
+/* **    CALL INTERB01/ITCHCONF                                     */
+/* **    RUNQRY QRYCONLINE/LNEGO004)                                */
+/* **    CALL DIFSALCL                                              */
+/* *********************************************************        */
+/* ** SE SUBMITEN EN UNA CL (CTES37CL) DENTRO DE ESTA OCL           */
+/* **    CLRPFM DEBDIAN                                             */
+/* **    CALL DEBDIAN                                               */
+/* **    CLRPFM COMDIAN                                             */
+/* **    CALL COMDIAN                                               */
+/* **    CALL NL8BU006C                                             */
+/* **    CLRPFM QS36F/ASINF020                                      */
+/* **    OVRDBF IVLINEL2 INFONET/IVLINEL2                           */
+/* **    CALL ONLINE/ASINF020                                       */
+/* ** SE SUBMITE, POR SEPARADO                                      */
+/* **    CALL PS002                                                 */
+/* **************************************************************** */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&PM11) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM12) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             SNDPGMMSG  MSG('          ------PROCESO MENSUAL DE +
+                          CUENTAS CORRIENTES------') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* **** VERIFICA FIN DE EXDBPICCCL, LANZADO POR CONTROLM DESPUES DE */
+/* **** PRCONVAG ****                                               */
+             SNDPGMMSG  MSG(' *** VERIFICA FINALIZACION DE +
+                          EXDBPICCCL ***') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(GLOBAL/OP002VCL) PARM('EXDBPICCCL' ' ')
+/* ********                                                         */
+             CPYF       FROMFILE(QS36F/CTESDO) +
+                          TOFILE(QS36F/CTESDOAA) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/CTESCLIE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTESCLIE))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CTESDOL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTESDOL))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CTESNCL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTESNCL))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CTESDOG) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTESDOG))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/MOVIM10) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "MOVIM10"-MOVIM. GRABADOS +
+                          POR CPD') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(MCTONL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "MCTONL"-MOVIM. GRABADOS +
+                          P/ONLINE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(PRMOVCC) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "PRMOVCC" MOVIMIENTOS DE +
+                          DOC.DESC.') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/ROBOTCC) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "ROBOTCC" -TRANSF. +
+                          AUTOMATICAS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+/*  // IFF DATAF1-CHMOVCC * 'NO EN DISCO "CHMOVCC" - CHEQUERAS'     */
+/*  // IFF DATAF1-CHMOVCC PAUSE 'CANCELO'                           */
+/*  // IFF DATAF1-CHMOVCC CANCEL                                    */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/PFD2AYER) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "PFD2AYER" - PLAZO FIJO DE +
+                          AYER') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/AUTOPF) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "AUTOPF" -PLAZO FIJO ALTAS +
+                          DE HOY') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* / IFF DATAF1-AUTOPF PAUSE 'CANCELO'                              */
+/* / IFF DATAF1-AUTOPF CANCEL                                       */
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CTACTE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO EN DISCO "CTACTE" -MOVIM.DE +
+                          INTERNACIONAL') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('CANCELO')
+             RETURN
+             ENDDO
+             CALL       PGM(INTERB1C/CTEP33CL)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*** YA PUEDE PROCESAR CONSISTENCIA DE +
+                          CONTABILIDAD Y LUEGO PROCESAR     ***') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('**  EL PROCESO DIARIO SI NO HUBIERE +
+                          ERROR EN LA CONSISTENCIA.           +
+                          ***') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CTEF18) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTEF18))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/CTEF14) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTEF14))
+             SNDPGMMSG  MSG('BORRADO DE CTESDO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+ DLT03:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CTESDO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(ITBPGLIB/NFNPR198) PARM(('QS36F') +
+                          ('CTESDO') ('PRCTACTE') ('  ')))
+             CHGVAR     VAR(&PM11) VALUE(%SST(*LDA 490 021))
+             CHGVAR     VAR(&PM12) VALUE(%SST(*LDA 511 002))
+             IF         COND(&PM12 *EQ '02') THEN(DO)
+             PAUSE      MSG('NO EXISTE ARCHIVO ' *CAT &PM11)
+             GOTO SIG03
+             ENDDO
+             IF         COND((*NOT (&PM12 *EQ '00')) *AND (*NOT +
+                          (&PM12 *EQ '01'))) THEN(DO)
+             PAUSE      MSG('NO SE PUDO BORRAR REGISTROS DE ' *CAT +
+                          &PM11)
+             GOTO       CMDLBL(DLT03)
+             ENDDO
+ SIG03:
+/*                                                                  */
+             CPYF       FROMFILE(QS36F/CTESDO1) TOFILE(QS36F/CTESDO) +
+                          MBROPT(*ADD)
+/* * Re-Evalua clean up para cuentas Intervale                      */
+             CALL       PGM(CTES57IV)
+             CLRPFM     FILE(IVCLEAN1)
+             DLTF       FILE(CTESD01)
+ NENHUM:
+/* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('   Proceso de Actualizacion del Archivo +
+                          HISTORICO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * IF DATAF1-HISTORL1 DELETE HISTORL1,F1                          */
+/* * IF DATAF1-HISTORYL DELETE HISTORYL,F1                          */
+             CRTPF      FILE(QS36F/HISTORY2) RCDLEN(24) SIZE(*NOMAX)
+             CALL       PGM(CTES32NW)
+             CLRPFM     FILE(QS36F/HISTORY1)
+             CPYF       FROMFILE(QS36F/HISTORY2) +
+                          TOFILE(QS36F/HISTORY1) MBROPT(*ADD)
+/* RENAME HISTORY2, HISTORY1                                        */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/HISTORY2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/HISTORY2))
+             RUNSQL     SQL('CREATE INDEX QS36F.CTESDOL ON +
+                          QS36F.CRESDO ( CAST(SUBSTRING(F00001   +
+                          FROM  1 FOR 40) AS CHAR(40)) AS K00002 +
+                          ASC ) RCDFMT RCTESDOL ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             RUNSQL     SQL('CREATE INDEX QS36F.CTESNCL ON +
+                          QS36F.CTESDO ( CAST(SUBSTRING(F00001   +
+                          FROM 88 FOR 04) AS CHAR(4)) AS K00002 +
+                          ASC ) RCDFMT RCTESNCL ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             RUNSQL     SQL('CREATE INDEX QS36F.CTESDOG ON +
+                          QS36F.CTESDO''( CAST(SUBSTRING(F00001   +
+                          FROM 247 FOR 1) ASC CHAR(1)) AS K00002 +
+                          ASC ) RCDFMT RCTESDOG ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+/* * PROCESOS COMPLEMENTARIOS                                       */
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(INTERB01/CTES37CL)) DATE(&DATE)
+/*                                                                  */
+             CHGJOB     SWS(00000000)
+/* *----------------05                                                            */
+/* * * 'PREPARA MOV. P/ PROCESO DE CC/AH DE PREV.LAV.DINERO' (JOSED - 09/03/2012) */
+             CPYF       FROMFILE(QS36F/MOVIM) TOFILE(QS36F/CCMOVCC) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+/* * * 'GENERACION DE REG. PARA PREV. LAVADO DE DINERO - SUBMITIDO' (JOSED - 09/03/2012) */
+/* * SE EJECUTA AHORA DESDE CONTROLM (06/05/13 RZ)                                       */
+/* * SBMJOB CMD (CALL PGM (PLLIB/NPLPRCOOCL))                                            */
+/* * * 'Listado de Prevision de Vencimientos DE INTERCHEQUE ESPECIAL'                    */
+/* * LOAD CTES35                                                                         */
+/* * FILE NAME-CTESDO                                                                    */
+/* * RUN                                                                                 */
+/* / SWITCH 00000000                                                                     */
+             CHGCURLIB  INTERB01
+/* CALL EXTRCTCT                                                                                */
+/* RUNQRY AEX                                                                                   */
+/*  // PAUSE 'SE HA GENERADO EL ARCHIVO QS36F/AEX, DEBE TRANSFERIRLO AL DISKETTE P/ EL COURIER' */
+             SNDPGMMSG  MSG('SUBMITE PROGRAMA DE EXTRACTOS NUEVO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(EXGENEXT)
+             CHGCURLIB  CURLIB(INTERB01)
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('***           ULTIMA PARTE ---- COPIA +
+                          DE ARCHIVOS PARA EXTRACTOS        ***') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/*                                                                  */
+             DLTF       FILE(QS36F/CTEF00)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/CTEF11L) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTEF11L))
+             DLTF       FILE(CTEF11)
+             CPYF       FROMFILE(QS36F/CTESDO) TOFILE(QS36F/CTEF00) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/HISTORY1) +
+                          TOFILE(QS36F/CTEF11) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+/* * LINEAS DE INTERCHEQUE, LLEVA LOS VENCIMIENTOS                  */
+             CALL       PGM(ITCHVEN1)
+             CALL       PGM(ITCHVEN2)
+/* * CALCULA SOBREGIROS VENCIDOS                                    */
+             CALL       PGM(TRANVENCL)
+             SNDPGMMSG  MSG('         ***      Fin del Proceso +
+                          mensual     ***') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' PREPARA ARCHIVOS ONLINE PARA MAÑANA +
+                          HABIL') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGCURLIB  ONLINE
+             CALL       PGM(ONLINEC/CREONL2CL)
+             CALL       PGM(INGEN/TR04CCTC4)
+             CALL       PGM(INGEN/TRO4LICRE)
+             CLRPFM     FILE(QS36F/ICHMOVCC)
+             SNDPGMMSG  MSG(' TRANSFIERE TERCERA PARTE DE +
+                          OPERACIONES DE CTA CTE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                             ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                             ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' ---> AHORA COMIENZA EL PROCESO DE +
+                          CONTABILIDAD NUEVO <---') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                             ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' .... YA PUEDE REALIZAR LA TRANSMISION +
+                          PARA AGENCIAS ....') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             RTVJOBA    DATE(&DATE)
+             CHGVAR     VAR(&PM01) VALUE((&DATE))
+             CHGVAR     VAR(&PM02) VALUE(%SST(&PM01 3 2))
+             IF         (&PM02 *EQ '12') DO
+             SNDPGMMSG  MSG('PAUSA PARA PROCESOS ESPECIALES DE FIN +
+                          DE AÑO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             ENDDO
+/* --                                                               */
+             CALL       PGM(LUILIB/CLCOPIA4)
+
+/* -- SE AGREGA PROCESO PARA LISTAR CLIENTES CON GRAN VOLUMEN DE DEPOSITO MENSUAL */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/HISTOCAL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-HISTOCAL BLDINDEX HISTOCAL,2,5,HISTOCAH,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX QS36F.HISTOCAL ON +
+                          QS36F.HISTOCAH ( CAST(SUBSTRING(HISTOCA2 +
+                          FROM 2 FOR  5) AS CHAR(5)) AS K00001 ASC  +
+                          )  RCDFMT RHISTOCA2 ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/HISTORYL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+/* // IFF DATAF1-HISTORYL BLDINDEX HISTORYL,2,5,HISTORY1,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX QS36F.HISTORYL ON +
+                          QS36F.HISTORY1 ( CAST(SUBSTRING(HISTORY2 +
+                          FROM 2 FOR  5) AS CHAR(5)) AS K00001 ASC  +
+                          )  RCDFMT RHISTORYL ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(HISTORL1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-HISTORL1 BLDINDEX HISTORL1,2,5,HISTORY1,,DUPKEY,,7,6,13,4 */
+             RUNSQL     SQL('CREATE INDEX QS36F.HISTORL1 ON +
+                          QS36F.HISTORY1 ( CAST(SUBSTRING(HISTORY2 +
+                          FROM 2 FOR  5) AS CHAR(5)) AS K00001 ASC, +
+                          CAST(SUBSTRING(HISTORY2 FROM 7 FOR  6) AS +
+                          CHAR(6)) AS K00002 ASC, +
+                          CAST(SUBSTRING(HISTORY2 FROM 13 FOR  4) +
+                          AS CHAR(4)) AS K00003 ASC  )  RCDFMT +
+                          RHISTORL1 ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(HISTOCL1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+/* // IFF DATAF1-HISTOCL1 BLDINDEX HISTOCL1,2,5,HISTOCAH,,DUPKEY,,7,6,13,4 */
+             RUNSQL     SQL('CREATE INDEX QS36F.HISTOCL1 ON +
+                          QS36F.HISTOCAH ( CAST(SUBSTRING(HISTOCA2 +
+                          FROM 2 FOR  5) AS CHAR(5)) AS K00001 ASC, +
+                          CAST(SUBSTRING(HISTOCA2 FROM 7 FOR  6) AS +
+                          CHAR(6)) AS K00002 ASC, +
+                          CAST(SUBSTRING(HISTOCA2 FROM 13 FOR  4) +
+                          AS CHAR(4)) AS K00003 ASC  )  RCDFMT +
+                          RHISTOCL1 ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+/* ****************************************                         */
+/* * SUBMITE PROGRAMA DE EXTRACTOS NUEVO **                         */
+/* ****************************************                         */
+/* ****************************************                         */
+             CALL       PGM(VISORDAH)
+             CALL       PGM(VISORDCT)
+             CALL       PGM(INTERB01/LMOVI11CL)
+/* // IF DATAF1-HISTORYL DELETE HISTORYL,F1                         */
+/* // IF DATAF1-HISTOCAL DELETE HISTOCAL,F1                         */
+/* -- COLOCA ESTADO '3' AL PROCESO PRCTACTE                         */
+             CALL       PGM(CTRPROCES) PARM(('PRCTACTE') ('3'))
+/* -- DEJA DISPONIBLE PROCESO 'PRCONTAB'                            */
+             CALL       PGM(PRCSTATUS) PARM(('PRCTACTE'))
+/* -- COLOCA MARCA FINALIZADO AL PROCESO DE CUENTA CORRIENTE        */
+             CALL       PGM(GLOBAL/CTRPROCES) PARM(('PRCTACTE') ('4'))
+/* -- DEJA DISPONIBLE PROCESO 'PRCREON1' Y 'PRCREON2'               */
+             CALL       PGM(GLOBAL/PRCSTATUS) PARM(('PRCTACTE'))
+/* * * 'PROCESO DE INFONET COBRANZAS       GENERA - MOL DE ITBDATOS'*/
+             CALL       ONLINE/PRINFCOB
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(CHEQME02C)) DATE(&DATE)
+/* * PROCESO DE SOBREGIRO                                           */
+/* * TRASFIERE OPERACIONES DE INFONET COBRANZAS                     */
+/* ** SUBMIT DE INFONET COBRANZAS (JOSED - 13/02/2012) ***          */
+             CALL       PRO001CL PARM('TEMPORAL' 'QMSG004' 'C')
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL INGEN/TRINFCOB) DATE(&DATE) +
+                          MSGQ(TEMPORAL/QMSG004)
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(STRS36PRC PRC(CREAHIS) +
+                          CURLIB(INTERB01)) DATE(&DATE)
+/*  AGREGADO POR JOSE ARGUELLO PARA CONTROL DE POSICION DE CAMBIOS                               */
+/* * SE DEJA DE INVOCAR A CONTPOSC (JOSED 07/02/2012) **                                         */
+/* * CALL ONLINE/CONTPOSC                                                                        */
+/* * * '-----------------------------------------------------------                              */
+/* *****************************************************************************                 */
+/*                                                                                               */
+/*         PREVENCION DE LAVADO DE DINERO EDUARDO DIETRICH                                       */
+/*                                                                                               */
+/* *****************************************************************************                 */
+/* * * 'PREPARA  MOV. P/ PROCESO DE CC/AH DE PREV.LAV.DINERO' (SUBIDO POR JOSED - 09/03/2012)    */
+/* * CPYF       FROMFILE(QS36F/MOVIM) +                                                          */
+/* *           TOFILE(QS36F/CCMOVCC) MBROPT(*REPLACE) +                                          */
+/* *           CRTFILE(*YES)                                                                     */
+/* * * 'PREPARA MOV. DE CAJA P/PREVENCION LAVADO DE DINERO'                                      */
+/* ** ESTAS SENTENCIAS FUERON INCLUIDAS DENTRO DEL PROCESO PLD (JOSED - 21/02/2012) ***          */
+/* * CALL CALIB/NCAVCABCL                                                                        */
+/* * * 'P/ OVRDBF DE ARCHIVOS DE CAJA'                                                           */
+/* * OVRDBF UCAVCABOOA CALIB/UCAVCABOOA                                                          */
+/* * OVRDBF ICATCOD CALIB/ICATCOD                                                                */
+/* * * 'PREPARA MOV. DE AHORRO P/PREVENCION LAVADO DE DINERO'                                    */
+/* * CALL PLLIB/NPLAHMOV                                                                         */
+/* * * PREPARA MOV. CTAS.CTES PARA PREVENCION LAVADO DE DINERO'                                  */
+/* *CALL PLLIB/NPLCCMOV                                                                          */
+/* *CALL PLLIB/NPLSOBAH                                                                          */
+/* * * 'P/ FIN DE OVRDBF DE ARCHIVOS DE CAJA'                                                    */
+/* * DLTOVR UCAVCABOOA                                                                           */
+/* * DLTOVR ICATCOD                                                                              */
+/* * * 'GENERACION DE REG. PARA PREV. LAVADO DE DINERO - SUBMITIDO' (SUBIDO POR JOSED - 09/03/2012) */
+/* * SBMJOB      CMD(CALL PGM (PLLIB/NPLPRCOOCL)) (SUBIDO POR  JOSED - 09/03/2012)               */
+/* * * '--------------------------------------------------------------'                          */
+/* **** PROCESO CENTRAL DE CONTABILIDAD ********                                                 */
+/* **Se modifica esta línea por las siguientes                                                   */
+/* **IF ?DATE?/'301214' PAUSE 'FIN AÑO - CAMBIAR A FECHA HOY TRANSAC.D+1'                        */
+/* **Nuevo: SW1 se enciende si es fin de a o                                                     */
+             CHGJOB     SWS(00000000)
+             CALL       ONLINE/NCMMM937
+             IF         (%SWITCH(1XXXXXXX)) DO
+             PAUSE      MSG('FIN AÑO - CAMBIAR A FECHA HOY +
+                          TRANSAC.D+1')
+             ENDDO
+             CHGJOB     SWS(00000000)
+/* //IF  &DATE /'301215' PAUSE 'CONTROL PROCESO FIN AÑO'                                         */
+/* **Fin Nuevo                                                                                   */
+             CALL       INGEN/CGPR004
+/* **** CAMBIADO A  TARJETA/QCLSRC/TC142 ICL   ----->  CALL ONLINE/EXONPICCL                     */
+/* **** COPIA HISTORY1 COMPLETO         ********                                                 */
+             CPYF       FROMFILE(QS36F/HISTORY1) +
+                          TOFILE(QS36F/HISTORPF) MBROPT(*REPLACE) +
+                          CRTFILE(*NO) INCCHAR(*RCD 1 *NE '*') +
+                          FMTOPT(*NOCHK)
+             CPYF       FROMFILE(QS36F/CTESDO) TOFILE(BALIB/BACABEC) +
+                          MBROPT(*REPLACE) TORCD(1)
+/* * COPIA CTESBAJ--> CTESDOB Y CAHSBAJ --> CAHSDOB                 */
+             CPYF       FROMFILE(QS36F/CTESBAJ) +
+                          TOFILE(QS36F/CTESDOB) MBROPT(*REPLACE) +
+                          INCCHAR(RCD 246 *NE '*') FMTOPT(*NOCHK)
+             CPYF       FROMFILE(QS36F/CAHSBAJ) +
+                          TOFILE(QS36F/CAHSDOB1) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCCHAR(RCD 246 *NE '*') +
+                          FMTOPT(*NOCHK)
+             CPYF       FROMFILE(QS36F/CAHSDOB1) +
+                          TOFILE(QS36F/CAHSDOB) MBROPT(*REPLACE) +
+                          INCCHAR(*RCD 2 *LE '2') FMTOPT(*NOCHK)
+             CPYF       FROMFILE(QS36F/CTESDO) +
+                          TOFILE(QS36F/INMOCTES) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCCHAR(*RCD 246 *EQ '2')
+             CPYF       FROMFILE(QS36F/CAHSDO) +
+                          TOFILE(QS36F/INMOCTAH) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCCHAR(*RCD 2 *LE '2')
+             CPYF       FROMFILE(QS36F/INMOCTAH) +
+                          TOFILE(QS36F/INMOCTES) MBROPT(*ADD) +
+                          INCCHAR(*RCD 246 *EQ '2')
+/* * ZPHG - JUNIO/2010                                              */
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/IN414CL)) DATE(&DATE)
+/* *MARIANA C - 01/02/07                                            */
+             CALL       PGM(ONLINE/PIGO175)
+             CALL       PGM(ONLINE/PIGO176)
+/* * --- INICIO - VERIFICACION DE PROCESOS PARALELIZADOS ---        */
+/* (JOSED - 13/02/2012)                                             */
+             SNDPGMMSG  MSG('*** ESPERANDO X TRINFCOB ***') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PRO002CL PARM('TEMPORAL' 'QMSG004')
+             CALL       PRO001CL PARM('TEMPORAL' 'QMSG004' 'E')
+             SNDPGMMSG  MSG(' *** FINALIZO TRINFCOB ***') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * --- FIN - VERIFICACION DE PROCESOS PARALELIZADOS ---           */
+/* * LINO ARCE - 06/09/07                                           */
+             CALL       PGM(ONLINE/DC0018CL)
+/* * Lleva sobregiro ML a FAMAFA                                    */
+             CALL       PGM(FAMASOBL)
+/* * Lleva sobregiro ME a FAMAFA                                    */
+             CALL       PGM(FAMASOBE)
+/* * Reporte cuentas inmovilizadas y en apertura del mes            */
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/CC0905CL)) DATE(&DATE)
+/* * GENERA DATOS DE SOBREGIROS COBRADOS PARA RESOLUCION NRO. 1     */
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(INTERB01/SOBRINTC)) DATE(&DATE)
+/* * CONTROL DE NUMERALES                                           */
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(INTERB02/CALNUMME)) DATE(&DATE)
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINE/PS002)) DATE(&DATE)
+             SNDPGMMSG  MSG(' *** VERIFICA FINALIZACION DE CTES37CL +
+                          ***') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(GLOBAL/OP002VCL) PARM('CTES37CL' ' ')
+
+             ENDPGM

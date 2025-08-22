@@ -1,0 +1,68 @@
+             PGM
+
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     &WSID &JOBA
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -------------------------------') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*    GENERA DEBITO a partir del proceso +
+                          de Camara compensadora       ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -------------------------------') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CHGDTAARA  DTAARA(*LDA (1 18)) VALUE(&WSID *TCAT &USER)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAMAG0) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('FALTA EN DISCO EL ARCHIVO DE CAMARA +
+                          PARA PROCESO. SE CANCELA.') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PENDXIND) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+/* // IFF DATAF1-PENDXIND BLDINDEX PENDXIND,15,7,PENDX,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX PENDXIND ON PENDX ( +
+                          CAST(SUBSTRING(F00001 FROM 15 FOR  7) AS +
+                          CHAR(7)) AS K00001 ASC ) RCDFMT RPENDX +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+/* *                                                                */
+             OVRDBF     FILE(CAMAGX) TOFILE(CAMAGOLG)
+             OVRDBF     FILE(EXENTOS) TOFILE(EXCENTOS)
+             OVRDBF     FILE(COL) TOFILE(COLB)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             CALL       (ONLINE/CTECOMNW)
+             DLTOVR     FILE(*ALL)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('Existe debito para cta. inexistente en +
+                          el catastro') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             ENDDO
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('Ud. no esta autorizado a utilizar este +
+                          programa   ') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             ENDDO
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('Ud. YA procesó hoy este item. tenga mas +
+                          cuidado!!!') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO FIN
+             ENDDO
+ FIN:
+
+             ENDPGM

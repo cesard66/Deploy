@@ -1,0 +1,73 @@
+/* ------------------------------------------------------------- *  */
+/*  CONTABILIZACIONES CARTAS DE CREDITO (CER)                       */
+/* ------------------------------------------------------------- *  */
+             PGM        PARM(&PM02)
+
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+/*                                                                  */
+/* MEMBER USER1-MEMCER,LIBRARY-EXP.LIBR                             */
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(INTCONT) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) GOTO HACER
+/* ------------------------------------------------------------- *  */
+             SNDPGMMSG  MSG('Lo siento pero se esta realizando el +
+                          proceso de CONTABILIDAD no puede ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('cargar mas datos, consulte con la +
+                          DIVISION INFORMATICA si desea car-') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('gar, Por el momento cancelo su +
+                          operacion') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* ------------------------------------------------------------- *  */
+             PAUSE
+             RETURN
+ HACER:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CER.CON4) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) DLTF FILE(CER.CON4)
+/*                                                                  */
+             CHGDTAARA  DTAARA(*LDA (1 500)) VALUE(' ')
+             CHGDTAARA  DTAARA(*LDA (1 1)) VALUE(' ')
+/*                                                                  */
+             IF         (&PM02 *EQ ' ') CHGVAR VAR(&PM02) +
+                          VALUE(CER.MOD)
+             SNDPGMMSG  MSG('03-CER604 Contabilizacion de Cartas +
+                          de credito- CONFIRMAR 0 ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('                      MODIFICAR NRO. +
+                          DE CLIENTE ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(CERALT) TOFILE(CER.ALT)
+             OVRDBF     FILE(CERMOD) TOFILE(&PM02)
+             OVRDBF     FILE(EXPCON) TOFILE(CER.CON4)
+             CALL       (EXP.LIBR/CER604NW)
+             DLTOVR     FILE(*ALL)
+/*                                                                  */
+/* * MENSAJE DE ERRORES OCURRIDO EN PROGRAMA ANTERIOR               */
+             IF         ((%SST(*LDA 001 006)) *EQ DIGITO) +
+                          SNDPGMMSG MSG('Digito verificador de una +
+                          cuenta incorrecto') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             IF         ((%SST(*LDA 001 006)) *EQ DIGITO) +
+                          SNDPGMMSG MSG('la cuenta con error es--> +
+                          ' *CAT (%SST(*LDA 009 010))) +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             IF         ((%SST(*LDA 001 008)) *EQ CONTAB88) +
+                          SNDPGMMSG MSG('No existe una cuenta en +
+                          maestro contable') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             IF         ((%SST(*LDA 001 008)) *EQ CONTAB88) +
+                          SNDPGMMSG MSG('la cuenta con error es--> +
+                          ' *CAT (%SST(*LDA 009 010))) +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             IF         COND(*NOT ((%SST(*LDA 001 008)) *EQ ' ')) +
+                          THEN(PAUSE)
+/*                                                                  */
+
+             ENDPGM

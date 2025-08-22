@@ -1,0 +1,54 @@
+/* *  LISTADO DE CONTROL DE SALDOS POR SISTEMAS'                    */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAHSDOW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(CAHSDOW))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAHSDOW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CPYF +
+                          FROMFILE(QS36F/CAHSDO) +
+                          TOFILE(QS36F/CAHSDOW) CRTFILE(*YES))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAHSDOW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CPYF +
+                          FROMFILE(QS36F/CAHSDO) +
+                          TOFILE(QS36F/CAHSDOW) MBROPT(*ADD))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(SALDAGW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(SALDAGW))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(SALDAGW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) CPYF +
+                          FROMFILE(QS36F/SALDOAGY) +
+                          TOFILE(QS36F/SALDAGW) CRTFILE(*YES)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(SALDAGW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) CPYF +
+                          FROMFILE(QS36F/SALDOAGY) +
+                          TOFILE(QS36F/SALDAGW) MBROPT(*ADD)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CONTRO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(CONTRO))
+/*  CREACION ARCHIVO DE CONTROL                                     */
+
+/* BLDFILE INDEX PARAMETERS IGNORED */
+             RUNSQL     SQL('CREATE TABLE QS36F.CONTRO ( K00001 +
+                          CHAR(13), F00001 CHAR(67) , CONSTRAINT +
+                          QS36F.PK_CONTRO PRIMARY KEY( K00001 ) ) +
+                          RCDFMT RCONTRO')
+             MONMSG     MSGID(CPF0000)
+
+             ENDPGM

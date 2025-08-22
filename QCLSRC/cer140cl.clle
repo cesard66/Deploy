@@ -1,0 +1,251 @@
+/*  INVENTARIO DE CER EXPORTACION                                   */
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.AXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.AXZ))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.BXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.BXZ))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(EXP.HXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/EXP.HXZ))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.@@1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@1))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.@@2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@2))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.@@@) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@@))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.@@5) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@5))
+             CPYF       FROMFILE(QS36F/CER.ALT) +
+                          TOFILE(QS36F/CER.@@5) CRTFILE(*YES) +
+                          INCCHAR(*RCD 0396 *NE '000000000000000')
+             CPYF       FROMFILE(QS36F/CER.@@5) +
+                          TOFILE(QS36F/CER.@@2) CRTFILE(*YES) +
+                          INCCHAR(*RCD 0156 *NE '            ')
+             CPYF       FROMFILE(QS36F/CER.@@2) +
+                          TOFILE(QS36F/CER.@@1) CRTFILE(*YES) +
+                          INCCHAR(*RCD 0006 *NE '5')
+             CPYF       FROMFILE(CER.@@1) TOFILE(QS36F/CER.@@@) +
+                          CRTFILE(*YES) INCCHAR(*RCD 0180 *NE 'S')
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CER.AXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+
+/* // IFF DATAF1-CER.AXZ BLDINDEX CER.AXZ,15,7,CER.@@@,,DUPKEY,,11,4 */
+             RUNSQL     SQL('CREATE INDEX "CER.AXZ" ON "CER.@@@" ( +
+                          CAST(SUBSTRING(F00002 FROM 1 FOR  7) AS +
+                          CHAR(7)) AS K00002 ASC,  +
+                          CAST(SUBSTRING(K00001 FROM 8 FOR  4) AS +
+                          CHAR(4)) AS K00003 ASC )  RCDFMT RCERA +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.BXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+
+/* // IFF DATAF1-CER.BXZ BLDINDEX CER.BXZ,4,11,CER.BAJ,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX "CER.BXZ" ON "CER.BAJ" ( +
+                          CAST(SUBSTRING(K00001 FROM 1 FOR 11) AS +
+                          CHAR(11)) AS K00002 ASC )  RCDFMT RCERB +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(EXP.BXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-EXP.HXZ BLDINDEX EXP.HXZ,90,9,EXP.HIS,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX "EXP.HXZ" ON "EXP.HIS" ( +
+                          CAST(SUBSTRING(F00001 FROM 90 FOR  9) AS +
+                          CHAR(9)) AS K00001 ASC )  RCDFMT REXPH +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+/*                                                                  */
+             CALL       PGM(PARAMCL) PARM((CER140))
+             SNDPGMMSG  MSG('CER141- INVENTARIO DE CARTA +
+                          DE CREDITO (CER)') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRDBF     FILE(CERALT) TOFILE(CER.AXZ)
+             OVRDBF     FILE(CERBAJ) TOFILE(CER.BXZ)
+             OVRDBF     FILE(EXPHIS) TOFILE(EXP.HXZ)
+             OVRPRTF    FILE(LCER1401) PAGESIZE(66) FORMTYPE(RE66) +
+                          OUTPTY(9) HOLD(*YES)
+             CALL       PGM(CER140NW)
+             DLTOVR     FILE(*ALL)
+/*                                                                  */
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.AXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.AXZ))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.BXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.BXZ))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(EXP.HXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/EXP.HXZ))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.@@1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@1))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.@@2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@2))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.@@@) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@@))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.@@5) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@5))
+/*    COPYDATA CER.ALT                                            */
+             CPYF       FROMFILE(QS36F/CER.ALT) +
+                          TOFILE(QS36F/CER.@@5) CRTFILE(*YES) +
+                          INCCHAR(*RCD 0396 *NE '000000000000000')
+             CPYF       FROMFILE(QS36F/CER.@@5) +
+                          TOFILE(QS36F/CER.@@2) CRTFILE(*YES) +
+                          INCCHAR(*RCD 0156 *NE '            ')
+             CPYF       FROMFILE(QS36F/CER.@@2) +
+                          TOFILE(QS36F/CER.@@1) CRTFILE(*YES) +
+                          INCCHAR(*RCD 0006 *NE '5')
+             CPYF       FROMFILE(QS36F/CER.@@1) +
+                          TOFILE(QS36F/CER.@@@) CRTFILE(*YES) +
+                          INCCHAR(*RCD 0180 *NE 'S')
+/*                                                                  */
+/*    DATAF1-BLDINDEX CER.                                        */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.AXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+
+/* // IFF DATAF1-CER.AXZ BLDINDEX CER.AXZ,15,7,CER.@@@,,DUPKEY,,11,4 */
+             RUNSQL     SQL('CREATE INDEX "CER.AXZ" ON "CER.@@@" ( +
+                          CAST(SUBSTRING(F00002 FROM 1 FOR  7) AS +
+                          CHAR(7)) AS K00002 ASC,  +
+                          CAST(SUBSTRING(K00001 FROM 8 FOR  4) AS +
+                          CHAR(4)) AS K00003 ASC )  RCDFMT RCERA +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.BXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+
+/* // IFF DATAF1-CER.BXZ BLDINDEX CER.BXZ,4,11,CER.BAJ,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX "CER.BXZ" ON "CER.BAJ" ( +
+                          CAST(SUBSTRING(K00001 FROM 1 FOR 11) AS +
+                          CHAR(11)) AS K00002 ASC )  RCDFMT RCERB +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(EXP.BXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+
+/* // IFF DATAF1-EXP.HXZ BLDINDEX EXP.HXZ,90,9,EXP.HIS,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX "EXP.HXZ" ON "EXP.HIS" ( +
+                          CAST(SUBSTRING(F00001 FROM 90 FOR  9) AS +
+                          CHAR(9)) AS K00001 ASC )  RCDFMT REXPH +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+/*                                                                  */
+             SNDPGMMSG  MSG('CER140- INVENTARIO DE CARTA DE CREDITO +
+                          (CER)') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(CERALT) TOFILE(CER.AXZ)
+             OVRDBF     FILE(CERBAJ) TOFILE(CER.BXZ)
+             OVRDBF     FILE(EXPHIS) TOFILE(EXP.HXZ)
+             OVRPRTF    FILE(LCER1401) PAGESIZE(66) FORMTYPE(RE66) +
+                          OUTPTY(9) HOLD(*YES)
+             CALL       PGM(CER140ANW)
+             DLTOVR     FILE(*ALL)
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.AXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.AXZ))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CER.BXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.BXZ))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(EXP.HXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/EXP.HXZ))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CER.@@1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@1))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CER.@@2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(CER.@@2))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CER.@@@) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CER.@@@))
+             ENDPGM

@@ -1,0 +1,15 @@
+PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             RTVJOBA    DATE(&DATE)
+
+             SNDPGMMSG  MSG('Verifica si es primer día hábil del +
+                          mes') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       PGM(INTERB02/VERIF2NW)
+             IF         COND(*NOT (%SWITCH(1XXXXXXX))) THEN(GOTO +
+                          CMDLBL(ALFIN))
+             SBMJOB     CMD(CALL PGM(RFINMESCL)) DATE(&DATE)
+ALFIN:
+
+             ENDPGM

@@ -1,0 +1,8 @@
+             PGM
+   RUNSQL     SQL('CREATE INDEX "CER.AXZ" ON "CER.ALT" ( +
+                CAST(SUBSTRING(F00002 FROM 1 FOR  7) AS +
+                CHAR(7)) AS K00002 ASC,  +
+                CAST(SUBSTRING(K00001 FROM 8 FOR  4) AS +
+                CHAR(4)) AS K00003 ASC )  RCDFMT RCER  +
+                ADD ALL COLUMNS') COMMIT(*NONE)
+endpgm

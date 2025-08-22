@@ -1,0 +1,11 @@
+/* -------------------------------------------------------------- */
+/*          REPROCESO ALTAS CARTA DE CREDITO                      */
+/* CER215   CAMBIA ESTADO FIN DEL DIA                             */
+/* -------------------------------------------------------------- */
+/*                                                                */
+             PGM
+
+             OVRDBF     FILE(CERALT) TOFILE(CER.ALT)
+             CALL       PGM(CER215NW)
+
+             ENDPGM

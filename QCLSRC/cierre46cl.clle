@@ -1,0 +1,80 @@
+             PGM
+
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM05) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM06) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             SNDPGMMSG  MSG('          +
+                          *****************************************+
+                          ********************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('          ********      Cierre +
+                          operacional de la agencia              +
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('          +
+                          *****************************************+
+                          ********************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+/* * Adiciona al TOLB user que va a ejecutar el proceso, para asignar agencia */
+             CALL       PGM(SETUSER) PARM((&USER) ('46'))
+             CALL       PGM(VERAGECL) PARM((&USER))
+             SNDPGMMSG  MSG('                           ##### +
+                          AGENCIA ' *CAT (%SST(*LDA 035 002)) *TCAT +
+                          ' ##### ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&PM05) VALUE(((%SST(*LDA 035 002))))
+             CHGVAR     VAR(&PM01) VALUE(((%SST(*LDA 035 002))))
+             CLRPFM     CNBCIE
+             SNDPGMMSG  MSG('VERIFICA ASIENTOS PENDIENTES DE +
+                          AUTORIZACION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     BEAUREL4 BDIGEN/BEAUREL4
+             OVRDBF     BDHJREL4 BDIGEN/BDHJREL4
+             CALL       VEROPER
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             CHGVAR     VAR(&PM06) VALUE('PRE-ASIENTOS PEND. DE +
+                          AUTORIZACION')
+             CALL       PGM(REGEVCNB) PARM((&PM05) (&PM06))
+             ENDDO
+             SNDPGMMSG  MSG('VERIFICA OPERACIONES DE MONEDA +
+                          EXTRANJERA') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       VCIEMOEX
+/* * 'HAY OPERACIONES PENDIENTES DE MONEDA EXTRANJERA EN SU AGENCIA' */
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             CHGVAR     VAR(&PM06) VALUE('OPERACIONES PENDIENTES +
+                          MONEDA EXTRANJERA')
+             CALL       PGM(REGEVCNB) PARM((&PM05) (&PM06))
+             ENDDO
+             SNDPGMMSG  MSG('VERIFICA ASIENTOS CONTABLES') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             OVRDBF     ICAHREL8 BDIGEN/ICAHREL8
+             OVRDBF     BDHJREL2 BDIGEN/BDHJREL2
+             OVRDBF     BDHJREL3 BDIGEN/BDHJREL3
+             CALL       VERASI1
+/* * 'HAY ASIENTOS PENDIENTES EN SU AGENCIA, INTENTELO MAS TARDE'   */
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             CHGVAR     VAR(&PM06) VALUE('ASIENTOS CONTABLES SIN +
+                          AUTORIZAR')
+             CALL       PGM(REGEVCNB) PARM((&PM05) (&PM06))
+             ENDDO
+             SNDPGMMSG  MSG('VERIFICA OPERACIONES DE CAMBIO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       CAMLIB/CM0908CL
+             CALL       CAMLIB/CMCIERRIAG
+/* * 'HAY OPERACIONES DE CAMBIOS PENDIENTES, CORRIJA '              */
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             CHGVAR     VAR(&PM06) VALUE('OPERACIONES DE CAMBIOS +
+                          PENDIENTES')
+             CALL       PGM(REGEVCNB) PARM((&PM05) (&PM06))
+             ENDDO
+ ALFIN:
+/* * Remueve del tolb el user que     ejecutó el proceso            */
+             CALL       PGM(RMVUSER) PARM((&USER) ('46'))
+             SNDPGMMSG  MSG('------> FIN DEL PROCESO DE CIERRE +
+                          <------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+
+             ENDPGM

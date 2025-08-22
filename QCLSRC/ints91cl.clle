@@ -1,0 +1,41 @@
+/*                                                                  */
+/*  IMPRESION DE AVISO DE CREDITOS EN AHORROS POR RCH               */
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&LIBF/PENDANL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+
+             CHGCURLIB  CURLIB(&LIBF)
+             RUNSQL     SQL('CREATE INDEX PENDANL ON PENDAN ( +
+                          CAST(SUBSTRING(F00001 FROM 53 FOR  2) AS +
+                          CHAR(2)) AS K00002 ASC, +
+                          CAST(SUBSTRING(K00001 FROM  4 FOR  6) AS +
+                          CHAR(6)) AS K00003 ASC, +
+                          CAST(SUBSTRING(F00001 FROM 132 FOR  5) AS +
+                          CHAR(5)) AS K00004 ASC) RCDFMT RPENDAN +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+             OVRDBF     FILE(PENDAN) TOFILE(&LIBF/PENDANL)
+             OVRPRTF    FILE(DOCU33) TOFILE(QPRINT) PAGESIZE(33) +
+                          FORMTYPE(DOC) HOLD(*YES)
+             CALL       PGM(INTS91NW)
+             DLTOVR     FILE(*ALL)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&LIBF/PENDANL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/PENDANL))
+
+             ENDPGM

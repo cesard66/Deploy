@@ -1,0 +1,396 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/INTP74CL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/INTP74CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('**** PROCESO DE INTERNACIONAL ACTIVO +
+                          CANCELO ****') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+             ENDDO
+ V1:
+             SNDPGMMSG  +
+                          MSG('--------------------------------------+
+                          -------------------------------------------+
+                          ------|') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('| PREPARACION PARA REPROCESO DE +
+                          COMEX-EJECUCION NORMAL FIN DE +
+                          MES                      |') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('|                                    +
+                          -EJECUCION ESPECIAL CUANDO HAY ERROR EN +
+                          PROC.COMEX|') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('--------------------------------------+
+                          -------------------------------------------+
+                          ------|') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * PAUSE                                                          */
+             CALL       PGM(INTERB05/INTP74CCL)
+             CALL       (CAMLIB/CMDIFG01)
+             CHGJOB     SWS(00000000)
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/DEM.EXP) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(GOTO +
+                          CMDLBL(ERROR))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/HIS.EXP) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(GOTO +
+                          CMDLBL(ERROR))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/CAN.EDEM) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(GOTO +
+                          CMDLBL(ERROR))
+/*                                                                  */
+             GOTO       BIEN
+ ERROR:
+/*                                                                  */
+             SNDPGMMSG  MSG(' POR LO MENOS UN ARCHIVO PARA REPROCESO +
+                          FALTAN EN DISKO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' CONSULTE CON LOS PROGRAMADORES DE LA +
+                          DIVISION INFORMA-') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' TICA,..............POR EL MOMENTO +
+                          CANCELO SU OPERACION') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+/*                                                                  */
+ BIEN:
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                REPROCESO DE +
+                          INTERNACIONAL                *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                SISTEMAS NUEVO Y +
+                          VIEJO                    *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* ASUMO QUE LOS FICHEROS QUE ESTAN EN +
+                          DISCO ESTAN ERRADOS  *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* ASUMO QUE LOS FICHEROS DE MOVIMIENTOS +
+                          DEL DIA ESTAN EN   *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* DISCO Y DEBEN SER +
+                          UTILIZADOS                             +
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*                                      -
+                    *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             DLTF       FILE(INTFPOSC)
+             CPYF       FROMFILE(&LIBF/ANPOSCM1) +
+                          TOFILE(&LIBF/INTFPOSC) FROMMBR(*FIRST) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             DLTF       FILE(&LIBF/HISTINTC)
+             DLTF       FILE(&LIBF/HISTIMPO)
+             DLTF       FILE(&LIBF/HINTF04)
+             CPYF       FROMFILE(&LIBF/ANSTINIC) +
+                          TOFILE(&LIBF/HISTINTC) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(&LIBF/ANSIMP01) +
+                          TOFILE(&LIBF/HISTIMPO) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(&LIBF/HINTF048) +
+                          TOFILE(&LIBF/HINTF04) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             DLTF       FILE(&LIBF/BCP100)
+             CPYF       FROMFILE(&LIBF/BCP1001) +
+                          TOFILE(&LIBF/BCP100) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             SNDPGMMSG  MSG('   +
+                          *******************************************+
+                          *******************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** LOS ARCHIVOS PARA REPROCESO DE +
+                          INTERNACIONAL YA ESTAN    **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** EN +
+                          DISCO.                                      -
+         **') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** HAGA UNA +
+                          CONSISTENCIA                                -
+    **') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** CAMBIE LA FECHA DE WORK STATION +
+                          PARA FECHA DE PROCESO    **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** ARREGLE LOS DATOS NECESARIOS PARA +
+                          REPROCESO              **') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** SI TODO "OK" EJECUTE EL PROCESO +
+                          DIARIO                   **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** CUANDO TERMINE HAGA EL BACKUP +
+                          DIARIO DE INTERNACIONAL EN **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** DISKETTES SEPARADOS ITEN 6 DEL +
+                          MENU DE POS.DE CAMBIOS    **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   +
+                          **                                          -
+                **') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   +
+                          *******************************************+
+                          *******************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/*                                                                           */
+/*   ELIMINA ARCHIVOS QUE ESTAN CON ERROR PARA UN REPROCESO EN FORMALIZACION */
+/*   Y CANCELACIONES                                                         */
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                REPROCESO DE +
+                          INTERNACIONAL                *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                SISTEMAS - NUEVO  Y  +
+                          VIEJO                *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* ASUMO QUE LOS FICHEROS QUE ESTAN EN +
+                          DISCO ESTAN ERRADOS  *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* ASUMO QUE LOS FICHEROS DE MOVIMIENTOS +
+                          DEL DIA ESTAN EN   *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* DISCO Y DEBEN SER +
+                          UTILIZADOS                             +
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*                                      -
+                    *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             DLTF       FILE(&LIBF/INTFPOSC)
+             CPYF       FROMFILE(&LIBF/ANPOSCM1) +
+                          TOFILE(&LIBF/INTFPOSC) FROMMBR(*FIRST) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             DLTF       FILE(&LIBF/HISTINTC)
+             DLTF       FILE(&LIBF/HISTIMPO)
+             CPYF       FROMFILE(&LIBF/ANSTINIC) +
+                          TOFILE(&LIBF/HISTINTC) FROMMBR(*FIRST) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CPYF       FROMFILE(&LIBF/ANSIMP01) +
+                          TOFILE(&LIBF/HISTIMPO) FROMMBR(*FIRST) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             SNDPGMMSG  MSG('   +
+                          *******************************************+
+                          *******************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** LOS ARCHIVOS PARA REPROCESO DE +
+                          INTERNACIONAL YA ESTAN    **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** EN +
+                          DISCO.                                      -
+         **') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** CAMBIE LA FECHA DE WORK STATION +
+                          PARA FECHA DE PROCESO    **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** ARREGLE LOS DATOS NECESARIOS PARA +
+                          REPROCESO              **') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** HAGA UNA +
+                          CONSISTENCIA                                -
+    **') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** SI TODO "OK" EJECUTE EL PROCESO +
+                          DIARIO                   **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** CUANDO TERMINE HAGA EL BACKUP +
+                          DIARIO DE INTERNACIONAL EN **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   ** DISKETTES SEPARADOS - ITEN 6 DEL +
+                          MENU DE POS.DE CAMBIOS  **') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   +
+                          **                                          -
+                **') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('   +
+                          *******************************************+
+                          *******************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/INTCONT) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/INTCONT))
+/*                                                                           */
+/*                                                                           */
+/*  ELIMINA ARCHIVOS QUE ESTAN CON ERROR PARA UN REPROCESO EN FORMALIZACION  */
+/*  Y CANCELACIONES                                                          */
+/*                                                                           */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EXP.HXZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/EXP.HXZ))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EXP.DEMZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/EXP.DEMZ))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EXP.DEMW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/EXP.DEMW))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/INDXDEM) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/INDXDEM))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/INDEXDM) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/INDEXDM))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EDEM.CAZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/EDEM.CAZ))
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EXP.DEM) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/EXP.DEM))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EXP.HIS) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/EXP.HIS))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EDEM.CAN) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/EDEM.CAN))
+/*                                                                  */
+             CPYF       FROMFILE(&LIBF/DEM.EXP) +
+                          TOFILE(&LIBF/EXP.DEM) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(&LIBF/HIS.EXP) +
+                          TOFILE(&LIBF/EXP.HIS) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+             CPYF       FROMFILE(&LIBF/CAN.EDEM) +
+                          TOFILE(&LIBF/EDEM.CAN) MBROPT(*REPLACE) +
+                          CRTFILE(*YES)
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EXP.DEMW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE INDEX EXP.DEMW ON EXP.DEM ( +
+                          CAST(SUBSTRING(K00001   FROM  3 FOR 9) AS +
+                          CHAR(9)) AS K00002 ASC) RCDFMT REXPDEMX +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(EXP.DEMZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE INDEX EXP.DEMZ ON EXP.DEM ( +
+                          CAST(SUBSTRING(K00001   FROM  1 FOR 11) +
+                          AS CHAR(11)) AS K00002 ASC) RCDFMT +
+                          REXPDEMZ ADD ALL COLUMNS') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(EDEM.CAZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+             RUNSQL     SQL('CREATE INDEX EDEM.CAZ ON EDEM.CAN ( +
+                          CAST(SUBSTRING(K00001   FROM  1 FOR 11) +
+                          AS CHAR(9)) AS K00002 ASC, +
+                          CAST(SUBSTRING(K00001   FROM  27 FOR 2) +
+                          AS CHAR(2)) AS K00003 ASC) RCDFMT +
+                          REDEMCAZ ADD ALL COLUMNS') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(INDXDEM) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE INDEX INDXDEM ON EXP.DEM ( +
+                          CAST(SUBSTRING(K00001   FROM  1 FOR 2) AS +
+                          CHAR(2)) AS K00002 ASC, +
+                          CAST(SUBSTRING(K00001   FROM  12 FOR 7) +
+                          AS CHAR(7)) AS K00003 ASC, +
+                          CAST(SUBSTRING(K00001 FROM  3 FOR  9) AS +
+                          CHAR(9)) AS K00004 ASC) RCDFMT RINDXDEM +
+                          ADD ALL COLUMNS') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+/*                                                                  */
+/* --------------------------*                                      */
+/*  Reproceso de REX,CER,DAL *                                      */
+/* --------------------------*                                      */
+/*  COBRANZAS (Altas y bajas)                                       */
+/*                                                                  */
+             CHGCURLIB  EXP.LIBR
+             CALL       PGM(REX145CL)
+             CALL       PGM(REX150CL)
+/*                                                                  */
+/*  DIVISAS ANTICIPADAS (Movimientos y cancelacion)                 */
+/*                                                                  */
+             CALL       PGM(DAL115CL)
+             CALL       PGM(DAL120CL)
+/*                                                                  */
+/*  CARTAS DE CREDITO (Altas, modificacion, bajas, utilizacion DEM) */
+/*                                                                  */
+             CALL       PGM(CER215CL)
+             CALL       PGM(CER220CL)
+             CALL       PGM(CER225CL)
+             CALL       PGM(CER230)
+/*                                                                  */
+             SNDPGMMSG  +
+                          MSG('--------------------------------------+
+                          --------------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('            FIN DE REPROCESO DE +
+                          COMEX               ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('--------------------------------------+
+                          --------------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* *PAUSE                                                           */
+
+             ENDPGM

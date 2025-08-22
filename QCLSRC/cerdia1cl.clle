@@ -1,0 +1,180 @@
+/*   MODULO CARTAS DE CREDITO EN EXPORTACIONES *                    */
+/* *********************************************                    */
+/*                                                                  */
+/* / LIBRARY NAME-EXP.PRU2                                          */
+/*                                                                  */
+/*  Convierte CER.ALT de Ag. 10 a 00                                */
+/*                                                                  */
+/* ERALT                                                            */
+/*                                                                  */
+/* Convierte CER.MOV de Ag. 10 a 00                                 */
+/*                                                                  */
+/* ERMOD                                                            */
+/*                                                                  */
+/*  Convierte CER. BAJ de Ag. 10 a 00                               */
+/*                                                                  */
+/* ERBAJ                                                            */
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+             CHGCURLIB  EXP.LIBR
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.CON1))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON3) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.CON3))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON4) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.CON4))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CONS) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.CONS))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON6) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.CON6))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON7) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.CON7))
+/* *                                                                */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/ITF4CER3) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/ITF4CER3))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/ITF4CER5) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/ITF4CER5))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/ITF4CER7) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/ITF4CER7))
+/* *                                                                */
+             CALL       PGM(EXP.LIBR/CEREXTACL)
+             CALL       PGM(EXP.LIBR/CEREXTBCL)
+             CALL       PGM(EXP.LIBR/CEREXTMCL)
+/* --------------------------------------------------------------*  */
+/*  BOSQUEJO DE DONDE SALEN LOS ARCHIVOS PARA PROCESO FIN DEL DIA   */
+/* --------------------------------------------------------------*  */
+/*   ARCH.CONTABLES     ARCH.COMP/VENTA      PROCEDIMIENTOS         */
+/* ************** -----****************------**************------*  */
+/*    CER.CON1          --------------       CERP01-CER15        *  */
+/*    CER.CON3           ITF4CER3            CERP03-CER603       *  */
+/*    CER.CON4          --------------       CERP04-CER604       *  */
+/*    CER.CON5           ITF4CER5            CERP05-CER605       *  */
+/*    CER.CON7           ITF4CER7-----       CERP07-CER115       *  */
+/* --------------------------------------------------------------*  */
+/*  CREACION DE ARCHIVOS CONTABLES C.E.R. DE LA FECHA               */
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.DDA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/CER15) PARM(('') (CER.DDA)))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.DDMA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/CER603) PARM(('') (CER.DOMA)))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.DOMB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/CER604) PARM(('') (CER.DOMB)))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.DDMC) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/CER605) PARM(('') (CER.DDMC)))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.DDB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/CER115) PARM(('') (CER.DDB)))
+/*                                                                  */
+/*  IMPRESION DE ASIENTOS CONTABLES DE LA FECHA                     */
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/EDE08CL) PARM((CER.CON1)))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON3) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/EDE08CL) PARM((CER.CON3)))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON4) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/EDE08CL) PARM((CER.CON4)))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CONS) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/EDE08CL) PARM((CER.CONS)))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON7) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CALL +
+                          PGM(EXP.LIBR/EDE08CL) PARM((CER.CON7)))
+/*                                                                  */
+/*  ACTUALIZACION CODIGO DE ESTADO FIN DE PROCESO DEL DIA           */
+/*                                                                  */
+             CHGCURLIB  EXP.LIBR
+/*  ALTAS                                                           */
+             CALL       PGM(CER180CL)
+/*  MODIFICACION                                                    */
+             CALL       PGM(CER185)
+/*  BAJAS                                                           */
+             CALL       PGM(CER195)
+/*  UTILIZACIONES                                                   */
+             CALL       PGM(CER200)
+/*                                                                  */
+/*  IMPRESION DE INVENTARIO CER A LA FECHA                          */
+/*                                                                  */
+             CALL       PGM(EXP.LIBR/CERP08)
+
+             ENDPGM

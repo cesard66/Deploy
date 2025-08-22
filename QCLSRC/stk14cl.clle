@@ -1,0 +1,66 @@
+             PGM
+/*=============================================================*/
+/* SISTEMA.: CONTROL DE STOCK                                  */
+/* PROGRAMA: SOLICITUD DE EMISION DE LISTADO DE DESPACHO       */
+/*=============================================================*/
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSIDS36) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&TYPEWS) TYPE(*DEC) LEN(001)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(1) VALUE('1')
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(8)
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(4)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(10)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+
+U0:
+             CHGJOB     SWS(00000000)
+             RTVJOBA    JOB(&WSID) USER(&USER)
+             CALL       PGM(QSSP/QEXCVTDV) PARM((&WSIDS36) (&WSID) +
+                          (&TYPEWS))
+             CHGDTAARA  DTAARA(*LDA (1 12)) VALUE(&WSIDS36 *CAT &USER)
+             OVRDSPF    FILE(PANTALL) TOFILE(STK14FM)
+             CALL       PGM(STK14NW)
+             RTVDTAARA  DTAARA(*LDA (1 8)) RTNVAR(&PM01)
+             RTVDTAARA  DTAARA(*LDA (9 4)) RTNVAR(&PM02)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/STMOVW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QTEMP/STMOVW)
+             ENDDO
+             IF         COND(%SWITCH(0XXXXXXX)) THEN(GOTO CMDLBL(FIN))
+             RUNSQL     SQL('CREATE TABLE QTEMP. STMOVW LIKE +
+                          STMOVIM') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CHGVAR     VAR(&CMD) VALUE('INSERT INTO QTEMP.STMOVW +
+                          SELECT * FROM STMOVIM WHERE +
+                          SUBSTR(K00001, 1, 8) = ''' *CAT &PM01 +
+                          *CAT ''' AND SUBSTR(K00001, 9, 4) = ''' +
+                          *CAT &PM02 *CAT ''' AND SUBSTR(F00001, +
+                          56, 1) <> ''B'' ORDER BY SUBSTR(K00001, +
+                          1, 8), SUBSTR(K00001, 9, 4)')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             RTVMBRD    FILE(QTEMP/STMOVW) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(DO)
+             SNDPGMMSG  MSG('* NO EXISTE NADA QUE IMPRIMIR EN ESA +
+                          FECHA **') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* PARA ESA DEPENDENCIA. INGRESE +
+                          NUEVAMENTE *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             GOTO       CMDLBL(U0)
+             ENDDO
+             OVRPRTF    FILE(LSTK101) TOFILE(QPRINT) PAGESIZE(66) +
+                          CPI(15) FORMTYPE(RE66) COPIES(2)
+             OVRDBF     FILE(STMOVIM) TOFILE(STMOVW)
+             CALL       PGM(STK15FM)
+             GOTO       CMDLBL(U0)
+FIN:
+
+             ENDPGM

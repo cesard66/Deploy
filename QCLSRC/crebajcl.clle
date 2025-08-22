@@ -1,0 +1,32 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/COLBAJZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/COLBAJZ))
+             RUNSQL     SQL('CREATE TABLE QS36F.COLBAJZ ( K00001 +
+                          CHAR(9), F00001 CHAR(247) , CONSTRAINT +
+                          QS36F.PK_COLBAJZ PRIMARY KEY( K00001 ) ) +
+                          RCDFMT RCOLBAJ') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             SNDPGMMSG  MSG(' SE CREA COLB DE CUENTAS DADAS DE BAJA +
+                          ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CREBAJNW)
+/* * Esta sentencia de copia de archivo                              */
+/* * CPYF FROMFILE(QS36F/COLBAJZ) TOFILE(QS36F/COLBAJ) +             */
+/* * MBROPT(*REPLACE) FMTOPT(*NOCHK)                                 */
+/* * Se reemplaza por                                                */
+             CALL       PGM(ONLINE/NCHM932L)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/COLBAJZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/COLBAJZ))
+
+             ENDPGM

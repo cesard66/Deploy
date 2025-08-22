@@ -1,0 +1,20 @@
+/* =====> CONTROL SI EL USUARIO ESTA O NO AUTORIZADO A PROCESAR <===== */
+             PGM
+
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             IF         COND((*NOT (&USER *EQ ARMINR)) *AND (*NOT +
+                          (&USER *EQ DANIEL)) *AND (*NOT (&USER *EQ +
+                          BRUNOBA)) *AND (*NOT (&USER *EQ +
+                          MARCELMO)) *AND (*NOT (&USER *EQ +
+                          NESTORO)) *AND (*NOT (&USER *EQ DANIELS)) +
+                          *AND (*NOT (&USER *EQ CONTROLM))) THEN(DO)
+             PAUSE      MSG('USUARIO NO AUTORIZADO')
+             RETURN
+             ENDDO
+             CHGJOB     SWS(00000000)
+             CHGCURLIB  QGPL
+             CALL       GLOBAL/ENDJOBCL
+
+             ENDPGM

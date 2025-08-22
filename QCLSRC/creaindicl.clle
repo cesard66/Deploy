@@ -1,0 +1,22 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CHGVAR     &TEST (&TRUE)
+
+             CHKOBJ     OBJ(CAMC500X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+
+/* // IFF DATAF1-CAMC500X BLDINDEX CAMC500X,19,2,CAMC500,,DUPKEY,,10.9 */
+ /*          RUNSQL     SQL('SET SCHEMA QS36F')     */
+             RUNSQL     SQL('CREATE INDEX CAMC500X ON CAMC500 ( +
+                          CAST(SUBSTRING(K00001 FROM 19 FOR 2) AS +
+                          CHAR(2)) AS K00002 , +
+                          CAST(SUBSTRING(K00001 FROM 10 FOR 9) ) +
+                          RCDFMT RCAMC500  ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             ENDDO
+
+             ENDPGM

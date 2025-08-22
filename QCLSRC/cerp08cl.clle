@@ -1,0 +1,14 @@
+/*                                                                  */
+/*  IMPRESION DE INVENTARIOS DE CARTAS DE CREDITO NO CONFIRMADOS    */
+/*                                                                  */
+             PGM
+
+             CALL       PGM(CER140CL)
+/*                                                                  */
+/*                                                                  */
+/*  IMPRESION DE INVENTARIOS DE CARTAS DE CREDITO CONFIRMADOS       */
+/*                                                                  */
+             CALL       PGM(CER141CL)
+/*                                                                  */
+
+             ENDPGM

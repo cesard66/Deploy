@@ -1,0 +1,16 @@
+/*  // IFF ?USER?/MARIO IFF ?USER?/BAUZA +                          */
+/*     PAUSE 'USUARIO NO AUTORIZADO                                 */
+/*  // IFF ?USER?/MARIO IFF ?USER?/BAUZA +                          */
+/*     GOTO FIN                                                     */
+/*  //* 'REPROCESO DE CONTABILIDAD'                                 */
+/*  // PAUSE                                                        */
+             PGM
+
+             CALL       PGM(SAVLIBL)
+             CHGLIBL    LIBL(QTEMP QGPL BDIGEN INGEN BCGEN CGGEN +
+                          PSYNON2 QS36F SOFTSHOP)
+             CALL       REPROMES
+             CALL       PGM(RSTLIBL)
+/*  // TAG FIN                                                      */
+
+             ENDPGM

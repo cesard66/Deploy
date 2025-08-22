@@ -1,0 +1,119 @@
+PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CTEF17X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(QS36F/CTEF17X) RCDLEN(80) SIZE(*NOMAX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(AUTOMATX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(QS36F/AUTOMATX) RCDLEN(80) SIZE(*NOMAX))
+             OVRDBF     FILE(CTEF17) TOFILE(CTEF17X)
+             OVRDBF     FILE(AUTOMATO) TOFILE(QS36F/AUTOMATX)
+             OVRPRTF    FILE(CONTABIL) TOFILE(QPRINT) FORMTYPE(BORR) +
+                          HOLD(*YES)
+             OVRPRTF    FILE(CONTABIT) TOFILE(QPRINT) FORMTYPE(BORR) +
+                          HOLD(*YES)
+             CALL       PGM(CTES29NW)
+             DLTOVR     FILE(*ALL)
+             CHGJOB     SWS(00000000)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CTEF26X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTEF26X))
+/* *******************************************************  */
+             RUNSQL     SQL('CREATE TABLE QS36F.CTEF26X (F00001 +
+                          CHAR(80)) RCDFMT RCTEF26') COMMIT(*NONE)
+             RUNSQL     SQL('INSERT INTO QS36F.CTEF26X SELECT * FROM +
+                          QS36F.CTEF17X ORDER BY SUBSTRING(F00001 +
+                          FROM  3 FOR 1) ASC, SUBSTRING(F00001 +
+                          FROM  47 FOR 4) ASC) ASC') COMMIT(*NONE)
+             DLTF       FILE(QS36F/CTEF17X)
+/*                                                                  */
+             SNDPGMMSG  MSG(' VALIDACION DE CUENTAS CORRIENTES') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CRTPF      FILE(QS36F/CTEF27X) RCDLEN(80) SIZE(*NOMAX)
+             OVRDBF     FILE(CTEF26) TOFILE(CTEF26X)
+             OVRDBF     FILE(CTEF27) TOFILE(CTEF27X)
+             OVRPRTF    FILE(CONSISCC) TOFILE(QPRINT) FORMTYPE(BORR) +
+                          HOLD(*YES)
+             OVRPRTF    FILE(RESUMECC) TOFILE(QPRINT) FORMTYPE(BORR) +
+                          HOLD(*YES)
+             CALL       PGM(CTES02NW)
+             DLTF       FILE(QS36F/CTEF26X)
+             DLTOVR     FILE(*ALL)
+             SNDPGMMSG  MSG('   SIMULA Actualizacion de Saldos en +
+                          CTESDO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CLASIFIC. DE LAS TRANSACIONES') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(MOVIMX) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/MOVIMX))
+             RUNSQL     SQL('CREATE TABLE QS36F. MOVIMX (F00001 +
+                          CHAR(80)) RCDFMT RMOVIMX') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             RUNSQL     SQL('INSERT INTO QS36F.MOVIMX  SELECT +
+                          SUBSTRING(F00001 FROM  1 FOR 80) FROM +
+                          QS36F.CTEF27X ORDER BY SUBSTRING(F00001 +
+                          FROM  1 FOR 1) ASC, SUBSTRING (F00001 +
+                          FROM  3 FOR  9) ASC, SUBSTRING(F00001 +
+                          FROM 19 FOR  2) ASC, SUBSTRING(F00001 +
+                          FROM 17 FOR  2) ASC, SUBSTRING(F00001 +
+                          FROM 15 FOR  2) ASC, SUBSTRING(F00001 +
+                          FROM 12 FOR  2) ASC, SUBSTRING(F00001 +
+                          FROM 22 FOR  7) ASC, SUBSTRING(F00001 +
+                          FROM 30 FOR 11) ASC') COMMIT(*NONE)
+             DLTF       FILE(QS36F/CTEF27T)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CTESD01X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CTESD01X))
+             CPYF       FROMFILE(QS36F/CCMASL) TOFILE(QS36F/CCMASL1) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+/* *ELIMINAR BLOQUEOS                                               */
+             CALL       PGM(GLOBAL/PRENDJOB) PARM(('QS36F') ('CTESDO'))
+/* *                                                                */
+             CPYF       FROMFILE(QS36F/CTESDO) +
+                          TOFILE(QS36F/CTESDO1X) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) FROMRCD(1) TORCD(1)
+             CLRPFM     FILE(QS36F/CTESDO1X)
+             OVRDBF     FILE(CTESDO1) TOFILE(CTESDO1X)
+             OVRDBF     FILE(CTESBAJ) TOFILE(CTESBAJX)
+             OVRDBF     FILE(CCMASL) TOFILE(CCMASL1)
+             OVRDBF     FILE(MOVIM) TOFILE(MOVIMX)
+             OVRPRTF    FILE(ANORMACC) TOFILE(QPRINT) FORMTYPE(BORR) +
+                          HOLD(*YES)
+             CALL       PGM(CTES03NW)
+/* *                                                                */
+ PULOB:
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -------------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* ACTUALIZACION DE CABECERAS DE AGENCIA +
+                          DEL ARCHIVO *CTESDO1*  *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -------------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRDBF     FILE(CTESDO1) TOFILE(CTESDO1X)
+             CALL       PGM(CTES04NW)
+             CALL       PGM(PRINFE01CL)
+
+             ENDPGM

@@ -1,0 +1,294 @@
+             PGM
+
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010 0)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&FILE) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&SWS) TYPE(*CHAR) LEN(8)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     &WSID &JOBA
+             CHGJOB     SWS(00000000)
+
+             ALCOBJ     OBJ((*LIBL/CAC50DCL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             PAUSE      MSG('SE ESTA UTILZANDO ESTE PROCESO, +
+                          INTENTELO NAS TARDE')
+             GOTO       CMDLBL(FIN)
+             ENDDO
+
+             CHGJOB     SWS(00000000)
+             RTVMBRD    FILE(*LIBL/CAMC500) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(CHGJOB SWS(10000000))
+             RTVJOBA    SWS(&SWS)
+             IF         COND(%SST(&SWS 1 1) = '1') THEN(DO)
+             PAUSE      MSG('EL ARCHIVO DE DEVUELTOS ESTA VACIO. +
+                          VERIFIQUE')
+             RETURN
+             ENDDO
+
+             CHGDTAARA  DTAARA(*LDA (1 30)) VALUE(&WSID *TCAT +
+                          &USER *TCAT '     ')
+             CHGJOB     SWS(00000000)
+             CALL       VERAGECL PARM(&USER)
+             CHGVAR     VAR(&PM01) VALUE(%SST(*LDA 035 002))
+             CALL       PGM(COLO1EN)
+             CHGJOB     SWS(00000000)
+             CALL       VPROCES
+             RTVJOBA    SWS(&SWS)
+             IF         COND(%SST(&SWS 1 1) = '1') THEN(DO)
+             PAUSE      MSG('Ya se ha ejecutado este proceso +
+                          anteriormente')
+                          RETURN
+             ENDDO
+             IF         COND(%SST(&SWS 2 1) = '1') THEN(DO)
+             PAUSE      MSG('Usuario no habilitado para este proceso')
+                          RETURN
+             ENDDO
+ SIGUE:
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------*') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*   -DEBITO EN CTA. DE +
+                          CLIENTE              *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------*') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             IF         COND(&PM01 *EQ '00') THEN(OVRDBF +
+                          FILE(CAMC50) TOFILE(QS36F/CAMC500))
+             IF         COND(&PM01 *EQ '02') THEN(OVRDBF +
+                          FILE(CAMC5O) TOFILE(QS36F/CAMC502))
+             IF         COND(&PM01 *EQ '06') THEN(OVRDBF +
+                          FILE(CAMC50) TOFILE(QS36F/CAMC506))
+             CALL       PGM(ONLINE/CNDVC04L)
+             CALL       PGM(COL01TN)
+/* *                                                                */
+             RTVJOBA    SWS(&SWS)
+             IF         COND(%SST(&SWS 1 1) = '1') THEN(DO)
+             PAUSE      MSG('Ud. no esta autorizado a utilizar este +
+                          programa por no estar catastrado')
+             RETURN
+             ENDDO
+             IF         COND(%SST(&SWS 2 1) = '1') THEN(DO)
+             SNDPGMMSG  MSG('Ya se ha ejecutado este proceso. +
+                          actualiza los cheques grabados poste-') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('rior a la prinera actualizacion. Pero +
+                          recuerde que este es un proceso ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('anormal y por tanto debe tener mas +
+                          cuidado para hacer todo de una vez. ')
+             RETURN
+             ENDDO
+
+             IF         COND(%SST(&SWS 3 1) = '0') THEN(DO)
+             PAUSE      MSG('NO SE HA PROCESADO NINGUN REGISTRO EN +
+                          ESTE PROCESO                   ')
+             RETURN
+             ENDDO
+
+             CALL       ONLINE/CMDVC05L
+
+             CHGVAR     VAR(&FILE) VALUE('CAMC5' *TCAT &PM01)
+             RTVMBRD    FILE(*LIBL/&FILE) NBRCURRCD(&RCDNBR)
+
+             IF COND(&RCDNBR *EQ 0) THEN(DO)
+             GOTO       CMDLBL(FIN)
+             ENDDO
+
+/* *************************************                            */
+/* ** AHORA VA A INPRIMIR LOS AVISOS ***                            */
+/* *************************************                            */
+ IMPRE:
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          -----------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' MENSAJES CHEQUES RECHAZADOS P/ ATM - +
+                          GUARANIES         ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          -----------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * ADDLIBLE GX                                                    */
+             CALL       ONLINE/NADDLIBGX
+             CALL       PGM(CONLINE/PMJDLTMA) PARM('00000002')
+             IF         COND(&PM01 *EQ '00') THEN(OVRDBF +
+                          FILE(CAMC50) TOFILE(QS36F/CAMC500))
+             IF         COND(&PM01 *EQ '02') THEN(OVRDBF +
+                          FILE(CAMC50) TOFILE(QS36F/CAMC502))
+             IF         COND(&PM01 *EQ '06') THEN(OVRDBF +
+                          FILE(CAMC50) TOFILE(QS36F/CAMC506))
+             CALL       PGM(CONLINE/NMJGCHOB)
+/* *RMVLIBLE GX                                                     */
+ AVISO:
+ ENVCDA:
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' ENVIA CONFIRMACION DE CHEQUES PARA +
+                          SISTEMA DE CDA          ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       ONLINE/NADDLIBGX
+             CALL       PGM(CONLINE/NCCMEOOOCL) PARM('000000006900')
+ FIN1:
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('  PROCESO DESCUENTO DE CHEQUES - +
+                          RECHAZADOS DDK             ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             IF         COND(&PM01 *EQ '00') THEN(CALL +
+                          PGM(ONLINE/DDCHQRECGS) PARM(('6900')))
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* CARGA CHEQUES EN EL SISTEMA DE +
+                          SEGUIMIENTO             *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+
+             IF         COND(&PM01 *EQ '00') THEN(CALL +
+                          PGM(ONLINE/NFDPR00P))
+             IF         COND(&PM01 *EQ '02') THEN(CALL +
+                          PGM(ONLINE/NFDPR02P))
+             IF         COND(&PM01 *EQ '06') THEN(CALL +
+                          PGM(ONLINE/NFDPR06P))
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*  -LISTA AVISO PARA CLIENTES Y +
+                          PLANILLA-                  *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             IF         (&PM01 *EQ '00') DO
+             OVRDBF     FILE(CAMC50) TOFILE(QS36F/CAMC500)
+             ENDDO
+             IF         COND(&PM01 *EQ '02') THEN(DO)
+             OVRDBF     FILE(CAMC50) TOFILE(QS36F/CAMC502)
+             ENDDO
+             IF         COND(&PM01 *EQ '06') THEN(DO)
+             OVRDBF     FILE(CAMC50) TOFILE(QS36F/CAMC506)
+             ENDDO
+/* * OVRDBF CAMC50 QS36F/CAMC5?1?W                                  */
+             OVRDBF     FILE(TOLB) TOFILE(QS36F/TOLB)
+             OVRDBF     FILE(COLB) TOFILE(QS36F/COLB)
+             OVRDBF     FILE(TABBANCO) TOFILE(QS36F/TABBANCO)
+             OVRDBF     FILE(CMAGL1) TOFILE(QS36F/CMAGL1)
+             OVRDBF     FILE(CODMOTPF) TOFILE(QS36F/CODMOTPF)
+             OVRDBF     FILE(CTAICLAS) TOFILE(QS36F/CTAICLAS)
+             OVRDBF     FILE(IFDAXO1) TOFILE(QS36F/IFDAX01)
+             OVRPRTF    FILE(DEBITO) TOFILE(QPRINT) PAGESIZE(66) +
+                          FORMTYPE(RE66) COPIES(1) HOLD(*YES) +
+                          USRDTA('DEBITO')
+             OVRPRTF    FILE(AVIS1) TOFILE(QPRINT) PAGESIZE(66 80) +
+                          LPI(6) CPI(12) OVRFLW(63) FORMTYPE(RE66) +
+                          COPIES(1) HOLD(*YES) USRDTA('AVIS1')
+             CALL       PGM(ONLINE/CAC50INW)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*  -LISTA +
+                          REDEPOSITOS                                 -
+     *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(ONLINE/IMPRDPCL)
+             DLTOVR     FILE(*ALL)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' ENVIO LISTADOS FORMATO PDF P/ EL +
+                          SAC                       ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             RTVJOBA    SWS(&SWS)
+             IF         COND(%SST(&SWS 1 1) = '1') THEN(DO)
+             PAUSE      MSG('Ud. no esta autorizado a utilizar este +
+                          programa')
+             ENDDO
+             IF         COND(&PM01 *EQ '00') THEN(CALL PGM(PCONMSG))
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*  ENVIO VIA MAIL DETALLE CHEQUES +
+                          RECHAZADOS                         ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CLRPFM     FILE(QS36F/BDINFOR)
+             CPYSPLF    FILE(DEBITO) TOFILE(QS36F/BDINFOR) +
+                          SPLNBR(*LAST)
+             CPYTOPCD   FROMFILE(QS36F/BDINFOR) TOFLR(INFORNES) +
+                          TODOC(DTCHEDEV.TXT) REPLACE(*YES)
+/*   */
+             SNDDST     TYPE(*DOC) TOINTNET((SUPERYADNIN@itau.con.py +
+                          *PRI) (monica.spinzi@itau.com.py *PRI) +
+                          (jaznin.filartiga@itau.com.py *PRI) +
+                          (CAMARA@itau.com.py *PRI) +
+                          (PRESTAMO@itau.COM.PY *PRI) +
+                          (SACGRUPO@itau.com.py *PRI)) +
+                          DSTD('Interclass') MSG('Detalle COB +
+                          devueltos en la fecha') DOC(DTCHEDEV.TXT) +
+                          FLR(INFORNES)
+ FALTA:
+             CALL       PGM(ONLINE/CAC50CL)
+             CHGDTAARA  DTAARA(CONLINE/CIETRCOB (1 1)) VALUE('M')
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('  MENSAJES CHEQUES RECHAZADOS P/CLICK +
+                          BANKING               ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ---------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * ADDLIBLE IBANKING                                              */
+             CALL       ONLINE/NADDLIBIB
+             CALL       PGM(IBANKING/CB1007G)
+             CALL       PGM(IBANKING/CB1008)
+/* *RMVLIBLE IBANKING                                               */
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('  PAGOS DE TC VIA WEB SERVICE BANCARD +
+                          - PAGOS EN CAJA CHQ.COB D-1        ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SBMJOB     CMD(CALL PGM(ONLINE/NCMDVC010))
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          ----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('  PAGOS DE TC VIA MCSCARDS            - +
+                          PAGOS EN ADC CHEQ.COB D-1        ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+ PAGOTC:
+             SBMJOB     CMD(CALL PGM(ONLINE/NCHFN003)) USER(DEPRQUSR)
+ FIN:
+
+             ENDPGM

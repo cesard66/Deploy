@@ -1,0 +1,79 @@
+/* * PROGR. CAMAR4$                                                 */
+/* *---- ACTUALIZACION DE RECHAZOS NO AUTORIZADOS-GENERA COD.10     */
+/* -----**                                                          */
+             PGM
+
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     &WSID &JOBA
+             CHGJOB     SWS(0000000O)
+             CHGDTAARA  DTAARA(*LDA (1 30)) VALUE(&WSID *TCAT +
+                          &USER *TCAT '     ')
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMAG0$) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(PAUSE +
+                          MSG('NO ESTA EN DISCO EL ARCHIVO +
+                          CONSOLIDADO DE CHEQUES. CANCELO'))
+ VERUSU:
+             CHGJOB     SWS(0000000O)
+/* DISP-SHR                                                         */
+             CALL       PGM(COL01EN)
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('USUARIO ACTIVO EN OTRA TERMINAL O HUBO +
+                          UNA ANOMALIA ANTERIORMENTE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE      MSG('AGUARDE A QUE LE HAGAN LIMPA Y LUEGO +
+                          PRESIONE INTRO P/CONTINUAR')
+             GOTO       CMDLBL(VERUSU)
+             ENDDO
+
+             SNDPGMMSG  MSG('--------------------------------------+
+                          ---------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('ACTUALIZACION DE NUESTROS CHEQUES +
+                          RECHAZADOS - CAMARA*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('GENERA MOVIMIENTOS CON CODIGO 10 Y 44 +
+                          -              *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('--------------------------------------+
+                          ---------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRDBF     FILE(CAMAGX) TOFILE(CAMAG0$G)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             OVRDBF     FILE(COL) TOFILE(COLB)
+             OVRDBF     FILE(HOL) TOFILE(HOLB)
+             OVRDBF     FILE(MOL) TOFILE(MOL)
+             CALL       PGM(CAMAR4$CL)
+             DLTOVR     FILE(*ALL)
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('Ud. no esta autorizado a utilizar este +
+                          programa') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             IF         (%SWITCH(X1XXXXXX)) DO
+             SNDPGMMSG  MSG('YA SE HIZO ESTE PASO. TENGA MAS +
+                          CUIDADO.') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('Ud. aun no proceso ACT. CHEQUE CANJE. +
+                          Hágalo antes.')
+             ENDDO
+             IF         (%SWITCH(XX1XXXXX)) DO
+             PAUSE      MSG('Ud. aun no proceso ACT. CHEQUE CANJE. +
+                          Hágalo antes.')
+             RETURN
+             ENDDO
+             SNDPGMMSG  MSG('REACTIVA CHEQUES ADMINISTRATIVOS +
+                          RECHAZADOS EN ESTE PROCESO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(RECHEA$)
+             CALL       PGM(COL01TN)
+
+             ENDPGM

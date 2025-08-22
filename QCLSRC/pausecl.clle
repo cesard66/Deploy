@@ -1,0 +1,20 @@
+/*  Programa que simula la Pause de OCL36   */
+/*  Compilar como PAUSECL                   */
+             PGM        PARM(&MSG)
+
+             DCL        VAR(&MSG) TYPE(*CHAR) LEN(120)
+             DCL        VAR(&RESP) TYPE(*CHAR) LEN(001)
+
+             IF         COND(%SST(&MSG 1 10) *EQ '         ') THEN(DO)
+             CHGVAR     VAR(&MSG) VALUE('Cuando esté preparado +
+                          introduzca para continuar')
+             ENDDO
+             CHGVAR     VAR(&MSG) VALUE('Pause--' *CAT &MSG)
+             SNDPGMMSG  MSG('SYX3726 Opciones (0)') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(&MSG) TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDUSRMSG  MSG(&MSG) VALUES(0) MSGTYPE(*INQ) MSGRPY(&RESP)
+             SNDPGMMSG  MSG(&RESP *BCAT 'es la respuesta entrada +
+                          para el mensaje SYX3725.') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             ENDPGM

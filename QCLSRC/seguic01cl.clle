@@ -1,0 +1,86 @@
+PGM
+
+             SNDPGMMSG  MSG('SEGURO DE SOBREGIRO ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('VERIFICA SI ES PRIMER DIA HABIL DEL +
+                          MES') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       PGM(INTERB01/VERPRI)
+             IF         COND(*NOT %SWITCH(1XXXXXXX)) THEN(GOTO +
+                          CMDLBL(ALFIN))
+             SNDPGMMSG  MSG('VERIFICA QUE YA NO SE HAYA EJECUTADO EL +
+                          PROCESO CON ANTERIORIDAD') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGJOB     JOB(SWS)
+             CALL       PGM(VERPROC)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             PAUSE      MSG('ERROR-YA SE HA APLICADO EN ESTE MES +
+                          SEGURO SOBREGIRO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             SNDPGMMSG  MSG('Verifica que CTESDO que se va a usar +
+                          sea de fin de mes') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       PGM(VERCTES)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             PAUSE      MSG('ERROR-ARCHIVO CTESDO NO ES DE FIN DE MES')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* *************************************************************************** */
+             SNDPGMMSG  MSG('CALCULA DEBITOS POR PROMEDIO SUPERIOR') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* *************************************************************************** */
+             SBMJOB     CMD(CALL PGM(ONLINE/CPS001NCL))
+/* *************************************************************************** */
+/* Genera dev. sobregiro a ctas. con cheques rechazados el último día del mes* */
+/* *************************************************************************** */
+             CLRPFM     FILE(SBDEV01)
+             CALL       PGM(SBDEV01)
+             CALL       PGM(SBDEV02)
+             CLRPFM     FILE(SEGUROIC)
+             SNDPGMMSG  MSG('Calcula los importes a debitar en las +
+                          cuentas') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(SEGUIC01)
+             SNDPGMMSG  MSG('Lleva los débitos al archivo de +
+                          comisiones') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(SEGUIC02)
+             SNDPGMMSG  MSG('Imputa los debitos en las cuentas') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(COLBAH) TOFILE(QS36F/COLB)
+CALL PGM(ONLINE/IV075P)
+/* // * 'Genera información para ticket de Intervale'     */
+             OVRDBF     FILE(IVMAESL5) TOFILE(QS36F/IVMAESL5)
+             OVRDBF     FILE(CTESDO) TOFILE(QS36F/CTESDO)
+             OVRDBF     FILE(HISTORY1) TOFILE(QS36F/HISTORY1)
+             OVRDBF     FILE(HISTORYL) TOFILE(QS36F/HISTORYL)
+             OVRDBF     FILE(DETSOBN1) TOFILE(QS36F/DETSOBN1)
+             OVRDBF     FILE(SEGUROIC) TOFILE(QS36F/SEGUROIC)
+             OVRDBF     FILE(DEBCRD) TOFILE(QS36F/DEBCRD)
+             OVRDBF     FILE(IVCOMCOB) TOFILE(INFONET/IVCOMCOB)
+             CALL       PGM(CTES68)
+             CLRPFM     FILE(QS36F/IVCOMCOX)
+/* // * 'Acredita a las cuentas de la aseguradora '        */
+/* *CALL SEGUIC03                                          */
+/* * * 'Imprime los listados respectivos'                  */
+/* *CALL SEGUIC04                                          */
+             SNDPGMMSG  MSG(' SEGURO DE AGUINALDO YA') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(INTERB01/IN413RCL)
+/*  ********** // * ' Genera Archivo/Query `               */
+/*  *********  RUNQRY QRY (INTERB01/SEGUROICS)             */
+             SNDPGMMSG  MSG('SEGURO DE TARJETA DEBITO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(ONLINE/CCSGTD00CL)
+UTI.LIBR/SNDASMAIL ADDRESS(DATACENTER@ITAU.COM.PY) +
+SUBJECT('GEN.ARCH. SEGUROS') DATA('Se ha +
+Generado ARCHIVOS QS36F/IN14AGU) transf. +
+a EXCELL ')
+/* *************************************************************************** */
+             SNDPGMMSG  MSG('PROCESO DE EMISION DE CHEQUES Y +
+                          BOLETAS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* *************************************************************************** */
+             SBMJOB     CMD(CALL PGM(ONLINE/COBCOMCL))
+ALFIN:
+
+             ENDPGM

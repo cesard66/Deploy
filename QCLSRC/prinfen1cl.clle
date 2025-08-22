@@ -1,0 +1,41 @@
+             PGM
+
+             SNDPGMMSG  MSG('Verifica si es primer día hábil del +
+                          mes') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       (INTERB02/VERIF2)
+             IF         COND(*NOT (%SWITCH(XX1XXXXX))) THEN(GOTO +
+                          CMDLBL(ALFIN))
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('VERIFICA QUE CTESDO QUE SE VA A USAR +
+                          ES EL DE FIN DE MES') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       VERCTES
+             IF         (%SWITCH(1XXXXXXX)) DO
+             PAUSE      MSG('ERROR-ARCHIVO CTESDO NO ES DE FIN DE MES')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             CHGJOB     SWS(00000000)
+/* *********************                                            */
+/* * CHEQUES MENORES   *                                            */
+/* *********************                                            */
+             SNDPGMMSG  MSG('Proceso de comision Cheques Menores') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       NCC001CL
+/* ****************************                                     */
+/* * CHEQUES COB DEPOSITADOS **                                     */
+/* ****************************                                     */
+             SNDPGMMSG  MSG('Proceso de comision Exceso COB +
+                          Depositados') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       ONLINE/NCC100CL
+/* ****************************                                     */
+/* *COMISION LINEA SOBREGIRO INTEVALE/INTERCHEQUE                   */
+/* ****************************                                     */
+             CALL       ITBPGLIB/NCPR087CL
+/* ****************************                                     */
+/* *PROCESO PARA DEVOLUCION SOBREGIRO A EXPGS                       */
+/* ****************************                                     */
+             CALL       COREPGDB2/PSOGDV02CL
+ ALFIN:
+
+             ENDPGM

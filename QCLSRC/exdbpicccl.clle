@@ -1,0 +1,27 @@
+             PGM
+
+/* ** DISCONTINUADOS - FEB/23 - SIST. ANTERIOR DE PRESTAMOS         */
+/* ** CALL CTPRES                                                   */
+/* ** CALL CTPRESE                                                  */
+/* ** CALL CTPRESME                                                 */
+/* ** CALL CTSALA                                                   */
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('***    PROGRAMAS QUE MARCAN CON * +
+                          POSICION 248 PARA INDICAR         **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('***          EXONERACION DE DEBITOS POR +
+                          PROM.INFERIOR                 **') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * CTFUNC --> PARA EXONERACION A CTAS.CTES. DE FUNCIONARIOS                    */
+/* *---------------------------------------------------------------------------- */
+             CALL       PGM(CTFUNC)
+/* *---------------------------------------------------------------------------- */
+
+             ENDPGM

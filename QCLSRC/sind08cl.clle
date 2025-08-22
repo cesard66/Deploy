@@ -1,0 +1,39 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+
+             SNDPGMMSG  MSG('RECUERDE ACTUALIZACION DE FECHA DE +
+                          CREDITO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(NOMTARJECL)
+
+             PAUSE
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             SNDPGMMSG  MSG('CLASIFICACION DEL ARCHIVO DE +
+                          OPERACIONES POR TIPOS DE OPERACIONTES') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CLRPFM     FILE(QTEMP/SINDOPER)
+             MONMSG     MSGID(CPF3142) EXEC(CRTPF +
+                          FILE(QTEMP/SINDOPER) RCDLEN(40) SIZE(*NOMAX))
+             CHGVAR     VAR(&CMD) VALUE('INSERT INTO QTEMP.SINDOPER +
+                          SELECT K00001 || F00001 FROM +
+                          QS36F."SEI.OPER" WHERE SUBSTRING(F00001 +
+                          FROM 29 FOR 1) <> ''B'' ORDER BY +
+                          SUBSTRING(F00001 FROM  8 FOR  1) ASC, +
+                          SUBSTRING(F00001 FROM 14 FOR  3) ASC, +
+                          SUBSTRING(K00001 FROM  1 FOR  5) ASC')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             SNDPGMMSG  MSG('IMPRESION DE LA PLANILLA DE TOTALES +
+                          POR TIPO DE OPERACION') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRDBF     FILE(SINDCASA) TOFILE(SEI.CASA)
+             OVRDBF     FILE(NOMINAS) TOFILE(SEIMAES)
+             OVRPRTF    FILE(PLANILA2) FORMTYPE(L66) COPIES(2) +
+                          HOLD(*YES) OUTPTY(9)
+             OVRPRTF    FILE(PLANILA3) FORMTYPE(L66) COPIES(2) +
+                          OUTPTY(9) HOLD(*YES)
+             CALL       PGM(SIND08NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

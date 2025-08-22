@@ -1,0 +1,266 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM05) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WORK) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&MOLKK) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&CANC5) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&ESTACH) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&PRODEV) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&CLB) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&CULB) TYPE(*CHAR) LEN(012)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010 0)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     &WSID &JOBA
+             SNDPGMMSG  MSG('            +
+                          *****************************************+
+                          *********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('            *                 Cierre +
+                          operacional de la +
+                          agencia                       *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('            +
+                          *****************************************+
+                          *********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       VERAGECL PARM(&USER)
+             SNDPGMMSG  MSG('                           ##### +
+                          AGENCIA ' *CAT (%SST(*LDA 035 002)) *TCAT +
+                          '  ##### ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&PM05) VALUE(%SST(*LDA 035 002))
+             CHGVAR     VAR(&PM01) VALUE(%SST(*LDA 035 002))
+             CHGVAR     VAR(&MOLKK) VALUE('MOLKK' *TCAT &PM05)
+             CHGVAR     VAR(&CANC5) VALUE('CANC5' *TCAT &PM01)
+             CHGVAR     VAR(&ESTACH) VALUE('ESTACH' *TCAT &PM05)
+             CHGVAR     VAR(&PRODEV) VALUE('PRODEV' *TCAT &PM05)
+             CHGVAR     VAR(&CLB) VALUE('CLB' *TCAT &PM05)
+             CHGVAR     VAR(&CULB) VALUE('CULB' *TCAT &PM05)
+             RTVJOBA    DATE(&DATE)
+             IF         COND(&PM05 *EQ '00') THEN(GOTO CMDLBL(NOCONT))
+             SNDPGMMSG  MSG('VERIFICA ASIENTOS PENDIENTES DE +
+                          AUTORIZACION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(BEAUREL4) TOFILE(BDIGEN/BEAUREL4)
+             OVRDBF     FILE(BDHJREL4) TOFILE(BDIGEN/BDHJREL4)
+             CALL       PGM(VEROPER)
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('HAY ASIENTOS MANUALES (OPERACIONES) +
+                          PENDIENTES DE AUTORIZAR EN LA AGENCIA ') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             CALL       PGM(VCIEMOEX)
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('HAY OPERACIONES PENDIENTES DE MONEDA +
+                          EXTRANJERA EN SU AGENCIA') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             OVRDBF     FILE(ICAHREL8) TOFILE(BDIGEN/ICAHREL8)
+             OVRDBF     FILE(BDHJREL2) TOFILE(BDIGEN/BDHJREL2)
+             OVRDBF     FILE(BDHJREL3) TOFILE(BDIGEN/BDHJREL3)
+             CALL       VERASIE
+ NOCONT:
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('HAY ASIENTOS PENDIENTES EN SU +
+                          AGENCIA, INTENTELO MAS TARDE') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             CALL       CAMLIB/CM0908CL
+             CALL       CAMLIB/CMCIERRIAG
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('HAY OPERACIONES DE CAMBIOS PENDIENTES, +
+                          CORRIJA') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+/* *************************************************************************/
+/*  Gscam 1211131804 CDA Alertas                                           */
+/* *************************************************************************/
+             CHGJOB     SWS(00000000)
+             CALL       ITBPGLIB/NCCPRO68CL
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  +
+                          MSG('I-------------------------------------+
+                          --------I') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('I ATENCION- Existe CDA pendiente de +
+                          depósito. I') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('I INTRO PARA CERRAR DE TODAS +
+                          MANERAS          I') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('I         N PARA +
+                          CANCELAR                     I') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDUSRMSG  +
+                          MSG('I-------------------------------------+
+                          --------I') TOMSGQ(*EXT) MSGRPY(&WORK)
+             IF         COND(*NOT (&WORK *EQ '*N')) THEN(RETURN)
+             ENDDO
+/* **************************************************************************/
+             SNDPGMMSG  +
+                          MSG('I-------------------------------------+
+                          ----------------------------I') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('I Si en verdad deseas hacer el cierre +
+                          de la agencia- Teclee INTRO I') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('I                          Para +
+                          cancelar, Teclee NO y luego INTRO I') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDUSRMSG  +
+                          MSG('I-------------------------------------+
+                          ----------------------------I') +
+                          TOMSGQ(*EXT) MSGRPY(&WORK)
+             IF         COND(*NOT (&WORK *EQ '*N')) THEN(RETURN)
+             CHGJOB     SWS(00000000)
+             CALL       PGM(ITBPGLIB/NCCPR068CL)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(CALL +
+                          PGM(ITBPGLIB/NCCPRO69CL))
+             OVRDBF     FILE(TOL0) TOFILE(TOLB)
+             CALL       (ONLINEC/CIERRE)
+             DLTOVR     FILE(*ALL)
+             IF         COND(%SWITCH(XXXX1XXX)) THEN(DO)
+             SNDPGMMSG  MSG('YA SE HIZO EL CIERRE DE SU AGENCIA +
+                          ANTERIORMENTE - CANCELO!') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('EXISTEN CAJEROS CON SALDO EN LA AGENCIA +
+                          CANCELO!') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             IF         (%SWITCH(X1XXXXXX)) DO
+             SNDPGMMSG  MSG('EXISTE MAS DE UN TESORERO CON SALDO EN +
+                          MONEDA EXTRANJERA -C') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             IF         (%SWITCH(XX1XXXXX)) DO
+             SNDPGMMSG  MSG('EXISTEN MAS DE DOS TESOREROS CON SALDO +
+                          EN CAJA CANCELO!') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             IF         (%SWITCH(XXX1XXXX)) DO
+             SNDPGMMSG  MSG('EXISTE MAS DE UN TESORERO CON SALDO EN +
+                          CAJA- CANCELO!') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             IF         (&PM05 *EQ '00') DO
+             SNDPGMMSG MSG('Verificar +
+                          la habilitación de las Chequeras en +
+                          Casa') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG MSG('ingresadas +
+                          por canje el día de hoy') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             ENDDO
+ SALTITO:
+             CPYF       FROMFILE(QS36F/MOL) TOFILE(QS36F/&MOLKK) +
+                          MBROPT(*REPLACE) CRTFILE(*YES) +
+                          INCCHAR(*RCD 1 *NE INFONE) INCREL((*IF +
+                          AGENCI *EQ &PM05) (*AND CODIGO *EQ 0) +
+                          (*AND FILLE1 *LE '0000'))
+
+             RTVMBRD    FILE(*LIBL/&MOLKK) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *NE 0) THEN(DO)
+             SNDPGMMSG  MSG('ERROR CODIGO DE OPERACION O EN MOL') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('NO SE PUEDE CONTINUAR') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+ SIGUE1:
+             SNDPGMMSG  MSG('Antes se imprime el resumen de agencia +
+                          para los que se olvidan!') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGJOB     SWS(XXXXXX1X)
+             SNDPGMMSG  MSG('LLAMA AL PROCESO DE IO EN PROCESO DE +
+                          CIERRE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       ONLINE/PRCENVCOB PARM(&PM05)
+             CALL       ONLINE/LISRESCL
+             SNDPGMMSG  MSG('MARCA STATUS DE INICIO EN PROCESO DE +
+                          CIERRE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGDTAARA  DTAARA(*LDA (3 10)) VALUE('          ')
+             CHGDTAARA  DTAARA(*LDA (1 2)) VALUE(&WSID)
+             CHGDTAARA  DTAARA(*LDA (3 10)) VALUE(&USER)
+             CHGJOB     SWS(10000000)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             CALL       (ONLINEC/CIEAGE)
+             DLTOVR     FILE(*ALL)
+             SNDPGMMSG  MSG('YA NO SE IMPRIME LISTADO DE CHEQUES +
+                          ANULADOS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             DLYJOB     DLY(3)
+ SIGUE14:
+             SBMJOB     CMD(CALL PGM(LISRESABCL)) JOBQ(QINTER) +
+                          CURLIB(ONLINE)
+/* *                                                                */
+             CALL       ONLINEC/SERV01CL
+ SIGUE:
+             SNDPGMMSG  MSG('COMISIONES PAGO SERVICIOS DEL TAUSER. +
+                          IMPRIME COMPROBANTE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('MARCA STATUS DE FIN PARCIAL DE +
+                          PROCESO DE CIERRE AGENCIA') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGDTAARA  DTAARA(*LDA (1 2)) VALUE(&WSID)
+             CHGDTAARA  DTAARA(*LDA (3 10)) VALUE(&USER)
+             CHGJOB     SWS(00000000)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&CLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(&CLB))
+             OVRDBF     FILE(COLBOUT) TOFILE(&CLB)
+             CALL       PGM(SEPACOL) PARM((&PM05))
+             RTVMBRD    FILE(*LIBL/&CLB) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(GOTO CMDLBL(SIGT1))
+             RTVJOBA    DATE(&DATE)
+             CPYF       FROMFILE(QS36F/&CLB) TOFILE(QS36F/&CULB) +
+                          MBROPT(*REPLACE) CRTFILE(*YES) +
+                          INCCHAR(*RCD 108 *EQ &DATE)
+ SIGT1:
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&ESTACH) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(&ESTACH))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(QS36F/&ESTACH) +
+                          SRCFILE(QS36F/QDDSSRC) SRCMBR(ESTACH) +
+                          OPTION(*NOSOURCE *NOLIST))
+             OVRDBF     FILE(ESTACH) TOFILE(&ESTACH)
+             CALL       PGM(ESTACH) PARM(&PM05)
+             RUNQRY     QRY(ESTACH) QRYFILE((&ESTACH))
+             SNDPGMMSG  MSG('LISTA TITULOS DE CDA PAGADOS') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RUNQRY     MPCDA
+             RUNQRY     MPCDAD
+             CHGDTAARA  DTAARA(*LDA (12 22)) VALUE('FIN PROCESO +
+                          CIERRE AG.')
+             CALL       PGM(ONLINEC/CIEMEN1) PARM((%SST(*LDA 012 025)))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&PRODEV) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(&PRODEV))
+             CALL       LISCAMCL
+             CALL       ONLINE/NADDLIBGX
+             CALL       PGM(CAMLIB/RCMLISAG) PARM(&PM05)
+             SNDPGMMSG  MSG('------> FIN DEL PROCESO DE CIERRE +
+                          <------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             DLYJOB     DLY(5)
+             SIGNOFF
+
+             ENDPGM

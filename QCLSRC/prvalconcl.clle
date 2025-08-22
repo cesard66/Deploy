@@ -1,0 +1,38 @@
+             PGM
+
+             SNDPGMMSG  MSG(' ************ VALIDACION DE +
+                          CONTABILIDAD  ************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+               ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('                                      -
+                ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('                                      -
+                ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('                                      -
+                ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDUSRMSG  MSG('PAUSE - Ingrese, Intro para continue') +
+                          TOMSGQ(*EXT)
+             SNDPGMMSG  MSG('PRVALCON======> PROCESO CONSISTENCIA +
+                          CONTABILIDAD <==========') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * VERIFICA SI EL USUARIO ESTA AUTORIZADO A EJECUTAR              */
+             CALL       PGM(GLOBAL/PRAUTORICL)
+/* * PROCESO EN SI                                                  */
+             CHGDTAARA  DTAARA(ERVALCON *ALL) VALUE(' ')
+             CALL       PGM(INTERB03/BCONSIXCL)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          -----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                      FIN DE +
+                          VALIDACION DE +
+                          CONTABILIDAD                 *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          -----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDUSRMSG  MSG('PAUSE - Ingrese Intro para continue') +
+                          TOMSGQ(*EXT)
+
+             ENDPGM

@@ -1,0 +1,74 @@
+             PGM
+
+             SNDPGMMSG  MSG('ANTES DE EJECUTAR ESTE PROCESO DEBE +
+                          TRASFERIR EN FORMATO TEXTO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EL ARCHIVO PROVEIDO POR EL BCP EN CD A +
+                          --> Q536F/BCP_RIESGO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             CHGJOB     SWS(00000000)
+/* CPYF FROMFILE(QS36F/BCP_RIESGO) +                                */
+/*      TOFILE(Q536F/BCPRIESO) MBROPT(*REPLACE) +                   */
+/*      CRTFILE(*YES) TORCD(20) INCCHAR(RCD 106 +                   */
+/*      *EQ 'PERIODO') FMTOPT(*CVTSRC)                              */
+/* // IF ?F'A,BCPRIESO'?/0 PAUSE 'ERROR DE FORMATO-NO PUEDES CONTINUAR'  */
+/* // IF ?F'A,BCPRIESO'?/0 CANCEL                                   */
+/* CPYF FROMFILE(QS36F/BCP_RIESGO) +                                */
+/*      TOFILE(QS36F/BCPRIES1) MBROPT(*REPLACE) +                   */
+/*      CRTFILE(*YES) INCCHAR(RCD 174 EQ '!')                       */
+/*      FMTOPT(*CVTSRC)                                             */
+             CPYF       FROMFILE(QS36F/BCP_RIESGO) +
+                          TOFILE(QS36F/BCPRIES1) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) FMTOPT(*CVTSRC)
+/*                                                                  */
+             CPYF       FROMFILE(QS36F/BCPRIES1) +
+                          TOFILE(QS36F/BCPRIES1PF) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) FMTOPT(*NOCHK)
+/*                                                                  */
+             CLRPFM     HBCPRIEE
+             CLRPFM     HBCPRIEM
+/* CALL HBCPRI11                                                    */
+/* CALL HBCPRI10                                                    */
+/* CALL HBCPRI12                                                    */
+             SBMJOB     CMD(CALL PGM (PCROU001CL))
+/* *GERENRA CALIFICACION PARA HOMEBAKING (IBPERSON.IFONAG)          */
+             CALL       PGM(IBANKING/IB300CALCL)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ******************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* ESTE PERIODO YA SE PROCESO CON +
+                          ANTERIORIDAD, CANCELO *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ******************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+/* CPYF FROMFILE(QS36F/HBCPRLOG) +                                  */
+/* TOFILE (QS36F/HBCPRLOW) MBROPT("REPLACE) +                       */
+/* CRTFILE (YES) INCREL ((*IF MESAÑO EQ '?L'1,7'7'))                */
+/* RUNQRY QRY(ONLINE/HBCPRLOG) QRYFILE((QS36F/HBCPRLOW))            */
+/* RUNQRY QRY(ONLINE/HBCPRIEE) QRYFILE((QS36F/HBCPRIEE))            */
+/* // * 'Genera archivo de dif.clasif. de Riesgo (Mariana)'         */
+/* CALL ONLINE/PCRBU001CL                                           */
+/* // * 'Genera archivo de endeudamiento cons.funcionarios (NELSON)' */
+/* CALL ONLINE/PROVA001CL                                           */
+
+             ENDPGM

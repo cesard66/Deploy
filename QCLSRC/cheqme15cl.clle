@@ -1,0 +1,107 @@
+/* ** 'Usuario no autorizado'                                       */
+/* **PAUSE                                                          */
+/* **GOTO ALFIN                                                     */
+/* **TAG AUTOR                                                      */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TIME) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WORK) TYPE(*CHAR) LEN(032)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    DATE(&DATE)
+
+             RTVMBRD    FILE(*LIBL/CHEQME1W) NBRCURRCD(&RCDNBR)
+
+             IF COND(&RCDNBR *GT 0) THEN(DO)
+                SNDPGMMSG MSG('Proceso ya ejecutado anteriorente') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+                          GOTO ALFIN
+             ENDDO
+
+             CLRPFM     CHEQME1W
+             CLRPFM     CHEQMOLD
+             CLRPFM     CHEQMEDE
+             CLRPFM     CHEQMOL
+             SNDPGMMSG  MSG('Genera archivo de trabajo de los +
+                          depositos a confirmar') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       CHEQME15
+             CALL       CHEQME19
+
+             RTVMBRD    FILE(*LIBL/CHEQME1W) NBRCURRCD(&RCDNBR)
+
+             IF COND(&RCDNBR *GT 0) THEN(DO)
+                SNDPGMMSG  MSG('COMEX aun no confirmó los pagos, +
+                           verifique') TOPGMQ(*EXT) MSGTYPE(*COMP)
+                GOTO CMDLBL(ALFIN)
+             ENDDO
+
+             RUNQRY     CHEQME1W
+             RUNQRY     CHEQMEDE
+
+             RTVMBRD    FILE(*LIBL/CHEQMEDE) NBRCURRCD(&RCDNBR)
+
+             IF         COND(&RCDNBR *GT 0) THEN(DO)
+             SNDPGMMSG  MSG('Hay cheques que no serán confirmados +
+                          !!!') TOPGMQ(*EXT) MSGTYPE(*COMP)
+
+ SIGA2:      SNDPGMMSG  MSG('Verifique listados') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDUSRMSG  MSG('PAUSE - ') TOMSGQ(*EXT)
+            WRKSPLF
+            ENDDO
+
+ AQUI:       SNDPGMMSG  MSG('*** ATENCION: DESPUES DE ESTO YA NO +
+                          HAY OTRA INSTANCIA! ***') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('Confirma liberación de depósitos m/e +
+                          plaza local? (S/N)') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDUSRMSG  MSG(' ') TOUSR(*REQUESTER)
+
+             IF COND(&WORK *NE 'S') THEN(DO)
+                        CLRPFM FILE(CHEQME1W)
+                SNDUSRMSG MSG('NO SE HAN LIBERADO LOS DEPOSITOS EN +
+                          CHEQUE M/E, plaza local!!') TOUSR(*REQUESTER)
+                GOTO CMDLBL(ALFIN)
+             ENDDO
+
+ SIGUE:      SNDPGMMSG  MSG('Marca los depósitos como confirmados, +
+                          entran hoy a las cuentas') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       CHEQME16
+
+ SIGA:       SNDPGMMSG  MSG('Débitos/créditos  por confirmación del +
+                          proceso') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       CHEQME05C
+             SNDPGMMSG  MSG('Complementa inf.cheques COB +
+                          rechazados, clearing d-1, ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       CHEQME14C
+
+             CALL       PGM(ONLINE/NCCME000CL) PARM(('000000000001'))
+             ADDLIBLE   LIB(UTI.LIBR) POSITION(*REPLACE INFONET)
+
+/* --------------------------------------------------------         */
+UTI.LIBR/SNDASMAIL ADDRESS(COMEX@itau.com.py) SUBJECT('Proceso +
+                          cheque ME, PL en CAMARA') DATA('Finalizó +
+                          el proceso en cámara, puede emitir +
+                          planilla de posición')
+
+             ADDLIBLE   LIB(INFONET) POSITION(*REPLACE UTI.LIBR)
+             SNDPGMMSG  MSG('Marca área de datos, Proceso +
+                          ejecutado            ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGDTAARA  DTAARA(QS36F/CONFIME (1 1)) VALUE('P')
+             CHGDTAARA  DTAARA(QS36F/CONFIME (2 10)) VALUE(&USER)
+
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(QS36F/CONFIME (10 6)) VALUE(&DATE)
+
+             RTVSYSVAL  SYSVAL(QTIME) RTNVAR(&TIME)
+             CHGDTAARA  DTAARA(QS36F/CONFIME (16 6)) VALUE(&TIME)
+
+ ALFIN:      ENDPGM

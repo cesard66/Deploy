@@ -1,0 +1,126 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&PROC) TYPE(*CHAR) LEN(010) +
+                          VALUE('PRCONVAG')
+
+             SNDPGMMSG  MSG('     *********** PROCESO DE CONVERSION +
+                          DE ARCHIVOS DE AGENCIAS ***********') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                   ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                   ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * ESTABLECE FECHA DE PROCESO                                     */
+             CALL       GLOBAL/FIJAFCIE
+/* * VALIDA FECHA DE PROCESO                                        */
+             CHGJOB     SWS(00000000)
+             CALL       GLOBAL/CONFEPRV
+             IF         (%SWITCH(XX1XXXXX)) DO
+             PAUSE      MSG('FECHA DE PROCESO NO ES CORRECTA-CANCELO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* * VERIFICA SI EL USUARIO ESTA AUTORIZADO A EJECUTAR              */
+             CALL       PGM(GLOBAL/PRAUTORJCL)
+             SNDPGMMSG  MSG('PRCONVAG======> PROCESO DE CONVERSION +
+                          DE ARCHIVOS DE AGENCIAS <=====') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CONTROLA QUE EL PROCESO ESTE +
+                          DISPONIBLE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       CPPROCE1C
+/* -- VERIFICA SI EL PROCESO ESTA DISPONIBLE PARA INICIO            */
+             CALL       CTRPROCES PARM(&PROC '1')
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             PAUSE      MSG('PROCESO NO DISPONIBLE PARA INICIO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* * VERIFICA QUE HAYAN INGRESADO TODOS LOS MOV. COB DIA ANTERIOR   */
+             CALL       PGM(ONLINEC/CONTROCL)
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             PAUSE      MSG('HAY PROBLEMA CON LOS DEP. C.O.B. +
+                          HORARIO EXTENDIDO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             RTVMBRD    FILE(QS36F/CHEQME1W) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(DO)
+             SNDPGMMSG  MSG('TODAVIA NO SE HAN CONFIRMADO DEPOSITOS +
+                          US$-PLAZA LOCAL') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('PROBABLE ERROR - CONSULTE CON EL +
+                          ANALISTA DE GUARDIA') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE      MSG('Con su Ok, puede continuar (Bagnoli)')
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CONTROCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO TERMINO TODAVIA EL PROCESO DE +
+                          CAMARA') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE      MSG('NO PUEDE CONTINUAR EN ESTAS CONDICIONES')
+             RETURN
+             ENDDO
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       CTRPROCES PARM(&PROC '2')
+/* * VERIFICA SI LOS PROCESOS DE CIERRE DE AGENCIAS HAN TERMINADO NORMALMENTE */
+/* *VERFIN, ONLINE                                                            */
+/* * PROCESO DE PAGO DE FACTURAS DE PROVEEDORES HOME BANKING                  */
+/* * CALL ONLINE/PPGDIACL                                                     */
+/* * ACTUALIZA CUOTAS PAGADAS DE PAGO DE SERVICIOS - BY JVLG                  */
+/* **CALL ONLINE/PGSERVCL                                                     */
+/* *                                                                          */
+/* * COMPLEMENTO DEL PROCESO DE CIERRE DE CASA MATRIZ                         */
+             CALL       PGM(ONLINEC/CIERREAU)
+/* * CONVERSION DE ARCHIVOS ONLINE PRIMERA PARTE DISPONIBILIZA PARA PROCESO BATCH */
+ ALLA:
+             CALL       PGM(ONLINEC/CONVAGE)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(MCLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(QS36F/MCLB) RCDLEN(280))
+/* * COMPLEMENTO DE CONVAGE SEGUNDA Y ULTIMA PARTE                  */
+             RTVJOBA    DATE(&DATE)
+             SBMJOB     CMD(CALL PGM(ONLINEC/CONVAGE1CL)) JOBPTY(3) +
+                          DATE(&DATE)
+/* * GENERA ARCHIVOS PARA AGENCIAS DIA SIGUIENTE HABIL              */
+             SBMJOB     CMD(CALL PGM(ONLINEC/CREONL1CL)) JOBPTY(3) +
+                          DATE(&DATE)
+/* -- COLOCA MARCA DE FINALIZADO AL PROCESO                         */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('4'))
+/* -- DEJA DISPONIBLE EL PROCESO 'PRTRAFAU'                         */
+             CALL       PGM(PRCSTATUS) PARM((&PROC))
+/* -- ACTUALIZA STATUS CIERRE TAUSER                                */
+             CALL       PGM(TALIB/SQLTACIE) PARM(('A'))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CONTROCA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/CONTROCA))
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* FIN PARCIAL DEL PROCESO DE CONVERSION +
+                          DE AGENCIAS. NO SE OLVIDE DE MONI-*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('* TOREAR LOS PROCESOS RECIENTEMENTE +
+                          SUBMITIDOS:                           *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*                 CONVAGE Y CREONL1 +
+                          (AMBOS EN ONLINE).                    *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          ------------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+ ALFIN:
+
+             ENDPGM

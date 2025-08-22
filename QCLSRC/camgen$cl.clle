@@ -1,0 +1,92 @@
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010 0)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&PROCESO) TYPE(*CHAR) LEN(10) +
+                          VALUE('CAMGEN$')
+
+             RTVJOBA    USER(&USER)
+             CHGJOB     SWS(00000000)
+             CHGDTAARA  DTAARA(*LDA (3 10)) VALUE(&USER)
+             RTVMBRD    FILE(*LIBL/CAMAG0$) NBRCURRCD(&RCDNBR)
+
+             CALL       PGM(ONLINEC/VERINI) PARM((&PROCESO))
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('Proceso ya ejecutado con +
+                          anterioridad, CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             RTVMBRD    FILE(*LIBL/CAMAG0$) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(DO)
+             SNDPGMMSG  MSG('PROCESO NO DISPONIBLE EN ESTE MOMENTO, +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+
+             SNDPGMMSG  MSG('=========VERIFICA CIERRE FORMALISTICA +
+                          DE CHEQUES==========') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       CAMFRM$L
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(SNDPGMMSG +
+                          MSG('*** VERIFIQUE EJECUCION FORMALISTICA +
+                          CHEQUES ***') TOPGMQ(*EXT) MSGTYPE(*COMP))
+             IF         (%SWITCH(1XXXXXXX)) SNDPGMMSG MSG('*** +
+                          LUEGO PUEDE CONTINUAR CON ESTE PROCESO +
+                          ***') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('======1-INICIO ACTUALIZACION DE +
+                          CHEQUES RECHAZADOS========') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(ONLINE/NCHMM914$)
+             CALL       PGM(CAMAR4$CL)
+/* **Se reemplaza                                                   */
+/* **RUNQRY CAMAG0$                                                 */
+/* **Por                                                            */
+             CALL       ONLINE/NCHMR931$
+             SNDPGMMSG  MSG('========FIN DE ACTUALIZACION DE +
+                          CHEQUES RECHAZADOS========') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       ONLINE/NCHBU007CL
+             SNDPGMMSG  MSG('ADICIONA RECHAZOS A HISTORICO DE +
+                          CHEQUES RECHAZADOS=======') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CLRPFM     FILE(DCAMAG0$)
+             CPYF       FROMFILE(QS36F/CAMAG0$) +
+                          TOFILE(QS36F/DCAMAG0$) MBROPT(*ADD) +
+                          INCCHAR(*RCD 54 *NE '00')
+             CPYF       FROMFILE(QS36F/CAMAGX$) +
+                          TOFILE(QS36F/DCAMAG0$) MBROPT(*ADD) +
+                          INCCHAR(*RCD 54 *NE '00') FMTOPT(*NOCHK)
+/* *** GENERA ARCHIVOS DE MENSAJES ATM ****                         */
+             CALL       PGM(ONLINE/NMJGCHCNCL) PARM(('0001'))
+/* *** AGREGA CHEQUES                                               */
+             CALL       PGM(ADDCHDV)
+/* *** COBRANZA DE COMISIONES POR CHEQUES DEVUELTOS (COLOCA EN      */
+/* PENDX)                                                           */
+             OVRDBF     FILE(EXENTOS) TOFILE(EXCENTOS)
+             CALL       PGM(CTECOM$)
+             DLTOVR     FILE(EXENTOS)
+/* *** Nuevo proceso de CLICK BANKING                               */
+             CALL       PGM(ONLINE/NADDLIBIB)
+             CALL       PGM(IBANKING/CB1006D)
+             CALL       PGM(ONLINE/NFDPR004C)
+             OVRDBF     FILE(CAMAG0$B) TOFILE(DCAMAG$B)
+             SNDPGMMSG  MSG('Afecta planilla de posición con los +
+                          rechazos ITB') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CHEQME88R)
+             SNDPGMMSG  MSG('Emite 2da. planilla de +
+                          posición/incluye devueltos x +
+                          Interbanco') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RUNQRY     QRY(CHEQMEPO)
+/* * ARCHIVO DE CONTROL DE QUE TERMINO EL PROCESO DE CAMARA USD **  */
+             CRTPF      FILE(QS36F/CONTROC$) RCDLEN(8)
+             MONMSG     MSGID(CPF0000)
+             CLRPFM     FILE(QS36F/CONTROC$)
+/* RECORDS,1,8,,T,,,NDFILE,,1                                       */
+             CALL       ONLINE/NCCBU11C
+             CALL       ONLINE/LISTCHAU
+ ALFIN:
+
+             ENDPGM

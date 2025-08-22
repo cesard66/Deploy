@@ -1,0 +1,85 @@
+/*  CONTABILIZACIONES POR COBRO DE COMISIONES Y/O GASTOS            */
+             PGM        PARM(&PM02)
+
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+/* MEMBER USER1-MEMCER,LIBRARY-EXP.LIBR                             */
+
+/*                                                                  */
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/INTCONT) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(GOTO +
+                          CMDLBL(HACER))
+/* ----------------------------------------------------------------------------*/
+             SNDPGMMSG  MSG('Se esta procesando CONTABILIDAD FIN DEL +
+                          DIA, cancelo si existen dudas ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('consulte con DIVISION INFORMATICA, por +
+                          el momento cancelo su operacion') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+ HACER:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.CON5) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.CON5))
+             CLRPFM     FILE(&LIBF/SALIV2)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/ITF4CER5) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/ITF4CER5))
+/*                                                                  */
+/*                                                                  */
+             CHGDTAARA  DTAARA(*LDA (1 500)) VALUE(' ')
+             CHGDTAARA  DTAARA(*LDA (1 1)) VALUE('')
+             IF         COND(&PM02 *EQ ' ') THEN(CHGVAR VAR(&PM02) +
+                          VALUE(CER.MOD))
+             SNDPGMMSG  MSG('03- CER605 Contabiliza por COBRO +
+                          COMISION y/o GASTOS') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             RUNSQL     SQL('CREATE TABLE "CER.CON5" (F00001 +
+                          CHAR(96) ) RCDFMT RCERCON5') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             RUNSQL     SQL('CREATE TABLE ITF4CER5 (F00001 CHAR(80) +
+                          ) RCDFMT RINTF04') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             OVRDBF     FILE(CERALT) TOFILE(CER.ALT)
+             OVRDBF     FILE(CERMOD) TOFILE(&PM02)
+             OVRDBF     FILE(EXPCON) TOFILE(CER.CON5)
+             OVRDBF     FILE(INTF04) TOFILE(ITF4CER5)
+             CALL       PGM(EXP.LIBR/CER605NW)
+             DLTOVR     FILE(*ALL)
+/*                                                                  */
+/* * MENSAJE DE ERRORES OCURRIDO EN PROGRAMA ANTERIOR               */
+             IF         COND((%SST(*LDA 001 006)) *EQ DIGITO) THEN(DO)
+             SNDPGMMSG  MSG('Digito verificador de una cuenta +
+                          incorrecto') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('la cuenta con error es--> ' *CAT +
+                          (%SST(*LDA 009 010))) TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             ENDDO
+             IF         COND((%SST(*LDA 001 008)) *EQ CONTAB88) +
+                          THEN(DO)
+             SNDPGMMSG  MSG('No existe una cuenta en maestro +
+                          contable') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('la cuenta con error es--> ' *CAT +
+                          (%SST(*LDA 009 010))) TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             ENDDO
+             IF         COND(*NOT ((%SST(*LDA 001 008)) *EQ ' ')) +
+                          THEN(PAUSE)
+/*                                                                  */
+
+             ENDPGM

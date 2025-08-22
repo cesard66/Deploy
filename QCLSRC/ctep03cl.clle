@@ -1,0 +1,104 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*      GRABACION DE MOVIMIENTOS DEL DIA +
+                          PARA CUENTAS CORRIENTES      *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+
+             ALCOBJ     OBJ((*LIBL/CTEP05CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('CONSISTENCIA DE CUENTAS CORRIENTES EN +
+                          EJECUCION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('AGUARDE SU TERMINACION PARA GRABAR +
+                          MOVIMIENTOS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CANCELO ESTE PROCEDIMIENTO DESPUES DEL +
+                          PAUSE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             GOTO       CMDLBL(NOK)
+             ENDDO
+             ALCOBJ     OBJ((*LIBL/CTEP21CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('PROCESO DE CUENTAS CORRIENTES EN +
+                          EJECUCION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('NO SE PERMITE MAS GRABAR MOVIMIENTOS +
+                          HOY') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CANCELO ESTE PROCEDIMIENTO DESPUES DEL +
+                          PAUSE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             GOTO       CMDLBL(NOK)
+             ENDDO
+             ALCOBJ     OBJ((*LIBL/CTEP22CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('PROCESO DE CUENTAS CORRIENTES EN +
+                          EJECUCION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('NO SE PERMITE MAS GRABAR MOVIMIENTOS +
+                          HOY') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('CANCELO ESTE PROCEDIMIENTO DESPUES DEL +
+                          PAUSE!') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             GOTO NOK
+             ENDDO
+             CHGJOB     SWS(00000000)
+             CALL       PGM(CTES44NW)
+             IF         COND((%SWITCH(XXXXX0XX)) *AND +
+                          (%SWITCH(XXXX0XXX))) THEN(GOTO CMDLBL(OK))
+             IF         COND(%SWITCH(XXXXX0XX)) THEN(GOTO CMDLBL(NOK5))
+             SNDPGMMSG  +
+                          MSG('??????????????????????????????????????+
+                          ????????????????????????????????') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('?    NO ES PERMITIDO ALTA DE +
+                          MOVIMIENTOS PARA CUENTAS CORRIENTES     +
+                          ?') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('?    DESPUES DE INICIADO EL PROCESO DEL +
+                          DIA.                         ?') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('?                                      -
+                              ?') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('?    ESTE PROCEDIMENTO SE AUTO +
+                          CANCELARA AL SALIR DEL PAUSE          ?') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('??????????????????????????????????????+
+                          ????????????????????????????????') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+
+ NOK5:
+             IF         COND(%SWITCH(XXXXX1XX)) THEN(GOTO CMDLBL(NOK))
+             SNDPGMMSG  MSG('LA FECHA DE CTESDO NO ES PARA EL +
+                          PROCESO DE HOY - VERIFIQUE DATE ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EL PROCEDIMIENTO SE CANCELARA DESPUES +
+                          DEL PAUSE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+ NOK:
+             PAUSE      MSG('TECLEE 0 Y DESPUES INTRO')
+             CHGJOB     SWS(00000000)
+             RETURN
+ OK:
+             CHGJOB     SWS(00000000)
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(GOTO CMDLBL(FUER))
+             CHGJOB     SWS(00000000)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(MOVIM) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(MOVIM))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CTESD01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(CTESD01))
+ FUER:
+
+             ENDPGM

@@ -1,0 +1,40 @@
+             PGM
+
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     VAR(&WSID) VALUE(&JOBA)
+             CHGDTAARA  DTAARA(*LDA (1 133)) VALUE(' ')
+             CHGDTAARA  DTAARA(*LDA (1 10)) VALUE(&WSID *TCAT &USER)
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*   -LISTA AVISO PARA CLIENTES Y OTRAS +
+                          PLANILLAS-        *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*-------------------------------------+
+                          -------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('Ud. no esta autorizado a utilizar este +
+                          programa') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             ENDDO
+/* *** LIMPIA ARCHIVOS DEL PROCESO ****                             */
+             CPYF       FROMFILE(QS36F/CAMAG0) TOFILE(QS36F/CAMAG0X) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CAMAGW) TOFILE(QS36F/CAMAGWX) +
+                          MBROPT(*REPLACE) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/CAMAG0) TOFILE(QS36F/CAMAG00) +
+                          MBROPT(*REPLACE)
+/* *** GENERA ARCHIVOS DE MENSAJES ATM ****                         */
+             CALL       PGM(CONLINE/NMJGCHCNCL) PARM('6900')
+             CHGDTAARA  DTAARA(ONLINE/CAMDEB (1 1)) VALUE(' ')
+             CALL       PGM(COL01TN)
+
+             ENDPGM

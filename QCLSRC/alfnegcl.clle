@@ -1,0 +1,53 @@
+/* * SOLICITA INGRESAR ATRAVEZ DEL PROMPT LOS CARACTERES A BUSCAR. LUEGO CON EL*/
+/* * COPYDATA SELECCIONA TODOS AQUELLOS REGISTROS QUE TIENEN ESTOS CARACTERES  */
+/* * Y FINALMENTE DESPLIEGA ESTOS REGISTROS ATRAVEZ DEL PROGRAMA ALFNE2        */
+/* * LA OPCION DE FINALIZACION ES CUANDO SE CARGA BLANCO                       */
+/* *---------------------------------------------------------------------------*/
+             PGM
+
+             DCLF       FILE(ALFPRO) RCDFMT(*ALL)
+             DCL        VAR(&NOME) TYPE(*CHAR) LEN(040)
+             DCL        VAR(&PM07) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(10 0)
+             DCL        VAR(&REG) TYPE(*CHAR) LEN(08)
+             DCL        VAR(&WRK01) TYPE(*CHAR) LEN(032)
+
+             RTVJOBA    USER(&USER)
+             CALL       PGM(VERAGECL) PARM((&USER))
+             CHGVAR     VAR(&PM07) VALUE(%SST(*LDA 035 002))
+/*                                                                  */
+ PANTA:
+             SNDRCVF    DEV(*FILE) RCDFMT(F1) WAIT(*YES)
+             IF         COND(&NOME *EQ ' ') THEN(GOTO CMDLBL(FIN))
+/*                                                                  */
+             CHGVAR     VAR(&WRK01) VALUE(PREF *CAT &PM07)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QTEMP/&WRK01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QTEMP/&WRK01))
+             CRTPF      FILE(QS36F/&WRK01) RCDLEN(0128) SIZE(*NOMAX)
+             CPYF       FROMFILE(QS36F/NEGONLN) TOFILE(QS36F/&WRK01) +
+                          MBROPT(*REPLACE) INCCHAR(*RCD 1 *CT +
+                          &NOME) FMTOPT(*NOCHK)
+             RTVMBRD    FILE(QTEMP/&WRK01) NBRCURRCD(&RCDNBR)
+             CHGVAR     VAR(&REC) VALUE(&RCDNBR)
+/*                                                                  */
+/*                                                                  */
+             CHGDTAARA  DTAARA(*LDA (20 8)) VALUE(&REG)
+             CHGDTAARA  DTAARA(*LDA (30 40)) +
+                          VALUE('                                    +
+                              ')
+             CHGDTAARA  DTAARA(*LDA (30 40)) VALUE(&NOME)
+             OVRDBF     FILE(LISNEG) TOFILE(QTEMP/&WRK01)
+             CALL       PGM(ALFNE2NW)
+             DLTOVR     FILE(*ALL)
+             CHGVAR     VAR(&NOME) VALUE(' ')
+             GOTO       CMDLBL(PANTA)
+ FIN:
+
+             ENDPGM

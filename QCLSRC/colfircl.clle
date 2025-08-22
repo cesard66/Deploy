@@ -1,0 +1,17 @@
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(COLFIR) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(COLFIR))
+/*   Centralizado.                                                  */
+             CPYF       FROMFILE(QS36F/COLBX) TOFILE(QS36F/COLFIR) +
+                          MBROPT(*ADD) CRTFILE(*YES) INCCHAR(*RCD 1 +
+                          *NE '999999999') FMTOPT(*NOCHK)
+
+             ENDPGM

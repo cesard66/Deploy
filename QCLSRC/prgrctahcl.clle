@@ -1,0 +1,46 @@
+             PGM
+
+             SNDPGMMSG  MSG('                   ************ +
+                          GRABACION DE AHORROS +
+                          ************            ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                      ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('                                      -
+                                       ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('                                      -
+                                       ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                      ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             SNDPGMMSG  MSG('PRGRCTAH======> GRABACION MOVIMIENTOS +
+                          DE AHORROS   <====') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * VERIFICA SI EL USUARIO ESTA AUTORIZADO A EJECUTAR              */
+             CALL       PGM(GLOBAL/PRAUTORICL)
+             CALL       PGM(CTRPROCES) PARM(('PRGRCTAHCL') ('1'))
+/* UNEXPECTED ERROR OCCURS ON NEXT LINE, REFER TO MANUAL.           */
+/* //IF SWITCH8-1 PAUSE 'PROCESO NO DISPONIBLE PARA INICIO'         */
+             IF         (%SWITCH(XXXXXXX1)) DO
+             PAUSE      MSG('PROCESO NO DISPONIBLE PARA INICIO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       PGM(CTRPROCES) PARM(('PRGRCTAHCL') ('2'))
+/* * GRABACION DE LA TRANSACCION                                    */
+             CALL       PGM(INTERB02/AHOP03CL)
+/* * LISTADO DE VALIDACION                                          */
+             SNDPGMMSG  MSG('AHORA IMPRIMIRA LOS MOVIMIENTOS +
+                          GRABADOS-LOS CUALES DEBEN SER +
+                          VERIFICADOS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGDTAARA  DTAARA(*LDA (51 8)) VALUE('PRGRCTAHCL')
+             CALL       PGM(INTERB2C/AHOPO5CL)
+/* -- COLOCA MARCA FINALIZADO AL PROCESO                            */
+             CALL       PGM(CTRPROCES) PARM(('PRGRCTAHCL') ('4'))
+ ALFIN:
+
+             ENDPGM

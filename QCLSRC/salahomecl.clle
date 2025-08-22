@@ -1,0 +1,30 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(1) VALUE('1')
+
+             SNDPGMMSG  MSG('EXTRAE AHORROS EN MONEDA EXTRANJERA +
+                          PARA INFORME DEL BCP') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ****** ***') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/CTECAH) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DLTF +
+                          FILE(QS36F/CTECAH))
+             RUNSQL     SQL('CREATE TABLE QS36F.CTECAH (F00001 +
+                          CHAR(16)) RCDFMT RCTECAH') COMMIT(*NONE)
+             RUNSQL     SQL('INSERT INTO QS36F.CTECAH SELECT K00001 +
+                          ||  SUBSTRING(F00001 FROM 118 FOR 7) FROM +
+                          QS36F.CAHSDO WHERE SUBSTRING(K00001 FROM +
+                          3 FOR 6) <> ''000000'' AND +
+                          SUBSTRING(K00001 FROM 2 FOR 1) IN (''1'', +
+                          ''4'')  ORDER BY SUBSTRING(K00001 FROM  2 +
+                          FOR  1) ASC, SUBSTRING(F00001 FROM  1 +
+                          FOR  1) ASC') COMMIT(*NONE)
+             CALL       PGM(BCPCAME)
+
+             ENDPGM

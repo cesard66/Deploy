@@ -1,0 +1,12 @@
+/*  ------------------------------------------------------------- * */
+/*           REPROCESO DEM UTILIZADO EN CARTAS DE CREDITO         * */
+/*  CER230CL CAMBIA ESTADO FIN DEL DIA                            * */
+/*  ------------------------------------------------------------- * */
+/*                                                                  */
+             PGM
+
+             OVRDBF     FILE(CERUTI) TOFILE(CER.UTI)
+             CALL       PGM(CER230NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

@@ -1,0 +1,17 @@
+/* *--------------------------------------------------------------- */
+/* *                                                                */
+/* * UPDATE     PROGRAM - EDEM16                                    */
+/*              FILE NAME - EXPTIP                                  */
+/* *            DESCRIPTION - Tipos de Cambios                      */
+/* *                                                                */
+/* *--------------------------------------------------------------- */
+/* *                                                                */
+             PGM
+
+             OVRDBF     FILE(EXPTIP) TOFILE(EXP.TIP)
+             OVRDBF     FILE(MONEDAWK) TOFILE(MONEDA)
+             OVRDSPF    FILE(SCR) TOFILE(EVEM16FM)
+             CALL       PGM(EDEM16NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

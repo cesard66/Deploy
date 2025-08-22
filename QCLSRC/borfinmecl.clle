@@ -1,0 +1,827 @@
+/* **Modifica: Josè Eduardo Pozzo Gescam # 1603150852               */
+/* **Fecha   : 15/03/2016                                           */
+/* **Motivo  : Se elimina programa Submitido UTI.LIBR/DEPUIBCL      */
+/* ***         pasando a ejecutarse por CONTROL-M 1os               */
+/* ***         último domingo antes de fin de mes                   */
+/* ***         Se agrego nuevo archivo para TRUNCAMIENTO de CHEQUES */
+/* ***         QS36F/MOVTRPF - Fecha: oct/17 - zphg                 */
+/* ***                                                              */
+/* ***  *********************************************************** */
+/* **Modifica: Celeste Arguello    Gescam # 1808220840              */
+/* **Fecha   : 23/08/2018                                           */
+/* **Motivo  : Se comenta la 11amada a algunos programas para       */
+/* **          optimizacion del PRBACKUP                            */
+/* ***  *********************************************************** */
+/* *CALL HAGOAC **OPTIMIZACION PRBACKUP**                           */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&WRK01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TABLAORI) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TABLADES) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TABLAVER) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TABLAPRO) TYPE(*CHAR) LEN(032)
+
+             SNDPGMMSG  MSG(' +
+                          **---------------------------------------+
+                          ----------------------***') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' ** BORRADO DE LOS ARCHIVOS la unidad +
+                          de cinta ya esta liberada ***') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' +
+                          **---------------------------------------+
+                          ----------------------***') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE +
+                          INTERNACIONAL.*') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/*                                                                  */
+/* ***********   AUXILIAR PREPARA ARCHIVOS PARA MAÑANA              */
+             CHGVAR     VAR(&TABLAORI) VALUE(INTFPOSC)
+             CHGVAR     VAR(&TABLADES) VALUE(ANPOSCM1)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(HISTINTC)
+             CHGVAR     VAR(&TABLADES) VALUE(ANSTIN1C)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(HISTIMPO)
+             CHGVAR     VAR(&TABLADES) VALUE(ANSIMP01)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(HINTF04)
+             CHGVAR     VAR(&TABLADES) VALUE(HINTF04B)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&TABLAORI) VALUE(BCP100)
+             CHGVAR     VAR(&TABLADES) VALUE(BCP1001)
+             CALLSUBR   SUBR(COPIATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANTF04)
+             CALLSUBR   SUBR(BORRATABLA)
+             RNMOBJ     OBJ(Q536F/INTF04) OBJTYPE(*FILE) NEWOBJ(ANTF04)
+             CHGVAR     VAR(&WRK01) VALUE(ANTMOVT)
+             CALLSUBR   SUBR(BORRATABLA)
+             SNDPGMMSG  MSG('PREPARA ARCHIVO *INTF01* PARA INICIAR +
+                          EL DIA ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/INTF01N) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+        /*  SI NO EXISTE LA TABLA INTF01N GENERA */
+             RUNSQL     SQL('CREATE TABLE QS36F.INTF01N LIKE +
+                          QS36F.INTF01') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+        /*  LIMPIA LA TABLA INTF01N  */
+             RUNSQL     SQL('TRUNCATE TABLE QS36F.INTF01N') +
+                          COMMIT(*NONE)
+             CALL       (INTERB05/INTS99NW)
+/* *DELETE INTF01,F1                                                */
+             CPYF       FROMFILE(QS36F/INTF01N) TOFILE(QS36F/INTF01) +
+                          MBROPT(*REPLACE) CRTFILE(*YES) FMTOPT(*NOCHK)
+/* *RENAME INTFO1N, INTF01                                          */
+             DLTF       FILE(QS36F/INTF01N)
+             SNDPGMMSG  MSG('PREPARA ARCHIVO *INTF02* PARA INICIAR +
+                          EL DIA ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/INTF02N) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+        /*  SI NO EXISTE LA TABLA INTF02N GENERA */
+             RUNSQL     SQL('CREATE TABLE QS36F.INTF02N LIKE +
+                          QS36F.INTF02') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+        /*  LIMPIA LA TABLA INTF02N  */
+             RUNSQL     SQL('TRUNCATE TABLE QS36F.INTF02N') +
+                          COMMIT(*NONE)
+             CALL       PGM(INTERB05/INTS98NW)
+             CHGVAR     VAR(&WRK01) VALUE(ANINTER)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(INTF02X)
+             CALLSUBR   SUBR(BORRATABLA)
+/* * DELETE INTF02,F1                                               */
+             CPYF       FROMFILE(QS36F/INTF02N) TOFILE(QS36F/INTF02) +
+                          MBROPT(*REPLACE) CRTFILE(*YES) FMTOPT(*NOCHK)
+/* *RENAME INTFO1N, INTF01                                          */
+             DLTF       FILE(QS36F/INTF02N)
+/* *RENAME INTF02N, INTF02                                          */
+             SNDPGMMSG  MSG('PREPARA ARCHIVO *INTF03* PARA INICIAR +
+                          EL DIA ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/INTF03N) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+        /*  SI NO EXISTE LA TABLA INTF03N GENERA */
+             RUNSQL     SQL('CREATE TABLE QS36F.INTF03N LIKE +
+                          QS36F.INTF03') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+        /*  LIMPIA LA TABLA INTF03N  */
+             RUNSQL     SQL('TRUNCATE TABLE QS36F.INTF03N') +
+                          COMMIT(*NONE)
+             CALL       PGM(INTERB05/INTS97NW)
+/* * DELETE INTF03,F1                                               */
+             CPYF       FROMFILE(QS36F/INTF03N) TOFILE(QS36F/INTF03) +
+                          MBROPT(*REPLACE) CRTFILE(*YES) FMTOPT(*NOCHK)
+/* *RENAME INTF03N,INTF03                                           */
+             DLTF       FILE(QS36F/INTF03N)
+/*                                                                  */
+             CHGVAR     VAR(&WRK01) VALUE(ANTMOVT)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(IT.MODIF)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(IT.ALTA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(IT.PGO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(IT.CARGA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(INTCONT)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PRCOMPLE)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGCURLIB  CURLIB(GLOBAL)
+             CALL       PGM(INICONCL)
+             CHGVAR     VAR(&WRK01) VALUE(INTF04)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MCAMB)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(DIVISAS)
+             CALLSUBR   SUBR(BORRATABLA)
+/* * COPYDATA INTFOPI,,XOPI,,,,T,REORG ******************************* */
+/* * DELETE INTFOPI,F1                 * ASTERISKEADO POR ANIBAL GA-   */
+/* * RENAME XOPI, INTFOPI              * VILAN EN FECHA 05.02.92,      */
+/* * COPYDATA INTFILC,,XOPI,T,REORG    * POR NO SER NECESARIO EN LA    */
+/* * DELETE INTFILC,F1                 * AS400 CLASIFICAION DE INDICE  */
+/* * RENAME XOPI, INTFILC              ******************************* */
+/* *IF DATAF1-PENDAN DELETE PENDAN,F1                                  */
+             CLRPFM     PENDAN
+             CHGVAR     VAR(&WRK01) VALUE(COLBMEX)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PENDXMEX)
+             CALLSUBR   SUBR(BORRATABLA)
+             RTVMBRD    FILE(QS36F/PENDAC) NBRCURRCD(&RCDNBR)
+             IF         COND(*NOT (&RCDNBR *EQ 0)) THEN(CPYF +
+                          FROMFILE(QS36F/PENDAC) +
+                          TOFILE(QS36F/PENDAN) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) FMTOPT(*NOCHK))
+/* * IF DATAF1-PENDAC RENAME PENDAC,PENDAN                          */
+             CHGVAR     VAR(&WRK01) VALUE(INTFAD)
+             CALLSUBR   SUBR(BORRATABLA)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE EXPORTACIONES +
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * IF DATAF1-EXP.MOL     DELETE EXP.MOL,F1                        */
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ******************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE POSICION DE +
+                          CAMBIOS DE INFONET *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ******************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       ONLINE/CICHEFCH
+             CPYF       FROMFILE(QS36F/ITABMT) TOFILE(QS36F/ITABMTH) +
+                          MBROPT(*ADD) CRTFILE(*YES) FMTOPT(*NOCHK)
+             CLRPFM     FILE(QS36F/EXP.MOL)
+             CLRPFM     FILE(QS36F/ITABMT)
+             CLRPFM     FILE(QS36F/CAMINTCI)
+             CLRPFM     FILE(QS36F/CHEDATCH)
+             CLRPFM     FILE(QS36F/CAMINTCH)
+             CLRPFM     FILE(QS36F/CITBPAR)
+             CLRPFM     FILE(QS36F/INTFINFO)
+             CLRPFM     FILE(QS36F/MEXPOSCA)
+             CLRPFM     FILE(QS36F/CHITCI)
+             CLRPFM     FILE(QS36F/CHITTT)
+             CLRPFM     FILE(QS36F/CHERFII)
+             CLRPFM     FILE(QS36F/INTFCM)
+             CLRPFM     FILE(QS36F/EGRPOSCA)
+             CLRPFM     FILE(QS36F/CAMPOSCA)
+             CLRPFM     FILE(QS36F/INTF04IC)
+             CLRPFM     FILE(QS36F/INTF04PP)
+             CLRPFM     FILE(QS36F/INTF04CJ)
+             CLRPFM     FILE(QS36F/INTF04PI)
+             CLRPFM     FILE(QS36F/INTF04AE)
+             CHGVAR     VAR(&WRK01) VALUE(PECOMEX)
+             CALLSUBR   SUBR(BORRATABLA)
+/*                                                                  */
+/* * BLDFILE EXP. MOL,I,RECORDS,300,100,,T,81,16,DFILE,NODUPKEY,300 */
+             SNDPGMMSG  MSG(' ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ******') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE CUENTAS +
+                          CORRIENTES.*') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ******') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&WRK01) VALUE(MOVIM)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MOVIM00)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(NOVEDA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MCTDIG)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MCTONL)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(DBPCT)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PFD2AYER)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PRMOVCC)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ROBOTCC)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(AUTOPF)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CTACTE)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CHMOVCC)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&TABLAVER) VALUE(SGIRO)
+             CHGVAR     VAR(&TABLAPRO) VALUE(SOBRE)
+             CALLSUBR   SUBR(BORRATABL2)
+             CHGVAR     VAR(&WRK01) VALUE(SGIRO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(LUNCHCC)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CTCTSUEL)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CANUCH)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAMAROTE)
+             CALLSUBR   SUBR(BORRATABLA)
+             SNDPGMMSG  MSG('BORRADO DE ARCHIVOS DE CHEQUES +
+                          CANJE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&WRK01) VALUE(CAMINT)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAMIDL)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAMIEN)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MCHEPAG)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAMINT$)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAMIDL$)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAMIEN$)
+             CALLSUBR   SUBR(BORRATABLA)
+/* **IF DATAF1-CAMAGO CLRPFM CAMAGO$                                */
+/* **IF DATAF1-CAMAGX$ CLRPFM CAMAGX$                               */
+             CALL       PGM(BORCAMCL)
+/*                                                                  */
+             SNDPGMMSG  MSG('*********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE AHORROS.*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RNMOBJ     OBJ(QS36F/PFD002) OBJTYPE(*FILE) +
+                          NEWOBJ(PFDZAYER)
+             CHGVAR     VAR(&WRK01) VALUE(MOVIMCA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAMOV01)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(NOVECA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MCADIG)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MCAONL)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PRMOVCA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ROBOTCA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MOVINT)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(DBPCA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(DAUTOPF)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(AHOINT)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(LUNCHCA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CASUEL)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGVAR     VAR(&WRK01) VALUE(SUELCC)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGVAR     VAR(&WRK01) VALUE(CCSEISA)
+             CALLSUBR   SUBR(LIMPIATABL)
+/* **                                                               */
+/* * IFF DATAF1-CDACUPON GOTO NOCDA                                 */
+/* * COPYDATA CDACUPON,,XCDA,,,,T,REORG                             */
+/* * DELETE CDACUPON,F1                                             */
+/* * RENAME XCDA,CDACUPON                                           */
+/* * TAG NOCDA                                                      */
+/* **                                                               */
+             SNDPGMMSG  MSG('ELIMINA MARCAS DE EMISION DE EXTRACTOS +
+                          DE CTAS DE PLAZO FIJO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(INTERB02/PFP015NW)
+/*                                                                  */
+             SNDPGMMSG  MSG('**************************************+
+                          ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE CONTABILIDAD +
+                          *') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('**************************************+
+                          ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TABLAORI) VALUE(CONTRANS)
+             CHGVAR     VAR(&TABLADES) VALUE(CONTRA0K)
+             CALLSUBR   SUBR(RENOMBTABL)
+             CHGVAR     VAR(&TABLAORI) VALUE(MOCOBX)
+             CHGVAR     VAR(&TABLADES) VALUE(MOCOOBK)
+             CALLSUBR   SUBR(RENOMBTABL)
+             CHGVAR     VAR(&WRK01) VALUE(CONTMOV1)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(IT.MOVCN)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PRMOVCO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ROBOTCO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(AUTOMATO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(AUTOMATA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CHMOVCO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CONLEYES)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(DIFCAJCO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(DIFCAMBX)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(DIFERFLU)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MOVNOC01)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(AUTOMONL)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(STKCON)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAL.ASI2)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAL.ASI)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(EGR.ASIE)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(EGR.ASIR)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(EGR.ASI2)
+             CALLSUBR   SUBR(BORRATABLA)
+             CALL       PGM(GLOBAL/INICOPCL)
+/*                                                                  */
+             SNDPGMMSG  MSG('**********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE PRESTAMOS*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('**********************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TABLAVER) VALUE(PRTRAN)
+             CHGVAR     VAR(&TABLAPRO) VALUE(PRTRA1)
+             CALLSUBR   SUBR(LIMPIATAB2)
+             CHGVAR     VAR(&TABLAVER) VALUE(PRTRAN)
+             CHGVAR     VAR(&TABLAPRO) VALUE(PRTRA2)
+             CALLSUBR   SUBR(LIMPIATAB2)
+             CHGVAR     VAR(&TABLAVER) VALUE(PRTRAND)
+             CHGVAR     VAR(&TABLAPRO) VALUE(PRTRAN1)
+             CALLSUBR   SUBR(LIMPIATAB2)
+             CHGVAR     VAR(&TABLAVER) VALUE(PRTRAND)
+             CHGVAR     VAR(&TABLAPRO) VALUE(PRTRAN2)
+             CALLSUBR   SUBR(LIMPIATAB2)
+             CHGVAR     VAR(&TABLAVER) VALUE(PRPAGO)
+             CHGVAR     VAR(&TABLAPRO) VALUE(RGCABXX)
+             CALLSUBR   SUBR(LIMPIATAB2)
+             CHGVAR     VAR(&TABLAVER) VALUE(PRPAGO)
+             CHGVAR     VAR(&TABLAPRO) VALUE(RGDETXX)
+             CALLSUBR   SUBR(LIMPIATAB2)
+             CHGVAR     VAR(&TABLAVER) VALUE(PRPAGDD)
+             CHGVAR     VAR(&TABLAPRO) VALUE(RGCDD)
+             CALLSUBR   SUBR(LIMPIATAB2)
+             CHGVAR     VAR(&TABLAVER) VALUE(PRPAGDD)
+             CHGVAR     VAR(&TABLAPRO) VALUE(RGDDD)
+             CALLSUBR   SUBR(LIMPIATAB2)
+             CHGVAR     VAR(&WRK01) VALUE(ANCATAST)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANPRESTA)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANCATAST)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANPRESMO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANPRCUOT)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANDDCUOT)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANPRCUEN)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANPRDIRE)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANSECTOR)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANGARANT)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(ANRES340)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PRPAGO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PRPAGDD)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PRTRAN)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(PRTRAND)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(@@@@@@@@)
+             CALLSUBR   SUBR(BORRATABLA)
+/*                                                                  */
+/* *GANIZE PRCUOTA,,F1,@@@@@@@@,T,,,,,,                             */
+/* *LETE PRCUOTA,F1                                                 */
+/* *NAME @@@@@@@@,PRCUOTA                                           */
+/* *GANIZE DDCUOTA,,F1,@@@@@@@@,T,,,,,,                             */
+/* *LETE DDCUOTA,F1                                                 */
+/* *NAME @@@@@@@@,DDCUOTA                                           */
+/* *GANIZE PRDIRECC,, 1,@@@@@@@@,T,,,,,,                            */
+/* *LETE PRDIRECC,F1                                                */
+/* *NAME @@@@@@@@,PRDIRECC                                          */
+/* *GANIZE PRPRESTA,,F1,@@@@@@@@,T,,,,,,                            */
+/* *LETE PRPRESTA,F1                                                */
+/* *NAME @@@@@@@@,PRPRESTA                                          */
+/*                                                                  */
+/*                                                                  */
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE ACTIVO FIJO*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&WRK01) VALUE(AFMOVCO)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(AFMOVCC)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(AFMOVCA)
+             CALLSUBR   SUBR(BORRATABLA)
+/*                                                                  */
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE EGRESOS    *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&WRK01) VALUE(EGR.ASIE)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(EGR.ASIR)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(EGR.ASI2)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(EGR.HI2X)
+             CALLSUBR   SUBR(BORRATABLA)
+/*                                                                  */
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE CALL MONEY *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&WRK01) VALUE(CAL.ASI2)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(CAL.ASI)
+             CALLSUBR   SUBR(BORRATABLA)
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*BORRADO DE ARCHIVOS DE ONLINE     *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('BORRE DE LOS ARCHIVOS DE CHEQUERAS DE +
+                          LAS AGENCIAS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&WRK01) VALUE(CHEBX)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MCLBXCH)
+             CALLSUBR   SUBR(BORRATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(MCLBFHCH)
+             CALLSUBR   SUBR(BORRATABLA)
+             CLRPFM     FILE(QS36F/CHEDEV)
+             CLRPFM     FILE(QS36F/HBPCHE)
+             CLRPFM     FILE(QS36F/INTCDME)
+             CLRPFM     FILE(QS36F/INTCHME)
+             CLRPFM     FILE(QS36F/PEOPERC)
+             SNDPGMMSG  MSG('LIMPIA BIBLIOTECA QUE CONTIENE ARCHIVOS +
+                          DE CIERRE Y CONVAGE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CLRLIB     LIB(QS36BK)
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*CREACION DE ARCHIVO PARA ENCAJE   *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('************************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGCURLIB  CONFIN
+             CALL       PGM(DISINICL)
+             CHGCURLIB  GLOBAL
+ FINNES:
+/* * LIMPIA ARCHIVOS DE AUTOMATIZACION DE PAGO CUPONES DE CDA       */
+             CLRPFM     FILE(QS36F/MPCDA)
+             CLRPFM     FILE(QS36F/MPCDAD)
+             CLRPFM     FILE(QS36F/CDCONT)
+/* * LIMPIA ARCHIVOS DE AUTOMATIZACION DE CHEQUES ADMINISTRATIVOS   */
+             CLRPFM     FILE(QS36F/CACONT)
+/* * LIMPIA ARCHIVOS DE AUTOMATIZACION DE CALL MONEY ME             */
+             CLRPFM     FILE(QS36F/CDECONR)
+             CLRPFM     FILE(QS36F/CMECONT)
+             CALL       PGM(ONLINE/INFDEL)
+/* CALL TALIB/TADELDEP                                              */
+/* * LIMPIA ARCHIVOS DE AUTOMATIZACION DE DINELCO                   */
+             CPYF       FROMFILE(QS36F/MOLDETX) TOFILE(HISMOLX) +
+                          MBROPT(*ADD)
+             CLRPFM     FILE(QS36F/INFCOAC2)
+             CLRPFM     FILE(QS36F/INFCONT)
+             CLRPFM     FILE(QS36F/INFMOLT)
+             CLRPFM     FILE(QS36F/INFMOLC)
+             CLRPFM     FILE(QS36F/TAMOLC)
+             CLRPFM     FILE(QS36F/TAMOLC1)
+             CLRPFM     FILE(QS36F/PPCCONT)
+             CLRPFM     FILE(QS36F/PPCMOL)
+             CLRPFM     FILE(QS36F/CAMC5ON)
+             CLRPFM     FILE(QS36F/DICONT)
+             CLRPFM     FILE(QS36F/MOLDI)
+             CLRPFM     FILE(QS36F/MOLDIC)
+             CLRPFM     FILE(QS36F/DIEXTRAC)
+             CLRPFM     FILE(QS36F/EXTRACT)
+             CLRPFM     FILE(QS36F/EXTNES)
+             CLRPFM     FILE(QS36F/MOLDET)
+             CLRPFM     FILE(QS36F/MOLDETX)
+             CLRPFM     FILE(QS36F/NOPOSOX)
+             CLRPFM     FILE(QS36F/NOPOS1X)
+             CLRPFM     FILE(QS36F/NOPOSZX)
+             CLRPFM     FILE(QS36F/NOPOS3X)
+             CLRPFM     FILE(QS36F/NOPOS8X)
+             CLRPFM     FILE(QS36F/ESTOY)
+             CLRPFM     FILE(QS36F/HAGO)
+             CLRPFM     FILE(QS36F/MOVIMCH)
+             CLRPFM     FILE(QS36F/MOLCHWK)
+/* * GENERA LISTADO DE PROMEDIOS TRIMESTRALES MAYORES A 50.000.000  GS.P/PLANAS                */
+/* * LIBRARY NAME-INTERB01                                                                     */
+/* *AHPR                                                                                       */
+/* * PREPARA ARCHIVOS PARA EXTRACTO CONTABLE POR PANTALLA                                      */
+/* * // IFF DATAF1-HISTOCAL BLDINDEX HISTOCAL,2,5,HISTOCAH,,DUPKEY  **OPTIMIZACION PRBACKUP ** */
+/* * // IFF DATAF1-HISTORYL BLDINDEX HISTORYL,2,5,HISTORY1,,DUPKEY  **OPTIMIZACION PRBACKUP**  */
+             CHGCURLIB  CURLIB(INTERB01)
+/* * SOBREGIR **OPTIMIZACION PRBACKUP **                            */
+             CLRPFM     FILE(QS36F/REDEPO)
+             CLRPFM     FILE(QS36F/REDEPO)
+             CLRPFM     FILE(QS36F/REDEP4)
+             CLRPFM     FILE(QS36F/SINNC)
+             CLRPFM     FILE(QS36F/PRODIA)
+             CLRPFM     FILE(QS36F/PROTER)
+             CLRPFM     FILE(QS36F/AFCONTOO)
+             CLRPFM     FILE(QS36F/AFDEPREC)
+             CLRPFM     FILE(QS36F/CTLCATAS)
+             CLRPFM     FILE(QS36F/PGWNOVGG)
+             CLRPFM     FILE(QS36F/PGWNOVGJ)
+             CLRPFM     FILE(QS36F/MCLHOY)
+/* ****CLRPFM EXTORMOL                                              */
+             CLRPFM     FILE(QS36F/CAMC50CB)
+             CHGVAR     VAR(&WRK01) VALUE(CAMC51)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGVAR     VAR(&WRK01) VALUE(CAMC52)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGVAR     VAR(&WRK01) VALUE(CAMC53)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGVAR     VAR(&WRK01) VALUE(CAMC54)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGVAR     VAR(&WRK01) VALUE(CAMC55)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGVAR     VAR(&WRK01) VALUE(CAMC56)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGVAR     VAR(&WRK01) VALUE(CAMC57)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGVAR     VAR(&WRK01) VALUE(CAMC58)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CALL       PGM(CT0074)
+             CHGVAR     &TEST (&TRUE)
+             CHGVAR     VAR(&WRK01) VALUE(BASACH99)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CHGDTAARA  DTAARA(QS36F/BACHE01 (1 1)) VALUE(' ')
+             CHGDTAARA  DTAARA(QS36F/BACHE03 (1 1)) VALUE(' ')
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CONTA88I) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+             RUNSQL     SQL('CREATE INDEX QS36F.CONTA88I ON +
+                          QS36F.CONTAB88 ( DENOM ASC)') COMMIT(*NONE)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(HISTCOIN) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+             RUNSQL     SQL('CREATE INDEX QS36F.HISTCOIN ON +
+                          QS36F.HISTOCNT ( CAST(SUBSTRING(F00001 +
+                          FROM  2 FOR 11) AS CHAR(11)) AS K00001 +
+                          ASC) RCDFMT RHISTCON ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/INTF02X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE INDEX QS36F.INTF02X ON +
+                          QS36F.INTF02 ( CAST(SUBSTRING(F00001 FROM +
+                          119 FOR 6) AS CHAR(6)) AS K00002 ASC) +
+                          RCDFMT RINTFO2 ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             ENDDO
+/* ******                                                           */
+/* * PREPARA ARCHIVOS CONTABLES PARA CALL MONEY                     */
+             CHGVAR     VAR(&WRK01) VALUE(PLANON)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CPYF       FROMFILE(QS36F/PLANONO) TOFILE(QS36F/PLANON) +
+                          MBROPT(*ADD) CRTFILE(*YES)
+             CHGVAR     VAR(&WRK01) VALUE(PLANONO)
+             CALLSUBR   SUBR(LIMPIATABL)
+             CPYF       FROMFILE(QS36F/PLANONO) +
+                          TOFILE(QS36F/PLANONPR) CRTFILE(*YES)
+             CHGVAR     VAR(&WRK01) VALUE(PLANONPF)
+             CALLSUBR   SUBR(BORRATABLA)
+             CPYF       FROMFILE(QS36F/PLANONO) +
+                          TOFILE(QS36F/PLANONPF) CRTFILE(*YES)
+             CHGVAR     VAR(&WRK01) VALUE(PLANONCH)
+             CALLSUBR   SUBR(BORRATABLA)
+             CPYF       FROMFILE(QS36F/PLANONO) +
+                          TOFILE(QS36F/PLANONCH) CRTFILE(*YES)
+             CPYF       FROMFILE(QS36F/INFCHREC) +
+                          TOFILE(QS36F/INFCHREH) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CLRPFM     FILE(QS36F/INFCHREC)
+             CPYF       FROMFILE(QS36F/CHEREC01) +
+                          TOFILE(QS36F/CHEREC0H) MBROPT(*ADD) +
+                          CRTFILE(*YES)
+             CLRPFM     FILE(QS36F/CHEREC01)
+             SNDMSG     MSG(' HA FINALIZADO NORMALMENTE EL PROCESO +
+                          DE BACKUP Y BORRADO ') TOMSGQ(*SYSOPR)
+/* * FIN LIMPIEZA DE ARCHIVOS                                       */
+             CHGDTAARA  DTAARA(QS36F/NROINF *ALL) VALUE(46200)
+             CHGDTAARA  DTAARA(QS36F/RECIBE *ALL) VALUE('N')
+             CHGDTAARA  DTAARA(QS36F/COATO *ALL) VALUE(46000)
+             CHGDTAARA  DTAARA(QS36F/NROPPC *ALL) VALUE(49500)
+             CHGDTAARA  DTAARA(QS36F/NROCME *ALL) VALUE(49800)
+             CHGDTAARA  DTAARA(QS36F/AFNRAS *ALL) VALUE(787000)
+             CHGDTAARA  DTAARA(QS36F/SECMOV *ALL) VALUE(1)
+             CHGDTAARA  DTAARA(QS36F/NRCPRE *ALL) VALUE(65100)
+             CHGDTAARA  DTAARA(QS36F/NRCCDE *ALL) VALUE(65300)
+             CHGDTAARA  DTAARA(ONLINE/CAMDEB *ALL) VALUE(' ')
+             CHGDTAARA  DTAARA(QS36F/CAMDEB$ *ALL) VALUE('')
+             CHGDTAARA  DTAARA(ONLINE/CAMGEN *ALL) VALUE('-')
+             CHGDTAARA  DTAARA(QS36F/CAMGEN$ *ALL) VALUE(' ')
+             CHGDTAARA  DTAARA(TARJETA/DEBAUT *ALL) VALUE(' ')
+             CHGDTAARA  DTAARA(QS36F/CONFIME (1 21)) VALUE('')
+             CHGDTAARA  DTAARA(TARJETA/PRCSDRESU (1 1)) VALUE('N')
+             CHGDTAARA  DTAARA(QS36F/PRENOVA *ALL) VALUE(' ')
+             CHGDTAARA  DTAARA(TARJETA/COBRANZA (1 1)) VALUE(' ')
+/* *LL (BIBNES/LIMTAS)                                              */
+/* *LL (BIBNES/OPTIMIZA)                                            */
+/* ALL (BIBNES/RECLAAL)                                             */
+/* * INCLUIR EN PROCESO DE FIN DE MES                               */
+/* * DCTAH,INTERB01                                                 */
+/* *LCTAO1,INTERB01                                                 */
+/* *PRRIES6,INTERB04                                                */
+/* *PRDG0104,INTERB02                                               */
+/* *CTES43,INTERB01                                                 */
+/* *CA241,INTERBOZ                                                  */
+/* *MJOB CMD (CALL PGM (POWEROFF))                                  */
+/* * OFF                                                            */
+/* *TRANSO, ONLINEC  **OPTIMIZACION PRBACKUP**                      */
+/* *SIGUIENTE COMANDO FUE COMENTADO EN TRANSO Y SE EJECUTA DESDE AQUI */
+             CALL       PGM(INFONET/CLLOGBANC)
+/* * ACTUALIZA CAMPO DE EXENTAS DE CTESDO Y CAHSDO A PARTIR DE CUENTAS DE */
+/* * DE DEBITOS DEL ARCHIVO DE PRESTAMOS                            */
+             CALL       PGM(ONLINE/CTADPG)
+/*  FINAL DEL CIERRE Y DESPUES DE APERTURA, VUELCA DATOS INFONET Y PONE   */
+/*  EL FLAG PARA QUE EL CAJERO AUTOMATICO TRABAJE CON ARCHIVOS  REALES    */
+/* *CALL IBANKING/IB011TCL **OPTIMIZACION PRBACKUP**                */
+/* *CALL PGM (BTLIBC/BT050CL) PARM('X'). **OPTIMIZACION PRBACKUP**       */
+/* *CALL IBANKING/IB071TCL    **OPTIMIZACION PRBACKUP**                  */
+/* *** ADICIONO MOVIMIENTOS DEL MES A LAS TABLAS MENSUALES ***           */
+/* *CPYF FROMFILE (IBANKING/IBMOVCTM) +     **OPTIMIZACION PRBACKUP**    */
+/* *TOFILE (IBANKING/IBMOVCTE) MBROPT(*ADD) **OPTIMIZACION PRBACKUP**    */
+/* *CPYF FROMFILE (IBANKING/IBMOVAHM) +     **OPTIMIZACION PRBACKUP**    */
+/* *TOFILE (IBANKING/IBMOVAHO) MBROPT(*ADD)  **OPTIMIZACION PRBACKUP**   */
+/* *CALL PGM (ONLINE/PPOPG012) PARM('ONL_OFF') **OPTIMIZACION PRBACKUP** */
+/* *CALL (ONLINEC/INFFICI) **OPTIMIZACION PRBACKUP**                     */
+/* *CALL PGM (ONLINE/PPOPG012) PARM('ONL_ON ) **OPTIMIZACION PRBACKUP**  */
+/*  MARCA ESTADO DE LA AGENCIA PARA BANCA TELEFONICA                */
+/* *CALL PGM (BTLIBC/BT050CL) PARM('A') OPTIMIZACION PRBACKUP **    */
+/* *DEPUMBCL, UTI.LIBR                                              */
+/* *CALL UTI.LIBR/DEPUCRCL                                          */
+             CLRPFM     FILE(MOLBASA)
+             CLRPFM     FILE(NCOMISIA)
+             CLRPFM     FILE(RECHAFIH)
+             CLRPFM     FILE(INTF04PS)
+             CLRPFM     FILE(TCPAGONL)
+             CLRPFM     FILE(INGEN/CHECNTRL)
+             CLRPFM     FILE(QS36F/MOVTRPF)
+/* ***SBMJOB CMD(CALL PGM (UTI.LIBR/DEPUIBCL))                      */
+/* **** BORRADO DE ARCHIVOS QUE SE USAN DURANTE EL CIERRE ***       */
+             SBMJOB     CMD(CALL PGM(GLOBAL/BORFU)) DATE(&DATE)
+             CHGDTAARA  DTAARA(ONLINE/ENCIERRE (1 1)) VALUE(' ')
+/* **** BORRA datos >12 meses para Ibanking/IBTRAPSA/IBTRACCU/IBTRAPPR***  */
+/* **** SE PASA A CONTROL-M (JOSED - 05/03/2012) *****              */
+/* * SBMJOB CMD(CALL PGM (IBANKING/NCBOU002CL)) DATE (?DATE?)       */
+
+             /* Eliminacion de archivos */
+             /* =========== == ======== */
+             SUBR       SUBR(BORRATABLA)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/&WRK01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/&WRK01))
+             ENDSUBR
+
+             /* Eliminacion de archivos */
+             /* =========== == ======== */
+             SUBR       SUBR(BORRATABL2)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/&TABLAVER) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(QS36F/&TABLAPRO))
+             ENDSUBR
+
+             /* Limpiar archivos */
+             /* ======= ======== */
+             SUBR       SUBR(LIMPIATABL)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/&WRK01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/&WRK01))
+             ENDSUBR
+
+             /* Limpiar archivos */
+             /* ======= ======== */
+             SUBR       SUBR(LIMPIATAB2)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/&TABLAVER) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(QS36F/&TABLAPRO))
+             ENDSUBR
+
+             /* Renombra archivos */
+             /* ======== ======== */
+             SUBR       SUBR(RENOMBTABL)
+             CHGVAR     VAR(&WRK01) VALUE(&TABLADES)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/&WRK01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/&TABLADES)
+             ENDDO
+             RNMOBJ     OBJ(QS36F/&TABLAORI) OBJTYPE(*FILE) +
+                          NEWOBJ(&TABLADES)
+             ENDSUBR
+
+             /* Copia de archivos */
+             /* ===== == ======== */
+             SUBR       SUBR(COPIATABLA)
+             CHGVAR     VAR(&WRK01) VALUE(&TABLADES)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(QS36F/&WRK01) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(QS36F/&TABLADES)
+             ENDDO
+             CPYF       FROMFILE(QS36F/&TABLAORI) +
+                          TOFILE(QS36F/&TABLADES) CRTFILE(*YES)
+             ENDSUBR
+
+             ENDPGM

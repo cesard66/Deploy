@@ -1,0 +1,85 @@
+/* * MODULO: R E M E Z A    C O B R A N Z A S                       */
+/*           PROCESO FINAL DIARIO                                   */
+/*                                                                  */
+/*                                                                  */
+/* / LIBRARY NAME-EXP.PRU2                                          */
+/*  Convierte REX.ALT de Ag. 10 a 00                                */
+/* EXALT                                                            */
+/*  Convierte REX.BAJ de Ag. 10 a 00                                */
+/* EXBAJ                                                            */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CHGCURLIB  EXP.LIBR
+/* * EXTRACCION MOVIMIENTOS DE LA FECHA REX                         */
+             CALL       PGM(EXP.LIBR/REXEXTCL)
+/*                                                                  */
+/* * CREACION ARCHIVO CONTABLE DAL DE LA FECHA                      */
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(REX.DIAA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) CALL PGM(EXP.LIBR/REX20) +
+                          PARM('' REX.DIAA)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(REX.DIAB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) CALL PGM(EXP.LIBR/REX55) +
+                          PARM('' REX.DIAB)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(REX.MWW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) DLTF FILE(REX.MWW)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(REX.DIAA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(REX.DIAA))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(REX.DIAB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) DLTF FILE(REX.DIAB)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(REX.DIA1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) DLTF FILE(REX.DIA1)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(REX.DIA2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) DLTF FILE(REX.DIA2)
+/*                                                                  */
+/* * IMPRESION ASIENTOS CONTABLES DE LA FECHA                       */
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(REX.CONA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) DO
+             CALL       PGM(EDE08CL) PARM(EXP.LIBR)
+/* REX.CONA                                                         */
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(REX.CONB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) DO
+             CALL       PGM(EDE08CL) PARM((EXP.LIBR))
+/* REX.CONB                                                         */
+             ENDDO
+/*                                                                  */
+/* * IMPRESION DEL INVENTARIO DE COBRANZAS                          */
+/*                                                                  */
+             CALL       PGM(EXP.LIBR/REX80)
+/* * ACTUALIZACION CODIGO DE ESTADO FIN DE PROCESO DEL DIA = '0'    */
+/*   ALTA                                                           */
+             CALL       PGM(EXP.LIBR/REX135CL)
+/*  BAJA                                                            */
+             CALL       PGM(EXP.LIBR/REX140CL)
+/*                                                                  */
+
+             ENDPGM

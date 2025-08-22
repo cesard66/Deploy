@@ -1,0 +1,66 @@
+             PGM
+/*==============================================================*/
+/* SISTEMA. CONTROL DE STOCK                                    */
+/* PROGRAMA: SOLICITUD DE EMISION DE LISTADO DE PRESUPUESTO     */
+/*==============================================================*/
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSIDS36) TYPE(*CHAR) LEN(002)
+             DCL        VAR(&TYPEWS) TYPE(*DEC) LEN(001)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(1) VALUE('1')
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(4)
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(7)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(10)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+
+U0:
+             CHGJOB     SWS(00000000)
+             RTVJOBA    JOB(&WSID) USER(&USER)
+             CALL       PGM(QSSP/QEXCVTDV) PARM((&WSIDS36) (&WSID) +
+                          (&TYPEWS))
+             CHGDTAARA  DTAARA(*LDA (1 12)) VALUE(&WSIDS36 *CAT &USER)
+             OVRDBF     FILE(STMASPRV) TOFILE(STMASPRO)
+             OVRDSPF    FILE(PANTALL) TOFILE(STK06FM)
+             CALL       PGM(STK06NW)
+             RTVDTAARA  DTAARA(*LDA (11 4)) RTNVAR(&PM01)
+             RTVDTAARA  DTAARA(*LDA (15 7)) RTNVAR(&PM02)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/STPRESUP) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             DLTF       FILE(&LIBF/STPRESUP)
+             ENDDO
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(GOTO CMDLBL(FIN))
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             CPYF       FROMFILE(&LIBF/STPEDPR) +
+                          TOFILE(&LIBF/STPRESUP) CRTFILE(*YES) +
+                          INCCHAR(*RCD 0001 *EQ &PM02)
+             GOTO       CMDLBL(U1NU3)
+             ENDDO
+             RUNSQL     SQL('CREATE TABLE STPRESUP LIKE STPEDPR') +
+                          COMMIT(*NONE)
+             CHGVAR     VAR(&CMD) VALUE('INSERT INTO STPRESUP SELECT +
+                          * FROM STPEDPR WHERE SUBSTR(K00001, 1, 7) +
+                          = ''' *CAT &PM01 *CAT ''' AND +
+                          SUBSTR(K00001, 8, 4) = ''' *CAT &PM02 +
+                          *CAT ''' AND SUBSTR (F00001, 108, 1) <> +
+                          ''B'' ORDER BY SUBSTR (K00001, 1, 7), +
+                          SUBSTR (K00001, 8, 4)')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+U1NU3:
+             OVRDBF     FILE(STMASPRV) TOFILE(STMASPRO)
+             OVRDBF     FILE(STPEDPR) TOFILE(STPRESUP)
+             OVRPRTF    FILE(LSTK55) TOFILE(QPRINT) PAGESIZE(66) +
+                          FORMTYPE(RE66) COPIES(2)
+FIN:
+             CALL       PGM(STK07NW)
+             DLTOVR     FILE(*ALL)
+             GOTO       CMDLBL(U0)
+
+             ENDPGM

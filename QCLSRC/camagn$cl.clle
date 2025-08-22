@@ -1,0 +1,90 @@
+/* * CAMAGN$                                                        */
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010 0)
+
+             OVRDBF     FILE(CAMAGX) TOFILE(CAMAG0$)
+             CLRPFM     FILE(CAMAGGB$)
+             OVRDBF     FILE(CAMAGGB) TOFILE(CAMAGGBS)
+             CALL       PGM(ONLINEC/CAMAR8R)
+/*  PREPARO DATOS PARA NUEVO SISTEMA DE APROBACION DE SOBREGIROS    */
+             CALL       PGM(SG005$CL)
+/*  EXCLUYO GERENCIA RRHH                                           */
+             CPYF       FROMFILE(QS36F/CAMAGGB$) +
+                          TOFILE(QS36F/CAMAGGW$) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCREL((*IF GERENT *NE 'A'))
+             RTVMBRD    FILE(*LIBL/CAMAGGW$) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(GOTO CMDLBL(NOPRT1))
+/*                                                                  */
+             OVRDBF     FILE(CAMAGGB) TOFILE(CAMAGGW$) SHARE(*YES)
+             OVRDBF     FILE(ROBOT) SHARE(*YES)
+             OVRDBF     FILE(CCTREL) SHARE(*YES)
+             OVRDBF     FILE(CTESDO) SHARE(*YES)
+             OVRDBF     FILE(BDCAREL2) TOFILE(BDIGEN/BDCAREL2) +
+                          SHARE(*YES)
+             OVRDBF     FILE(COL) TOFILE(COLB) SHARE(*YES)
+             OVRDBF     FILE(TCMAECON) TOFILE(TARJETA/TCMAECOM)
+             OVRDBF     FILE(TCMAECU1) TOFILE(TARJETA/TCMAECU1)
+             CALL       PGM(CAMARS$)
+             ADDLIBLE   LIB(UTI.LIBR) POSITION(*REPLACE BTLIB)
+
+UTI.LIBR/SNDASMAIL ADDRESS(RRHH@itau.com.py) SUBJECT('DOLARES : +
+                          Datos de Sobregiros') DATA('Se ha +
+                          generado la planilla de sobregiros; los +
+                          datos estan disponibles en el sistema. ')
+UTI.LIBR/SNDASMAIL ADDRESS(CREDITOSCONSUNO@itau.com.py) +
+                          SUBJECT('DOLARES : Datos de Sobregiros') +
+                          DATA('Se ha generado la planilla de +
+                          sobregiros; los datos estan disponibles +
+                          en el sistema. ')
+UTI.LIBR/SNDASMAIL ADDRESS(BANCACORP@itau.com.py) SUBJECT('DOLARES +
+                          : Datos de Sobregiros') DATA('Se ha +
+                          generado la planilla de sobregiros; los +
+                          datos estan disponibles en el sistema. ')
+UTI.LIBR/SNDASMAIL ADDRESS(BANCAPER@itau.com.py) SUBJECT('DOLARES +
+                          : Datos de Sobregiros') DATA('Se ha +
+                          generado la planilla de sobregiros; los +
+                          datos estan disponibles en el sistema. ')
+UTI.LIBR/SNDASMAIL ADDRESS(private@itau.com.py) SUBJECT('DOLARES : +
+                          Datos de Sobregiros') DATA('Se ha +
+                          generado la planilla de sobregiros; los +
+                          datos estan disponibles en el sistema. ')
+UTI.LIBR/SNDASMAIL ADDRESS(recupera@itau.com.py) SUBJECT('DOLARES +
+                          : Datos de Sobregiros') DATA('Se ha +
+                          generado la planilla de sobregiros; Los +
+                          datos estan disponibles en el sistema. ')
+UTI.LIBR/SNDASMAIL ADDRESS(norma.prantte@itau.com.py) +
+                          SUBJECT('DOLARES : Datos de Sobregiros') +
+                          DATA('Se ha generado la planilla de +
+                          sobregiros; los datos estan disponibles +
+                          en el sistema. ')
+UTI.LIBR/SNDASMAIL ADDRESS(RecuperacionesConsumo@itau.com.py) +
+                          SUBJECT('DOLARES : Datos de Sobregiros') +
+                          DATA('Se ha generado la planilla de +
+                          sobregiros; los datos estan disponibles +
+                          en el sistema.')
+UTI.LIBR/SNDASMAIL ADDRESS(RIESGOSPJ@itau.com.py) SUBJECT('DOLARES +
+                          : Datos de Sobregiros') DATA('Se ha +
+                          generado la planilla de sobregiros; los +
+                          datos estan disponibles en el sistema. ')
+
+             ADDLIBLE   LIB(BTLIB) POSITION(*REPLACE UTI.LIBR)
+             DLTOVR     FILE(CAMAGGB)
+ NOPRT1:
+/*  SOLO RRHH                                                       */
+             CPYF       FROMFILE(QS36F/CAMAGGB$) +
+                          TOFILE(QS36F/CAMAGGW$) MBROPT(*REPLACE) +
+                          CRTFILE(*YES) INCREL((*IF GERENT *EQ 'A'))
+             RTVMBRD    FILE(*LIBL/CAMAGGW$) NBRCURRCD(&RCDNBR)
+             IF         (&RCDNBR *EQ 0) GOTO NOPRT2
+             OVRDBF     FILE(CAMAGGB) TOFILE(CAMAGGW$)
+             CALL       PGM(CAMARS$)
+             DLTOVR     FILE(CAMAGGB)
+ NOPRT2:
+             OVRPRTF    FILE(QPQUPRFIL) TOFILE(QPQUPRFIL) +
+                          HOLD(*YES) SAVE(*YES)
+             RUNQRY     QRY(CAMAGGB$1)
+             RUNQRY     QRY(CAMAGGB$2)
+             DLTOVR     FILE(QPQUPRFIL)
+
+             ENDPGM

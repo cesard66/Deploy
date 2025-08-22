@@ -1,0 +1,41 @@
+/* *  FORMALIZACION DEM                                             */
+/*                                                                  */
+/* * ABM Y CALCULO DE RETENCIONES                                   */
+/*                                                                  */
+             PGM
+
+             CHGDTAARA  DTAARA(*LDA (*ALL)) VALUE(' ')
+             CHGDTAARA  DTAARA(*LDA (1 1)) VALUE(' ')
+             CHGDTAARA  DTAARA(*LDA (512 1)) VALUE(' ')
+/*                                                                  */
+ LOOP:
+/*                                                                  */
+             CALL       PGM(EDE0101CL)
+             IF         COND(((%SST(*LDA 036 001)) *EQ '*') *AND +
+                          ((%SST(*LDA 080 002)) *EQ SI)) THEN(DO)
+             SNDPGMMSG  MSG('                              ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('DEBE SOLUCIONAR ANTES  LA INCO-') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('HERENCIA, LUEGO PODRA SALIR DEL') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('PROCESO.                      ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('                              ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('PULSE 0, "VUELVE A DATOS" ') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(LOOP)
+             ENDDO
+             IF         COND(((%SST(*LDA 036 001)) *EQ '*') *AND +
+                          ((%SST(*LDA 080 002)) *EQ ' ')) THEN(GOTO +
+                          CMDLBL(FIN))
+             IF         ((%SST(*LDA 004 009)) *EQ ' ') GOTO FIN
+/*                                                                  */
+/* * IMPRESION DE AVISO                                             */
+/*                                                                  */
+             CALL       PGM(EDE02CL)
+/*                                                                  */
+ FIN:
+
+             ENDPGM

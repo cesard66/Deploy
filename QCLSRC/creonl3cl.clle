@@ -1,0 +1,39 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             CALL       ONLINE/CCTCVI
+             SNDPGMMSG  MSG('CREACION DEL ARCHIVO PARA BUSQUEDA +
+                          ALFABETICA') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * IF DATAF1-ALFTOL DELETE ALFTOL,F1                              */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(ALFTOT) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(ALFTOT))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(ALFTOTW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) DLTF FILE(ALFTOTW)
+
+             RUNSQL     SQL('CREATE TABLE QS36F.ALFTOTW (F00001 +
+                          CHAR(64) ) RCDFMT RALFTOTW') COMMIT(*NONE)
+             RUNSQL     SQL('INSERT INTO QS36F.ALFTOT SELECT +
+                          CAST(SUBSTR(DATOS, 1, 49) ||  +
+                          SUBSTR(DATOS, 91, 4) AS CHAR(64) FROM +
+                          (SELECT K00001 || F00001 DATOS FROM +
+                          QS36F.CTESDO UNION ALL  SELECT K00001 || +
+                          F00001  DATOS FROM QS36F.CAHSDO) WHERE +
+                          SUBSTR(DATOS, 246, 1) <> ''*''')
+
+             OVRDBF     FILE(INPUT2) TOFILE(CAHSDO)
+             OVRDBF     FILE(OUTPUT) TOFILE(ALFTOTW)
+             CPYF       FROMFILE(QS36F/ALFTOTW) TOFILE(QS36F/ALFTOT) +
+                          MBROPT(*ADD) CRTFILE(*YES)
+             SNDPGMMSG  MSG('LIMPIEZA DE ARCHIVOS DE C/AGENCIA DE +
+                          LAS COMISIONES YA COBRADAS ') +
+                          TOPGMQ(*EXT) MSGTYPE(*INFO)
+             CALL       PGM(ONLINEC/PENBORCL)
+             CALL       PGM(GLOBAL/OP001V) PARM((CREONL3CL))
+
+             ENDPGM

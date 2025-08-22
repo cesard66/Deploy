@@ -1,0 +1,78 @@
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&WS) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&SWS) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSUS) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             CHGJOB     RUNPTY(17)
+
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     VAR(&WSID) VALUE(&JOBA)
+
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CIERRECL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/CIERRECL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('CIERRE DE AGENCIA ACTIVO.- CANCELO') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(PRCONVAGCL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/PRCONVAGCL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('CIERRE DEL BANCO ACTIVO.- CANCELO') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ENDDO
+             RTVJOBA    JOB(&WS) USER(&USER)
+             CHGVAR     VAR(%SST(&WSUS 1 8)) VALUE(&USER)
+             CHGDTAARA  DTAARA(*LDA (1 8)) VALUE(&WSUS)
+             CHGJOB     SWS(00000000)
+             ADDLIBLE   LIB(COREDBDB2) POSITION(*LAST)
+             MONMSG     MSGID(CPF0000)
+             ADDLIBLE   LIB(GX) POSITION(*LAST)
+             MONMSG     MSGID(CPF0000)
+             ADDLIBLE   LIB(PLLIB) POSITION(*LAST)
+             MONMSG     MSGID(CPF0000)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             OVRDBF     FILE(COL0) TOFILE(COLB)
+             OVRDBF     FILE(ITBCATCL) TOFILE(INFONET/ITBCATCL)
+
+/********/
+ YAU3:       RTVJOBA    SWS(&SWS)
+             OVRDBF     FILE(PLANX) TOFILE(PLANON)
+             IF         COND(&USER = 'KARENF') THEN(DO)
+             OVRDBF     FILE(COL02FM) TOFILE(COL22FM)
+             CALL       PGM(ONLINE/COL22)
+             ENDDO
+             IF         COND(&USER *NE 'KARENF') THEN(DO)
+             CALL       PGM(ONLINE/CTGRACA) PARM((&USER) (&WSID))
+             CALL       PGM(ONLINEC/COL02)
+             ENDDO
+
+             RTVJOBA    SWS(&SWS)
+             IF         COND(%SST(&SWS 3 1) *EQ '1') THEN(GOTO +
+                          CMDLBL(YAU3))
+             IF         COND(%SST(&SWS 8 1) *EQ '1') THEN(DO)
+             SNDBRKMSG  MSG('USTED NO ESTA AUTORIZADO A UTILIZAR +
+                          ESTE PROGRAMA ') TOMSGQ(&WS W1)
+             ENDDO
+/*  */
+             CALL       PGM(ONLINE/CTDLTCA) PARM((&USER) (&WSID))
+             CHGJOB     RUNPTY(20)
+             ENDPGM

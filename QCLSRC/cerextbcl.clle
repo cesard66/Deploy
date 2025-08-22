@@ -1,0 +1,66 @@
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&DATE8) TYPE(*CHAR) LEN(008)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(600)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    DATE(&DATE)
+             CVTDAT     DATE(&DATE) TOVAR(&DATE8) TOFMT(*DMYY) +
+                          TOSEP(*NONE)
+             RTVDTAARA  DTAARA(LIBSYS/CONVQS36F (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+/* *                                                                */
+/*  EXTRACCION ARCHIVO DE TRABAJO PARA CREACION DE ASIENTOS DEL DIA */
+/*                                                                  */
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.DDB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.DDB))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.DDB1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.DDB1))
+/*                                                                  */
+             RUNSQL     SQL('CREATE TABLE "CER.DDB1" ( F00001 +
+                          CHAR(600) ) RCDFMT RCDFMT RCERDDB1') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CHGVAR     VAR(&CMD) VALUE('INSERT INTO "CER.DDB1" +
+                          SELECT F00001 || K00001 || SUBSTR(F00002, +
+                          1, 584) || ''2'' FROM "CER.BAJ" WHERE +
+                          SUBSTRING(F00002, 59, 8) = ''' *CAT +
+                          &DATE8 *CAT ''' AND SUBSTRING(F00002 , +
+                          486, 1) NOT IN(''9'', ''E'')  ORDEN BY +
+                          SUBSTRING(K00001 , 3, 9)')
+             RUNSQL     SQL(&CMD) COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+/*                                                                  */
+             RTVMBRD    FILE(&LIBF/CER.DDB1) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(GOTO CMDLBL(NADA))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CER.DDB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CER.DDB))
+
+/* // BLDINDEX CER.DDA,4,11,CER.DIA1,,NODUPKEY */
+             RUNSQL     SQL('CREATE UNIQUE INDEX "CER.DDB" ON +
+                          "CER.DDB1" ( SUBSTRING(F00001 FROM  4 FOR +
+                          13) ASC) RCDFMT RCERDDB1 ADD ALL +
+                          COLUMNS') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+
+ NADA:
+/*                                                                  */
+
+             ENDPGM

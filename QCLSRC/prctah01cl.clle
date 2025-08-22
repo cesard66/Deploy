@@ -1,0 +1,144 @@
+/* **  ***********************************************************  */
+/* **Analista : Celeste Arguello   Gescam # 1808220840              */
+/* **Fecha    : 23/08/2018                                          */
+/* **Motivo   : Nueva CL para 11amada a algunos programas que       */
+/* **           actualizan saldos de cuentas Cte/Aho previo al      */
+/* **           proceso de PRBACKUP                                 */
+/* ** ************************************************************  */
+             PGM
+
+             DCL        VAR(&PROC) TYPE(*CHAR) LEN(10) +
+                          VALUE('PRCTAH01')
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             RTVJOBA    DATE(&DATE)
+             SNDPGMMSG  MSG('PRCTAH01') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('--------') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGDTAARA  DTAARA(QS36F/PRCTAHDT *ALL) VALUE('N')
+/* * ESTABLECE FECHA DE PROCESO                                     */
+             CALL       GLOBAL/FIJAFCIE
+/* * VALIDA FECHA DE PROCESO                                        */
+             CHGJOB     SWS(00000000)
+             CALL       GLOBAL/CONFEBKP
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(DO)
+             PAUSE      MSG('FECHA DE PROCESO NO ES CORRECTA-CANCELO')
+             GOTO ALFIN
+             ENDDO
+             SNDPGMMSG  MSG('PRCTAH01======> COMPLEMENTO DE +
+                          CTE/AHORRO <========') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('1'))
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             PAUSE      MSG('PROCESO NO DISPONIBLE PARA INICIO')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('2'))
+/* ** Registra status de inicio de backup :                         */
+/* *CALL IBANKING/SQLBKSTS PARM('QSSAVLIB' 'A')                     */
+/* *                                                                */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(HISTOCAL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-HISTOCAL BLDINDEX HISTOCAL,2,5,HISTOCAH,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX QS36F.HISTOCAL ON +
+                          QS36F.HISTOCAH ( CAST(SUBSTRING(HISTOCA2 +
+                          FROM 2 FOR  5) AS CHAR(5)) AS K00001 ASC  +
+                          )  RCDFMT RHISTOCA2 ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(HISTORYL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+/* // IFF DATAF1-HISTORYL BLDINDEX HISTORYL,2,5,HISTORY1,,DUPKEY */
+             RUNSQL     SQL('CREATE INDEX QS36F.HISTORYL ON +
+                          QS36F.HISTORY1 ( CAST(SUBSTRING(HISTORY2 +
+                          FROM 2 FOR  5) AS CHAR(5)) AS K00001 ASC  +
+                          )  RCDFMT RHISTORYL ADD ALL COLUMNS') +
+                          COMMIT(*NONE)
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(HISTORL1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-HISTORL1 BLDINDEX HISTORL1,2,5,HISTORY1,,DUPKEY,,7,6,13,4 */
+             RUNSQL     SQL('CREATE INDEX QS36F.HISTORL1 ON +
+                          QS36F.HISTORY1 ( CAST(SUBSTRING(HISTORY2 +
+                          FROM 2 FOR  5) AS CHAR(5)) AS K00001 ASC, +
+                          CAST(SUBSTRING(HISTORY2 FROM 7 FOR  6) AS +
+                          CHAR(6)) AS K00002 ASC, +
+                          CAST(SUBSTRING(HISTORY2 FROM 13 FOR  4) +
+                          AS CHAR(4)) AS K00003 ASC  )  RCDFMT +
+                          RHISTORL1 ADD ALL COLUMNS') COMMIT(*NONE)
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(HISTOCL1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) DO
+/* // IFF DATAF1-HISTOCL1 BLDINDEX HISTOCL1,2,5,HISTOCAH,,DUPKEY,,7,6,13,4 */
+             RUNSQL     SQL('CREATE INDEX QS36F.HISTOCL1 ON +
+                          QS36F.HISTOCAH ( CAST(SUBSTRING(HISTOCA2 +
+                          FROM 2 FOR  5) AS CHAR(5)) AS K00001 ASC, +
+                          CAST(SUBSTRING(HISTOCA2 FROM 7 FOR  6) AS +
+                          CHAR(6)) AS K00002 ASC, +
+                          CAST(SUBSTRING(HISTOCA2 FROM 13 FOR  4) +
+                          AS CHAR(4)) AS K00003 ASC  )  RCDFMT +
+                          RHISTOCL1 ADD ALL COLUMNS') COMMIT(*NONE)
+
+             ENDDO
+/* *                                                                */
+             CALL       PGM(ONLINEC/TRANS0)
+             CALL       PGM(IBANKING/IB011TCL)
+             CALL       PGM(BTLIBC/BT050CL) PARM('X')
+             CALL       PGM(IBANKING/IB071TCL)
+/* * SI SWITH2 ESTA ON PROCESO MENSUAL                              */
+             CHGJOB     SWS(00000000)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             CALL       (GLOBAL/ACTIUX)
+/* * SI ES FIN DE MES COPIA ARCHIVOS DE HOMEBANKING                 */
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(DO)
+             CPYF       FROMFILE(IBANKING/IBMOVCTM) +
+                          TOFILE(IBANKING/IBMOVCTE) MBROPT(*ADD)
+             CPYF       FROMFILE(IBANKING/IBMOVAHM) +
+                          TOFILE(IBANKING/IBMOVAHO) MBROPT(*ADD)
+             SBMJOB     CMD(CALL PGM(IBANKING/IB020TCL)) +
+                          JOB(IB020TCL) DATE(&DATE)
+             SNDPGMMSG  MSG('SE SUBMITIO LA ACTUALIZACION DE +
+                          HISTORICOS PARA EXTRACTOS HOME BANKING  +
+                          ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' *** ESPERAR EL MENSAJE DE +
+                          FINALIZACION  ****') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* *PAUSE                                                           */
+             SNDDST     TYPE(*LMSG) TOUSRID((INTERNET MAIL)) +
+                          TOINTNET((DATACENTER@itau.com.py)) +
+                          DSTD('Extractos Home Banking.') +
+                          LONGMSG('Se ha sometido el trabajo +
+                          IB020TCL. Una vez finalizado, verificar +
+                          en Control-M la ejecución de los procesos +
+                          de actualización de Extractos Home Banking.')
+             ENDDO
+             CHGJOB     SWS(00000000)
+             CALL       PGM(ONLINE/PPOPG012) PARM('ONL_OFF')
+             CALL       PGM(ONLINEC/INFFICI)
+             CALL       PGM(ONLINE/PPOPGO12) PARM('ONL_ON')
+             CALL       PGM(BTLIBC/BT050CL) PARM('A')
+             CALL       PGM(INTERB02/APLSOBAHCL)
+             CHGDTAARA  DTAARA(QS36F/PRCTAHDT *ALL) VALUE('S')
+             CLRPFM     FILE(HVEZ)
+             SBMJOB     CMD(CALL PGM(ONLINE/HINFMOV)) JOB(DEPUINFO) +
+                          DATE(&DATE)
+/* --COLOCA MARCA FINALIZADO AL PROCESO PRCTAH01                    */
+             CALL       PGM(GLOBAL/CTRPROCES) PARM((&PROC) ('4'))
+/* --DEJA DISPONIBLE PARA INICIAR PROCESO PRCONTAB                  */
+             CALL       PGM(GLOBAL/PRCSTATUS) PARM((&PROC))
+ ALFIN:
+
+             ENDPGM

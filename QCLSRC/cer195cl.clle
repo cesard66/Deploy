@@ -1,0 +1,12 @@
+/*  ----------------------------------------------------  *         */
+/*        FIN PROCESO CARTA DE CREDITO                    *         */
+/*  CER195             BAJA                    BUENO   *            */
+/*  ----------------------------------------------------  *         */
+/*                                                                  */
+             PGM
+
+             OVRDBF     FILE(CERBAJ) TOFILE(CER.BAJ)
+             CALL       PGM(EXP.LIBR/CER195NW)
+             DLTOVR     FILE(*ALL)
+
+             ENDPGM

@@ -1,0 +1,535 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TIME) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(010)
+
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **************************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG(' *  CONSISTENCIA CARGA DE NOVEDADES Y +
+                          ASIENTOS DE CONTABILIDAD *') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          **************************') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             GOTO       FUER
+/* -- INICIALIZA AREA DE DATOS QUE SE USA SI HAY ERROR EN CONSISTENCIA */
+             CHGDTAARA  DTAARA(ERVALCON *ALL) VALUE(' ')
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV0) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV0))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV))
+             CHGJOB     SWS(00000000)
+             CALL       PGM(CO1026NW)
+             IF         (*NOT (%SWITCH(1XXXXXXX))) GOTO NOTRF
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(SNDPGMMSG +
+                          MSG('Transferencia Automatica de Saldo +
+                          Leyes 1003 y 1035') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONLEYES) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/CONLEYES) RCDLEN(80))
+             ELSE       CMD(CLRPFM FILE(&LIBF/CONLEYES))
+             OVRDBF     FILE(LEYES) TOFILE(CONLEYES)
+             OVRPRTF    FILE(CL100335) TOFILE(QPRINT) FORMTYPE(RE66) +
+                          COPIES(1) HOLD(*YES)
+             CALL       PGM(NL1003)
+             DLTOVR     FILE(*ALL)
+/*                                                                  */
+/*  Impresion del Asiento                                           */
+/*                                                                  */
+             CALL       PGM(NL100LCL) PARM((CONLEYES))
+/*                                                                  */
+ NOTRF:
+             IF         COND(*NOT (%SWITCH(X1XXXXXX))) THEN(GOTO +
+                          CMDLBL(NOHAB))
+             ELSE       CMD(DO)
+             SNDPGMMSG  MSG('ESTE ES EL PRIMER PROCESO EN DIA HABIL, +
+                          DEL AÑO') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('Transf. AutomAtica de Resultados +
+                          ejercicio anterior') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             ENDDO
+/* * LOAD CONS56                                                    */
+/* * FILE NAME-CONTAB88,DISP-SHR                                    */
+/* * FILE NAME-CONLEYES,EXTEND-200                                  */
+/* * PRINTER NAME-CONS5633,COPIES-1,FORMSNO-DOC,PRIORITY-0          */
+/* * RUN                                                            */
+ NOHAB:
+/* *--------------------0                                           */
+/* *--------------------1                                           */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTRANS) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('NO SE ABRIO ARCH. MOVIMIENTO +
+                          CONTABLE-CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             RETURN
+             ENDDO
+             CHGJOB     SWS(00000000)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/MOCO0X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(10000000))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/MOC01X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(X1000000))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/MOCO2X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XX100000))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/MOCO8X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXX10000))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/MOCO3X) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXXX1000))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/CONTMOV1) RCDLEN(80))
+             ELSE       CMD(CLRPFM FILE(&LIBF/CONTMOV1))
+             CALL       PGM(ANACOTNW)
+             CHGJOB     SWS(00000000)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONLEYES) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(1XXXXXXX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CHMOVCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF0001) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(X1XXXXXX))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(&LIBF/IT.MOVCN) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XX1XXXXX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/ASSUEL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXX1XXXX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/PRMOVCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXXX1XXX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AUTOMATO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXXXX1XX))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AUTOMATA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXXXXX1X))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/ROBOTCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CHGJOB +
+                          SWS(XXXXXXX1))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/DIFCAJCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/DIFCAJCO) RCDLEN(80))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AUTOMONL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('   AUN NO SE PROCESO CONVAGE. SI ES UN +
+                          ERROR') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('DEBE PROCESAR ANTES DEL PROCESO DE +
+                          CONTABILIDAD') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('SI NO CANCELA EL PROCESO +
+                          CONTINUA           ') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             CRTPF      FILE(&LIBF/AUTOMONL) RCDLEN(80)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/STKCON) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/STKCON) RCDLEN(80))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EGR.ASIE) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/EGR.ASIE) RCDLEN(80))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EGR.ASI2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/EGR.ASI2) RCDLEN(80))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/EGR.ASIR) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/EGR.ASIR) RCDLEN(80))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CAL.ASI) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/CAL.ASI) RCDLEN(80))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CAL.ASI2) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/CAL.ASI2) RCDLEN(80))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONAG10) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/CONAG10) RCDLEN(80))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AFMOVCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/AFMOVCO) RCDLEN(80))
+/* -----                                                            */
+/*                                                                  */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/CONTMOV) RCDLEN(80))
+             ELSE       CMD(CLRPFM FILE(&LIBF/CONTMOV))
+             OVRDBF     FILE(MOVCN) TOFILE(IT.MOVCN)
+             OVRDBF     FILE(EGRCON) TOFILE(EGR.ASIE)
+             OVRDBF     FILE(EGRCON2) TOFILE(EGR.ASI2)
+             OVRDBF     FILE(EGRCON3) TOFILE(EGR.ASIR)
+             OVRDBF     FILE(CALASI) TOFILE(CAL.ASI)
+             OVRDBF     FILE(CALASI2) TOFILE(CAL.ASI2)
+             OVRDBF     FILE(DICONT) TOFILE(PGTCONR)
+             CALL       PGM(CONT00)
+             DLTF       FILE(&LIBF/CONTMOV1)
+             DLTOVR     FILE(*ALL)
+/* *--------------------3                                           */
+ ZZ:
+             RTVMBRD    FILE(&LIBF/CONTMOV) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 00000000) THEN(GOTO +
+                          CMDLBL(YY))
+             SNDPGMMSG  MSG(' Clasificacion de los movimientos del +
+                          dia') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RUNSQL     SQL('CREATE TABLE CONTMOV0 LIKE CONTMOV') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             RUNSQL     SQL('INSERT INTO CONTMOV0 SELECT * FROM +
+                          CONTMOV ORDER BY SUBSTR(F00001, 2, 2) +
+                          ASC, SUBSTR(F00001, 10, 6) ASC') +
+                          COMMIT(*NONE)
+             DLTF       FILE(&LIBF/CONTMOV)
+ YY:
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(RNMOBJ +
+                          OBJ(&LIBF/CONTMOV) OBJTYPE(*FILE) +
+                          NEWOBJ(CONTMOV0))
+             SNDPGMMSG  MSG(' ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(&LIBF/CONTMOV1) RCDLEN(80))
+             ELSE       CMD(CLRPFM FILE(&LIBF/CONTMOV1))
+             CHGJOB     SWS(00000000)
+             RTVSYSVAL  SYSVAL(QTIME) RTNVAR(&TIME)
+             CHGDTAARA  DTAARA(*LDA (15 29)) VALUE(&TIME *TCAT '   -
+              ')
+             IF         COND((%SST(*LDA 051 007)) *EQ BDIARIX) +
+                          THEN(OVRPRTF FILE(LISTADO) TOFILE(QPRINT) +
+                          FORMTYPE(GOAL) COPIES(1) HOLD(*YES))
+             IF         COND(*NOT ((%SST(*LDA 051 007)) *EQ +
+                          BDIARIX)) THEN(OVRPRTF FILE(LISTADO) +
+                          TOFILE(QPRINT) COPIES(1) HOLD(*YES))
+             CALL       PGM(CONS02)
+             DLTF       FILE(&LIBF/CONTMOV0)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(SNDPGMMSG +
+                          MSG('HAY ASIENTO/S QUE NO BALANCEA/N EN +
+                          LA CONSISTENCIA') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP))
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(SNDPGMMSG +
+                          MSG('ERROR GRAVE DATOS DE LA +
+                          CONSISTENCIA. MIRE LISTADO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP))
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(SNDPGMMSG +
+                          MSG('--PERO IGUAL CONTINUE CON EL +
+                          PROCESO--------------') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP))
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(SNDPGMMSG +
+                          MSG('NO HAY MOVIMIENTO CREDITOS DE +
+                          INTERES/AHORRO DOLAR') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP))
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(SNDPGMMSG +
+                          MSG('Y HOY ES FIN DE MES- +
+                          CANCELO....FALTA REPROCESO DE') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP))
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(SNDPGMMSG +
+                          MSG('INTERNACIONAL') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP))
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(SNDPGMMSG +
+                          MSG('---PERO IGUAL CONTINUE CON EL +
+                          PROCESO-------------') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP))
+/* GRABA 'E' EN LA AREA DE DATOS PARA INDICAR QUE HUBO ERROR DE VALIDACION Y CONSULTAR DESPUES EN PRCONTAB*/
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(CHGDTAARA +
+                          DTAARA(ERVALCON *ALL) VALUE('E'))
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(CHGDTAARA +
+                          DTAARA(ERVALCON *ALL) VALUE('E'))
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(CHGDTAARA +
+                          DTAARA(ERVALCON *ALL) VALUE('E'))
+/* --                                                               */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/ASSUEL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(SNDPGMMSG +
+                          MSG('NO HUBO MOVIMIENTOS DEL SISTEMA DE +
+                          SUELDOS') TOPGMQ(*EXT) MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONLEYES) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) SNDPGMMSG MSG('NO +
+                          HUBO MOVIMIENTOS DE TRANSFERENCIA +
+                          SALDOS') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONLEYES) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(SNDPGMMSG +
+                          MSG('DE LEYES 1003 Y 1035') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CHMOVCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(SNDPGMMSG +
+                          MSG('NO SE PROCESO AUN CHEQUERAS-BORRO +
+                          CONTMOV1') TOPGMQ(*EXT) MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/IT.MOVCN) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (*NOT (&TEST *EQ &TRUE)) SNDPGMMSG MSG('NO +
+                          PROCESO AUN INTERNACIONAL-BORRO +
+                          CONTMOV1') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RTVMBRD    FILE(&LIBF/PGTCONR) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(SNDPGMMSG MSG('NO +
+                          PROCESO AUN PRESTAMOS -BORRO CONTMOV1') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AUTOMATO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(SNDPGMMSG +
+                          MSG('NO PROCESO AUN CTAS CTES. -BORRO +
+                          CONTMOV1') TOPGMQ(*EXT) MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AUTOMATA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(SNDPGMMSG +
+                          MSG('NO SE PROCESO TODAVIA AHORROS BORRO +
+                          CONTMOV1') TOPGMQ(*EXT) MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/ROBOTCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(SNDPGMMSG +
+                          MSG('NO PROCESO AUN +
+                          TRANSF.AUTOMATIC-BORRO CONTMOV1') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AFMOVCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(SNDPGMMSG +
+                          MSG('NO PROCESO AUN ACTIVO FIJO - BORRO +
+                          CONTMOV1') TOPGMQ(*EXT) MSGTYPE(*COMP))
+/* *                                                                */
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+             IF         COND((%SST(*LDA 001 004)) *EQ '0101') +
+                          THEN(GOTO CMDLBL(A0101))
+             IF         COND((%SST(*LDA 001 004)) *EQ '3112') +
+                          THEN(GOTO CMDLBL(A0101))
+             GOTO       CMDLBL(FUER)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             IF         COND(%SWITCH(X1XXXXXX)) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             ENDDO
+             IF         COND(%SWITCH(XX1XXXXX)) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CHMOVCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/IT.MOVCN) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             ENDDO
+             RTVMBRD    FILE(&LIBF/PGTCONR) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(SNDPGMMSG MSG('NO +
+                          PROCESO AUN PRESTAMOS -BORRO CONTMOV1') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AUTOMATO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AUTOMATA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/ROBOTCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/AFMOVCO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/CONTMOV1))
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(SNDPGMMSG +
+                          MSG('Presione enter para continuar') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/CONTMOV1) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(RETURN)
+ A0101:
+             SNDPGMMSG  MSG('Fin de la Consistencia') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+ FUER:
+
+             ENDPGM

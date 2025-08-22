@@ -1,0 +1,73 @@
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+
+             RTVJOBA    DATE(&DATE)
+             SNDPGMMSG  MSG('ESTE PROCESO REQUIERE QUE SE HAYAN +
+                          IMPUTADO LOS CHEQUES RECHAZADOS') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDUSRMSG  MSG('DESEAS CONTINUAR? (S=HACER PROCESO, +
+                          N=SALIR Y HACER MAS TARDE)') TOMSGQ(*EXT) +
+                          MSGRPY(&PM01)
+             IF         COND(&PM01 *EQ ' ') THEN(SNDUSRMSG +
+                          MSG('Ingrese el parametro requerido') +
+                          TOMSGQ(*EXT) MSGRPY(&PM01))
+             IF         COND(*NOT (&PM01 *EQ 'S')) THEN(GOTO +
+                          CMDLBL(ALFIN))
+             CALL       PGM(ONLINEC/VERINI) PARM(('CAMGEN'))
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('Proceso ya ejecutado con anterioridad, +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO ALFIN
+             ENDDO
+             RTVMBRD    FILE(*LIBL/CAMAGW) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 0) THEN(DO)
+             SNDPGMMSG  MSG('PROCESO NO DISPONIBLE EN ESTE MOMENTO, +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             CALL       PGM(ONLINEC/VERINI) PARM('CAMDEB')
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('PROCESO NO DISPONIBLE EN ESTE MOMENTO, +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO ALFIN
+             ENDDO
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('=====4-INICIO LISTA CHEQUES +
+                          RECHAZADOS/AUTORIZADOS Y AVISOS=====') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * Agregado para truncamiento                                     */
+             CALL       PGM(ONLINE/NCHM914L)
+             CALL       PGM(ONLINE/CAMLISCL)
+             SNDPGMMSG  MSG('========FIN DE LISTA DE CHEQUES +
+                          RECHAZADOS/AUTORIZADOS Y AVISOS=') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('=====9-INICIO DE IMPRESION DE +
+                          PLANILLA Y AVISOS DE DEBITOS=====') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+ RETOMA:
+             SNDPGMMSG  MSG('Nuevo proceso de CLICK BANKING') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(IBANKING/CB1006G)
+             CALL       PGM(IBANKING/CB1022)
+             CALL       PGM(ONLINE/IMPCOMCL)
+             SNDPGMMSG  MSG('Submite Calculo de Promedio de +
+                          utilizacion de intercheque') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SBMJOB     CMD(CALL PGM(INTERB01/SOBREGCLN))
+/* * CONTRATO DE PARTICIPACION CANCELACION X VENCIMIENTO            */
+             CALL       ONLINE/TRNAPCL01
+/* * LLEVA CHEQUES CAMARA INTERNA A SISTEMA DE FLUJO DE CHEQUES RECHAZADOS/DEVUELT  */
+             SBMJOB     CMD(CALL PGM(ONLINE/NNI0005CL)) SCDTIME(130000)
+/* **CAMBIA DTAARAS CONTROL DE PROCESO TRUNCAMIENTO T+0             */
+             CHGDTAARA  DTAARA(ONLINE/CIETRNBA (1 1)) VALUE('N')
+             CHGDTAARA  DTAARA(ONLINE/CIETRCOB (1 1)) VALUE('N')
+             WRKSPLF
+             SNDPGMMSG  MSG('======FIN DE IMPRESION DE PLANILLA Y +
+                          AVISOS DE DEBITOS=========') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+ ALFIN:
+
+             ENDPGM

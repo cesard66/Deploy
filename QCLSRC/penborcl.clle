@@ -1,0 +1,30 @@
+/* LIMPIEZA DE LOS ARCHIVOS DE C/AGENCIA DE LAS COMISIONES YA COBRADAS (ELIMINA LOS QUE EN LA 126 = *) */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(1) VALUE('1')
+
+             RTVDTAARA  DTAARA(LIBSYS/CONVQS36F (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+             CALL       PGM(PENBORNW)
+/* * ELIMINA LAS COMISIONES PENDIENTES DE CUENTAS PAGO DE SALARIO ACTIVA  */
+             CALL       PGM(IN302R)
+/* * ADICIONA A PENEXE LOS EXONERADOS EN LA FECHA PARA FINES ESTADISTICOS */
+             CPYF       FROMFILE(&LIBF/PENDX) TOFILE(&LIBF/PENEXE) +
+                          MBROPT(*ADD) INCCHAR(*FLD 125 *EQ 'S')
+/*                                                                        */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/PENWRK) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/PENWRK))
+             CPYF       FROMFILE(&LIBF/PENDX) TOFILE(&LIBF/PENWRK) +
+                          CRTFILE(*YES) INCCHAR(*FLD 126 *NE '*')
+             CLRPFM     FILE(PENDX)
+             CPYF       FROMFILE(&LIBF/PENWRK) TOFILE(&LIBF/PENDX) +
+                          MBROPT(*ADD)
+/*                                                                        */
+
+             ENDPGM

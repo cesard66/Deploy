@@ -1,0 +1,232 @@
+/* *CANDEB$                                                         */
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010 0)
+             DCL        VAR(&PROCESO) TYPE(*CHAR) LEN(10) +
+                          VALUE('CAMDEB$')
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             ALCOBJ     OBJ((QS36F/SOBREGIRU$ *FILE *EXCL))
+             MONMSG     MSGID(CPF0000)
+
+             ALCOBJ     OBJ((*LIBL/CAMAR3$CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('SE ESTA HACIENDO FORMALISTICA, +
+                          INTENTELO MAS TARDE') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+                        GOTO CMDLBL(ALFIN)
+             ENDDO
+
+             SNDPGMMSG  MSG('VERIFIQUE CON OTRA AGECIA QUE TIENE SU +
+                          PROPIA CAMARA COMPENSADORA SI ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('YA TERMINARON DE GRABAR SUS CHEQUES QUE +
+                          SERAN DEBITADOS EN ESTE PROCESO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('PRESTE MUCHA ATENCION, MARQUE O PARA +
+                          CONTINUAR') TOPGMQ(*EXT) MSGTYPE(*INQ)
+/* *                                                                */
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAMINT$) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('FALTA EN DISCO EL ARCHIVO DE +
+                          GRABACIONES DE CAMARA') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAMIDL$) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('FALTA EN DISCO EL ARCHIVO DE +
+                          GRABACIONES DE CAMARA CDE') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(CAMIEN$) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             SNDPGMMSG  MSG('FALTA EN DISCO EL ARCHIVO DE +
+                          GRABACIONES DE CAMARA ENCARNACION') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+/* *****************************************************            */
+/*  CONTROL TIPO DE CUENTA EN LOS ARCHIVOS DE CLEARING *            */
+/* *****************************************************            */
+             SNDPGMMSG  MSG('CONTROLA TIPO DE CUENTA EN CASA +
+                          MATRIZ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       PGM(ONLINE/NCHM923$L)
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('HAY UN TIPO DE CUENTA NO VALIDO EN EL +
+                          ARCHIVO DE MATRIZ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EL PROCESO NO PUEDE CONTINUAR') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+                        RETURN
+             ENDDO
+             SNDPGMMSG  MSG('CONTROLA TIPO DE CUENTA EN CDE') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(CAMINT$) TOFILE(CAMIDL$)
+             CALL       PGM(CONCAMIE)
+             IF         (%SWITCH(1XXXXXXX)) do
+             SNDPGMMSG  MSG('HAY UN TIPO DE CUENTA NO VALIDO EN EL +
+                          ARCHIVO DE CDE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EL PROCESO NO PUEDE CONTINUAR') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+
+             DLTOVR     CAMINT$
+             SNDPGMMSG  MSG('CONTROLA TIPO DE CUENTA EN +
+                          ENCARNACION') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(CAMINT$) TOFILE(CAMIEN$)
+             CALL       PGM(CONCAMIE)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('HAY UN TIPO DE CUENTA NO VALIDO EN EL +
+                          ARCHIVO DE ENCARNACION') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EL PROCESO NO PUEDE CONTINUAR') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             DLTOVR     CAMINT$
+/* ******* INICIO TRANSFERENCIA ENVIA$17 ***                        */
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('Genera registro de cheques enviados +
+                          (MOLDETX$) ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(ENVIA$17) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             CLRPFM     FILE(ENVIA$17)
+             ENDDO
+             CALL       PGM(VALENVI)
+             IF         (%SWITCH(XXX1XXXX)) DO
+             SNDPGMMSG  MSG('ERROR EN DATOS TRANSFERIDOS ENVIADOS +
+                          USD') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('EL PROCESO NO PUEDE CONTINUAR') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+/* ********************** FIN TRANSFERENCIA ENVIA$17 **             */
+             CHGJOB     SWS(00000000)
+
+             CALL       PGM(ONLINEC/VERINI) PARM((&PROCESO))
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('Proceso ya ejecutado con anterioridad, +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* **************************************************************** */
+/* ******************************                                   */
+/* ** GENERA DATOS DE CHEQUES RECHAZADOS POR FIRMANTE (LEY 805),    */
+/* DEL PROCESO DEL DIA ANTERIOR ***                                 */
+/* ** OBS: SE AGREGO AQUI PARA EVITAR LA DEPENDENCIA DEL INICIO     */
+/* DEL PROCESO SOBREGIROS GS     ***                                */
+/* **      DE LA FINALIZACION DEL PROCESO SOBREGIROS USD            */
+/*                            ***                                   */
+/* ***OBS: VOLVIO AL INICIO DE SOBREGIROS GS                        */
+/* ****CALL NL8BU001C                                               */
+/* **************************************************************** */
+/* ******************************                                   */
+ SIGAPY:
+/* *                                                                */
+             SNDPGMMSG  MSG('Ordenando Archivo de Cheques Canje') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(CAMINT$W) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+         /* SI NO EXISTE LA TABLA QS36F.CAMINT$W  GENERA */
+             RUNSQL     SQL('CREATE TABLE QS36F.CAMINT$W AS (SELECT +
+                          * FROM CAMINT$) WITH NO DATA') COMMIT(*NONE)
+             ENDDO
+         /* LIMPIA LA TABLA QS36F.CAMINT$W */
+             RUNSQL     SQL('TRUNCATE TABLE QS36F.CAMINT$W') +
+                          COMMIT(*NONE)
+         /* INSERTA DATOS SEGUN EL ORDEN     +
+             80  80  OMITE CABECERAS         +
+             15  23  - NUMERO DE CUENTA      +
+             60  61  - CODIGO DE DEVOLUCION  +
+             31  45  - IMPORTE DEL CHEQUE    +
+              1  80  TODO EL REGISTRO         */
+
+             RUNSQL     SQL('INSERT INTO QS36F.CAMINT$W SELECT * +
+                          FROM CAMINT$ WHERE SUBSTRING(F00002 FROM +
+                          66  FOR 1) = '' '' ORDER BY +
+                          SUBSTRING(F00002 FROM 15 FOR  9) ASC, +
+                          SUBSTRING(F00002 FROM 46 FOR  2) ASC, +
+                          SUBSTRING(F00002 FROM 17 FOR 15) DESC') +
+                          COMMIT(*NONE)
+
+             CLRPFM     FILE(CAMAG0$)
+             OVRDBF     FILE(CAMINT) TOFILE(CAMINT$W)
+             OVRDBF     FILE(CAMAG0) TOFILE(CAMAG0$)
+             CALL       (ONLINEC/CAMPAG)
+             DLTOVR     FILE(*ALL)
+             CLRPFM     CAMAGX$
+             CLRPFM     CAMERRO$
+             OVRDBF     FILE(CAMINT) TOFILE(CAMINT$W)
+             OVRDBF     FILE(CAMERROR) TOFILE(CAMERRO$)
+             OVRDBF     FILE(CAMAGX) TOFILE(CAMAGX$)
+             CALL       PGM(CAMPAG1$)
+             CLRPFM     FILE(CAMINT$W)
+             DLTOVR     FILE(*ALL)
+             RTVMBRD    FILE(*LIBL/CAMERRO$) NBRCURRCD(&RCDNBR)
+             IF         (*NOT (&RCDNBR *EQ 0)) DO
+             RUNQRY     QRY(CAMERRO$)
+             SNDPGMMSG  MSG('EXISTEN CHEQUES ADMINISTRATIVOS CON +
+                          PROBLEMAS, VERIFIQUE') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('ESTOS CHEQUES NO INGRESAN AL PROCESO') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             CPYF       FROMFILE(QS36F/CAMERRO$) +
+                          TOFILE(QS36F/CAMERR$H) MBROPT(*ADD)
+             ENDDO
+             SNDPGMMSG  MSG('DETECTA CHEQUES ANULADOS') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             OVRDBF     FILE(SUSTAD) TOFILE(SUSB)
+             OVRDBF     FILE(CAMAGX) TOFILE(CAMAGX$)
+             CALL       PGM(CAMAR11)
+             SNDPGMMSG  MSG('COLOCA COD. GERENTE A CAMAG0') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             OVRDBF     FILE(CAMAG0) TOFILE(CAMAG0$)
+             CALL       PGM(ONLINEC/CAMAR88)
+ REPRO29:
+/* **** APLICA LO DEBITOS EN LAS CUENTAS ****                       */
+ REPROZ:
+             CALL       PGM(CAMAGE$CL)
+             DLTOVR     *ALL
+             DLCOBJ     OBJ((QS36F/SOBREGIRU$ *FILE *EXCL))
+/* *************************************************************    */
+/*  AUTORIZACION MASIVA DE CHEQUES RECHAZADOS COD- 01-04-19-26 *    */
+/* *************************************************************    */
+             OVRDBF     FILE(CAMAG0) TOFILE(CAMAG0$)
+             CALL       PGM(ONLINE/CAMAR14)
+/* *******CONTROL INHABILITADOS******************                   */
+             RUNQRY     QRY(ONLINE/QRYCOD10) QRYFILE((QS36F/CAMAGHB$))
+/* **********************************************                   */
+/* **Actualiza en CAMRECUS los rechazos internos                    */
+             CALL       PGM(ONLINE/NCHMM909$)
+             CALL       PGM(ONLINE/NCHM936L)
+             CALL       PGM(ONLINE/NCHM937L)
+             SNDPGMMSG  MSG('PROCESO PARA GENERAR POSICION EN EL +
+                          CLEARING-IMPORTANTISIMO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+ REPRO:
+             CALL       PGM(CAMAGEPOCL)
+/* *Reporte de cheques de importes mayores                          */
+             CALL       SG911CL
+ ALFIN:
+
+             ENDPGM

@@ -1,0 +1,37 @@
+             PGM
+
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&WORK) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&FECH) TYPE(*CHAR) LEN(08)
+             ALCOBJ     OBJ((*LIBL/CHEQME20CL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('SE ESTA UTILIZANDO EL PROCESO EN ESTE +
+                        MOMENTO, INTENTE MAS TARDE') TOPGMQ(*EXT) +
+                        MSGTYPE(*INQ)
+                        GOTO CMDLBL(ALFIN)
+             ENDDO
+
+             SNDPGMMSG  MSG('INGRESE LA FECHA EN 8 DIGITOS +
+                          (AAAAMMDD)') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDUSRMSG  MSG(' ') TOMSGQ(*EXT) MSGRPY(&FECH)
+
+             CPYF FROMFILE(QS36F/CHEQMEPH) +
+                  TOFILE(QS36F/CHEQMEPHW) MBROPT(*REPLACE) +
+                  INCREL((*IF FECHAC *EQ &FECH))
+
+             SNDPGMMSG MSG('Informe por Pantalla o Impresora? +
+                          (P/I)') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDUSRMSG  MSG('Enter Required Parameter') TOMSGQ(*EXT) +
+                          MSGRPY(&WORK)
+
+             CHGVAR VAR(&PM02) VALUE(' &WORK ')
+
+             IF COND(&PM02 *EQ 'I') THEN(RUNQRY +
+                          QRY(CHEQMEPO) QRYFILE((CHEQMEPHW)))
+             IF COND(&PM02 *EQ 'P') THEN(RUNQRY +
+                          QRY(CHEQMEPO) QRYFILE((CHEQMEPHW)) +
+                          OUTTYPE(*DISPLAY))
+ ALFIN:      DLCOBJ     OBJ((*LIBL/CHEQME20CL *PGM *EXCL))
+
+ ENDPGM

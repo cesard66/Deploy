@@ -1,0 +1,68 @@
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+
+             SNDPGMMSG  MSG('Verifica si es primer día hábil del +
+                          mes') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGJOB     SWS(00000000)
+             CALL       (INTERB02/VERIF2)
+             IF         COND(*NOT (%SWITCH(XX1XXXXX))) THEN(GOTO +
+                          CMDLBL(ALFIN))
+             CHGJOB     SWS(00000000)
+             CALL       VERAPLI
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('ERROR-YA SE HA APLICADO EN ESTE MES +
+                          PROMEDIO INFERIOR') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('VERIFICA QUE CTESDO QUE SE VA A USAR +
+                          ES EL DE FIN DE MES') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(VERCTES)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             PAUSE      MSG('ERROR-ARCHIVO CTESDO NO ES DE FIN DE MES')
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             CHGJOB     SWS(00000000)
+             SNDPGMMSG  MSG('VERIFICA QUE SE HAYA EJECUTADO +
+                          PROCESO DE EXONERACIONES') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CALL       PGM(VEREXON)
+             IF         COND(%SWITCH(1XXXXXXX)) THEN(DO)
+             SNDPGMMSG  MSG('ERROR-NO SE CORRIO PROCESO DE +
+                          EXONERACIONES') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+/* *********************                                            */
+/* * PROMEDIO INFERIOR *                                            */
+/* *********************                                            */
+             CRTPF      FILE(QS36F/DBPCA) RCDLEN(86)
+             CRTPF      FILE(QS36F/DBPCT) RCDLEN(80)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(QS36F/INTF04PI) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(QS36F/INTF04PI) RCDLEN(80))
+             CLRPFM     FILE(QS36F/DBPCA)
+             CLRPFM     FILE(QS36F/DBPCT)
+             CLRPFM     FILE(QS36F/INTF04PI)
+/* *** Prepara bases de Saldo Promedio Inferior Ctacte-Ahorro ******** */
+             SNDPGMMSG  MSG('Prepara Base de Cuentas Saldo Promedio +
+                          Inferior') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       NCC002CL
+/* *Proceso de Cobro de Comision integrado a TARCOM    ********     */
+             SNDPGMMSG  MSG('Cobro de comision Saldo Promedio +
+                          Inferior Ctas') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(ONLINE/NCTES06CL)
+/* * Listados y Resumenes de Saldo Promedio Inferior ********       */
+             SNDPGMMSG  MSG('Listados de Saldo Promedio Inferior') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       ONLINE/NCCMR001
+ ALFIN:
+
+             ENDPGM

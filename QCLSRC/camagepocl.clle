@@ -1,0 +1,46 @@
+/* *PROGRAMA: CAMAGEPO                                             */
+             PGM
+
+ INICI:
+             CHGJOB     SWS(00000000)
+             CALL       PGM(CHEQME09C)
+             SNDPGMMSG  MSG('Se han generado datos de cheques +
+                          enviados, favor verifiquelos en el +
+                          spool') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             WRKSPLF
+             PAUSE      MSG('VA A CONTINUAR EL PROCESO')
+             CLRPFM     FILE(CHEQMEPO)
+             SNDPGMMSG  MSG('Genera resumen de recibidos x Banco') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CHEQME08R)
+             SNDPGMMSG  MSG('Genera resumen de enviados  x Banco') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CHEQMEO8E)
+             SNDPGMMSG  MSG('Calcula posición            x Banco') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CHEQME08P)
+             SNDPGMMSG  MSG('Genera resumen x cuenta de detalle de +
+                          cheques') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CLRPFM     FILE(CHEQMERE)
+             CALL       PGM(CHEQME12)
+             SNDPGMMSG  MSG('Emite planilla de posición') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             RUNQRY     QRY(CHEQMEPO)
+             SNDPGMMSG  MSG('Se ha emitido la planilla de posición +
+                          del clearing en M/E') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('La misma debe ser firmada por las +
+                          personas indicadas al pie') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('Considere que en base a esta posición, +
+                          se realizarán los pagos') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE      MSG('cobros a   otros Bancos, además de la +
+                          confirmación de los depósitos')
+             GOTO       CMDLBL(FIN)
+ NOPRO:
+             PAUSE      MSG('No se ha generado la planilla de +
+                          posición, proceso inconcluso')
+ FIN:
+
+             ENDPGM

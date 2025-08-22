@@ -1,0 +1,79 @@
+/*                                                                  */
+/* CONTABILIZACIONES COBRANZAS (REX)                                */
+/*                                                                  */
+             PGM        PARM(&PM02)
+
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(12)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(1) VALUE('1')
+             DCL        VAR(&LIBF) TYPE(*CHAR) LEN(10)
+
+/* MEMBER USER1-MEMREX, LIBRARY-EXP.LIBR                            */
+             RTVDTAARA  DTAARA(CONVQS36F/LIBSYS (1 10)) RTNVAR(&LIBF)
+             CHGCURLIB  CURLIB(&LIBF)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/REX.CONA) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF +
+                          FILE(&LIBF/REX.CONA))
+             CLRPFM     FILE(&LIBF/SALIV7)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(&LIBF/INTCONT) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(GOTO +
+                          CMDLBL(HACER))
+/*----------------------------------------------------------------------------*/
+             SNDPGMMSG  MSG('Lo siento pero se esta realizando el +
+                          proceso de CONTABILIDAD no puede ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('cargar mas datos, consulte con la +
+                          DIVISION INFORMATICA si desea car-') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('gar, Por el momento cancelo su +
+                          operacion') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+/*----------------------------------------------------------------------------*/
+             RETURN
+ HACER:
+             IF         COND(&PM02 *EQ ' ') THEN(CHGVAR VAR(&PM02) +
+                          VALUE(REX.ALT))
+/*                                                                  */
+             CHGDTAARA  DTAARA(*LDA (1 500)) VALUE('')
+             CHGDTAARA  DTAARA(*LDA (1 1)) VALUE('')
+             RUNSQL     SQL('CREATE TABLE "REX.CONA" (F00001 +
+                          CHAR(96)) RCDFMT RREXCONA') COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             SNDPGMMSG  MSG('03 REX20 Contabilizacion de Cobranzas +
+                          Altas REAL       ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/*                                                                  */
+             OVRDBF     FILE(REXALT) TOFILE(&LIBF/&PM02)
+             OVRDBF     FILE(EXPCON) TOFILE(&LIBF/REX.CONA)
+             OVRDBF     FILE(SALIVA) TOFILE(SALIV7)
+             CALL       PGM(EXP.LIBR/REX20NW)
+/** MENSAJE DE ERRORES OCURRIDO EN PROGRAMA ANTERIOR                */
+             IF         COND((%SST(*LDA 001 006)) *EQ EXPTIP) +
+                          THEN(SNDPGMMSG MSG('Se debe cargar Tipos +
+                          de cambio de la fecha...') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP))
+             IF         COND((%SST(*LDA 001 006)) *EQ DIGITO) THEN(DO)
+             SNDPGMMSG  MSG('Digito verificador de una cuenta +
+                          incorrecto') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('la cuenta con error es--> ' *CAT +
+                          (%SST(*LDA 009 010))) TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             ENDDO
+             IF         COND((%SST(*LDA 001 008)) *EQ CONTAB88) +
+                          THEN(DO)
+             SNDPGMMSG  MSG('No existe una cuenta en maestro +
+                          contable') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('la cuenta con error es--> ' *CAT +
+                          (%SST(*LDA 009 010))) TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             ENDDO
+             IF         COND(*NOT ((%SST(*LDA 001 008)) *EQ ' ')) +
+                          THEN(PAUSE)
+
+             ENDPGM

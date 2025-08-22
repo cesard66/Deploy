@@ -1,0 +1,55 @@
+             PGM
+
+             DCL        VAR(&PROC) TYPE(*CHAR) LEN(10) +
+                          VALUE('PRINVINT')
+
+             SNDPGMMSG  MSG('      ************* PROCESO DE +
+                          INVENTARIO MANUAL DE COMEX +
+                          **************') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('                                       -
+                                 ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('PRINVINT======> PROCESO DIARIO DE +
+                          INVENTARIO MANUAL DE COMEX <========') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * VERIFICA SI USUARIO ESTA AUTORIZADO A EJECTUAR                 */
+             CALL       PGM(GLOBAL/PRAUTORI)
+             SNDPGMMSG  MSG(' VERIFICA SI EL PROCESO ESTA DISPONIBLE +
+                          ') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('1'))
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             SNDPGMMSG  MSG('PROCESO NO DISPONIBLE PARA INICIO') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             GOTO       CMDLBL(ALFIN)
+             ENDDO
+             SNDPGMMSG  MSG('PRESIONE ENTER PARA CONTINUAR') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('2'))
+/* * PROCESO EN SI                                                  */
+             CALL       PGM(INTERNAC/ACTINVCL)
+/* -- COLOCA MARCA DE FINALIZADO AL PROCESO                         */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('4'))
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*         FIN DE PROCESO DE INVENTARIO +
+                          MANUAL DE COMEX                   *') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          -----------------------------------*') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+ ALFIN:
+
+             ENDPGM

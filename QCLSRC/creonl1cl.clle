@@ -1,0 +1,94 @@
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&PROC) TYPE(*CHAR) LEN(010) +
+                          VALUE('CREONL1CL')
+
+/* -- COLOCA MARCA DE INICIADO AL PROCESO                           */
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('2'))
+             SNDPGMMSG  MSG('********* CREONL1CL---> GENERACION DE +
+                          ARCHIVOS PARA AGENCIAS PRIMERA PARTE +
+                          ********') TOPGMQ(*EXT) MSGTYPE(*COMP)
+/* * ESTE PROCEDIMIENTO ES LLAMADO POR PRCONVA -ONLINE              */
+/* * LOS ARCHIVOS GENERADOS SON XEQ??Z-XEQ??X-XEQDLZ-NEGONL-PRCAO   */
+             SNDPGMMSG  MSG('CREACION DEL ARCHIVO PARA BUSQUEDA DE +
+                          CUENTAS CERRADAS POR BCP') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             CHGCURLIB  ONLINE
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(NEGONLW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(NEGONLW))
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(NEGONL) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         (&TEST *EQ &TRUE) CLRPFM NEGONL
+             OVRDBF     FILE(NEGONL) TOFILE(NEGONLW)
+             CALL       PGM(ONLINE/NEGONLNW)
+             DLTOVR     FILE(*ALL)
+/* / LOAD $COPY                                                     */
+/* / FILE NAME-COPYIN,LABEL-NEGONLW,UNIT-F1,RETAIN-S                */
+/* / FILE NAME-COPYO,LABEL-NEGONL,UNIT-F1                           */
+/* / RUN                                                            */
+/* / COPYFILE OUTPUT-D,REORG-YES                                    */
+/* / END                                                            */
+             CPYF       FROMFILE(QS36F/NEGONLW) TOFILE(QS36F/NEGONL) +
+                          MBROPT(*ADD)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(NEGONLW) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(NEGONLW))
+             SNDPGMMSG  MSG(' SE ESTA CREANDO ARCHIVO DE NRO. DE +
+                          CHEQUERAS SOLICITADAS POR CUENTA') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(XEQBZ) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM FILE(XEQBZ))
+/* * BLDFILE XEQBZ,I,RECORDS,50,40,,T,1,7,NDFILE,NODUPKEY,50        */
+             OVRDBF     FILE(BTHABCHE) TOFILE(BTLIB/BTHABCHE)
+             CALL       PGM(ONLINEC/CREXEQNW)
+             SNDPGMMSG  MSG(' GENERA PRCA0 COPIA DE PRCATAST PARA +
+                          ONLINE') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(PRCA0) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) CLRPFM PRCA0
+             CPYF       FROMFILE(QS36F/PRCATAST) TOFILE(QS36F/PRCA0) +
+                          MBROPT(*ADD) CRTFILE(*YES)
+/* * LOAD $COPY                                                     */
+/* * FILE NAME-COPYIN,LABEL-PRCATAST,UNIT-F1,DISP-SHR               */
+/* * FILE NAME-LABEL-PRCA0,UNIT-F1                                  */
+/* * RUN                                                            */
+/* * COPYFILE OUTPUT-SAME                                           */
+/* * END                                                            */
+             SNDPGMMSG  MSG('CREACION ARCHIVO PLAN +
+                          CTA.P/ONLINE                   ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(PLANO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR &TEST ('0'))
+             IF         (&TEST *EQ &TRUE) CLRPFM PLANO
+             OVRDBF     FILE(PLAN88) TOFILE(PLANO)
+             CALL       (ONLINE/CREPLANW)
+             DLTOVR     FILE(*ALL)
+             CHGVAR     &TEST (&TRUE)
+             CHKOBJ     OBJ(PLANONO) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(CLRPFM +
+                          FILE(PLANONO))
+             OVRDBF     FILE(PLAN88) TOFILE(PLANONO)
+             CALL       (ONLINE/CREPL2NW)
+             DLTOVR     FILE(*ALL)
+/* -- COLOCA MARCA FINALIZADO AL PROCESO                            */
+
+             CALL       PGM(CTRPROCES) PARM((&PROC) ('4'))
+
+             ENDPGM

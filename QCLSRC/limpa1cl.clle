@@ -1,0 +1,61 @@
+/*   CONTROLA QUE SEA EJECUTADO ESTE PROCESO POR PERSONAS           */
+/* AUTORIZADAS                                                      */
+/*   SOLAMENTE (CESAR, JUAN, EMMANUEL, RUBEN, NESTOR, MARTIN) EN    */
+/* CASA MATRIZ                                                      */
+/*   Y EN LAS AGENCIAS TODO AQUELLO QUE CUENTEN CON EL MENU TECNIC  */
+             PGM
+             DCL        VAR(&PM01) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&PM02) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&WORK) TYPE(*CHAR) LEN(032)
+
+             SNDPGMMSG  +
+                          MSG('**************************************+
+                          ***************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('PARA UTILIZAR ESTE PROCEDIMIENTO DEBE +
+                          ESTAR SEGURO QUE EL USUARIO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('A SER LIBERADO EFECTIVAMENTE NO ESTA +
+                          ACTIVO EN OTRA TERMINAL.-   ') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('**************************************+
+                          ***************************') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             SNDUSRMSG  MSG('INTRODUZCA EL NOMBRE DEL USUARIO') +
+                          TOMSGQ(*EXT) MSGRPY(&WORK)
+             CHGDTAARA  DTAARA(*LDA (1 20)) VALUE(&WORK *TCAT +
+                          '        ')
+             CHGVAR     VAR(&PM01) VALUE(%SST(*LDA 001 008))
+             CALL       VERINTE
+             IF         (%SWITCH(XXX1XXXX)) DO
+             SNDPGMMSG  MSG('Usuario solicitado no existe en +
+                          catastro de usuarios') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             GOTO       CMDLBL(FIN)
+             ENDDO
+             IF         (%SWITCH(1XXXXXXX)) DO
+             SNDPGMMSG  MSG('Su cargo no le permite realizar esta +
+                          funcion, lo siento') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             GOTO       CMDLBL(FIN)
+             ENDDO
+             IF         (%SWITCH(X1XXXXXX)) DO
+             SNDPGMMSG  MSG('El usuario solicitado no corresponde a +
+                          su agencia, lo siento') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             GOTO       CMDLBL(FIN)
+             ENDDO
+             IF         (%SWITCH(XX1XXXXX)) DO
+             SNDPGMMSG  MSG('Usuario con más de 3 intentos fallidos +
+                          de uso de seña EXTORNO!!') TOPGMQ(*EXT) +
+                          MSGTYPE(*INQ)
+             SNDUSRMSG  MSG('DESEAS LIBERAR? (S/N)') TOMSGQ(*EXT) +
+                          MSGRPY(&PM02)
+             IF         COND(*NOT (&PM02 *EQ 'S')) THEN(GOTO +
+                          CMDLBL(FIN))
+             CALL       PGM(LIBINTE)
+             ENDDO
+             CALL       PGM(LIMPA1NW)
+ FIN:
+
+             ENDPGM

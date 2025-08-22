@@ -1,0 +1,53 @@
+             PGM
+
+             DCL        VAR(&JOBA) TYPE(*CHAR) LEN(032)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+             DCL        VAR(&WSID) TYPE(*CHAR) LEN(002)
+
+             RTVJOBA    USER(&USER)
+             RTVJOBA    JOB(&JOBA)
+             CHGVAR     VAR(&WSID) VALUE(&JOBA)
+
+             ALCOBJ     OBJ((*LIBL/PROCCHEQ *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('PROCESO DE CHEQUERA EN EJECUCION +
+                          AGUARDE UN MOMENTO Y LUEGO REINTENTE') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ALCOBJ     OBJ((*LIBL/CIERRE *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('CIERRE DE AGENCIA ACTIVO.- CANCELO') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ALCOBJ     OBJ((*LIBL/CONVCH *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('CONVERSION DE CHEQUERA ACTIVO - +
+                          CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ALCOBJ     OBJ((*LIBL/CONVCTA *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('ACTUALIZACION DE CUENTAS +
+                          ACTIVO-CANCELO') TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             ALCOBJ     OBJ((*LIBL/TRANSOL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('TRASMISION DE CHEQUERA ACTIVO CANCELO') +
+                          TOPGMQ(*EXT) MSGTYPE(*INQ)
+             RETURN
+             ENDDO
+             CALL       PGM(ONLINE/CTGRACA) PARM((&USER) (&WSID))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(MCL0) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(CRTPF +
+                          FILE(CONVQS36F/MCL0) RCDLEN(280))
+             CALL       PGM(COL02CLC)
+
+             ENDPGM

@@ -1,0 +1,39 @@
+/* -- VERIFICA QUE SEA FIN DE MES PARA CORRER '                     */
+/* / CANCEL                                                         */
+             PGM
+
+             DCL        VAR(&DATE) TYPE(*CHAR) LEN(006)
+
+             CHGJOB     SWS(00000000)
+             RTVJOBA    DATE(&DATE)
+             CHGDTAARA  DTAARA(*LDA (1 6)) VALUE(&DATE)
+/* / LOAD ACTIUX                                                    */
+/* / FILE NAME-CTESDO, DISP-SHR                                     */
+/* / RUN                                                            */
+/* / IF SWITCH1-1 PAUSE 'HOY NO ES FIN DE MES, NO PUEDE CORRER ACTIVO FIJO */
+/* / IF SWITCH1-1 GOTO ALFIN                                        */
+             SNDPGMMSG  MSG('PROCESO MENSUAL DE ACTIVO FIJO') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             SNDPGMMSG  MSG('PRACTFIJ======> PROCESO MENSUAL DE +
+                          ACTIVO FIJO<==========') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+/* * 1. CONTROL                   REQUERIMIENTOS BASICOS PARA SU EJECUCION' */
+/* PRAUTORI,GLOBAL                                                          */
+/* * 2. PROCESO MENSUAL EN SI.                                              */
+             CALL       PGM(INTERB07/NAF0001CL)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          --------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  MSG('*              FINAL DE PROCESO DE +
+                          ACTIVO FIJO             ') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             SNDPGMMSG  +
+                          MSG('*-------------------------------------+
+                          --------------------*') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+ ALFIN:
+
+             ENDPGM

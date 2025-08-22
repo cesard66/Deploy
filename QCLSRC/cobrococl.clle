@@ -1,0 +1,15 @@
+/* * APLICA PARA CUENTAS DE MONEDA LOCAL, LAS DE MONEDA EXTRANJERA    */
+/* * APLICA AL DI SIGUIENTE EN EL PROCESO DE CHEQUERA POR QUE DE ESTA */
+/* * FORMA NO CREA PROBLEMAS EN LA PLANILLA DE POSICION DE CAMBIOS.   */
+             PGM
+             CALL       ONLINE/DEBCOMN1
+             CPYF       FROMFILE(QS36F/NDBCOM02) +
+                          TOFILE(QS36F/ICHMOVCC) MBROPT(*ADD) +
+                          INCCHAR(*RCD 1 *EQ '50') FMTOPT(*NOCHK)
+             CPYF       FROMFILE(QS36F/CTESDO) +
+                          TOFILE(QS36F/CTESD02X) MBROPT(*REPLACE) +
+                          FMTOPT(*NOCHK)
+             CALL       PGM(RUNDRY) PARM(NDBCOM02)
+             CLRPFM     CTESD02X
+             CLRPFM     NDBCOM02
+             ENDPGM
