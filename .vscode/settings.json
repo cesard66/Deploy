@@ -1,4 +1,5 @@
 {
-    "ibm-i-acs.host": ""
+    "ibm-i-acs.host": "",
+    "sqltools.useNodeRuntime": true
     
 }
