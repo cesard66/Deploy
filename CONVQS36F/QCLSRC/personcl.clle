@@ -43,7 +43,8 @@
              CHGJOB     SWS(1XXXXXXX)
              RUNSQL     SQL('CREATE TABLE SEÑALES ( K00001 CHAR(4), +
                           F00001 CHAR(12) , CONSTRAINT PK_SENHAL  +
-                          PRIMARY KEY( K00001 ) ) RCDFMT RSENHAL')
+                          PRIMARY KEY( K00001 ) ) RCDFMT RSENHAL') +
+                          COMMIT(*NONE)
              MONMSG     MSGID(CPF0000)
              ENDDO
              CHGVAR     VAR(&TEST) VALUE(&TRUE)
@@ -53,24 +54,36 @@
              IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
              RUNSQL     SQL('CREATE TABLE TOLB ( K00001 CHAR(8), +
                           F00001 CHAR(312) , CONSTRAINT PK_TOLB   +
-                          PRIMARY KEY( K00001 ) ) RCDFMT RTOLB')
+                          PRIMARY KEY( K00001 ) ) RCDFMT RTOLB') +
+                          COMMIT(*NONE)
              MONMSG     MSGID(CPF0000)
              ENDDO
              RTVMBRD    FILE(SEÑALES) NBRCURRCD(&RCDNBR)
              IF         COND(&RCDNBR *EQ 00000000) THEN(DO)
              RUNSQL     SQL('CREATE TABLE LAST  ( K00001 CHAR(4), +
                           F00001 CHAR(12) , CONSTRAINT PK_LAST  +
-                          PRIMARY KEY( K00001 ) ) RCDFMT RLAST')
+                          PRIMARY KEY( K00001 ) ) RCDFMT RLAST') +
+                          COMMIT(*NONE)
              MONMSG     MSGID(CPF0000)
              GOTO       CMDLBL(NADA)
              ENDDO
+             RUNSQL     SQL('CREATE TABLE LAST  ( K00001 CHAR(4), +
+                          F00001 CHAR(12) , CONSTRAINT PK_LAST  +
+                          PRIMARY KEY( K00001 ) ) RCDFMT RLAST') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
              RUNSQL     SQL('INSERT INTO LAST SELECT * FROM SEÑALES +
                           ORDER BY SUBSTR(F00001, 1, 1) ASC, +
                           SUBSTR(F00001, 2, 9) ASC') COMMIT(*NONE)
  NADA:
-             CALL       PGM(PREVIO)
+             RUNSQL     SQL('CREATE TABLE LOST  ( K00001 CHAR(4), +
+                          F00001 CHAR(12) , CONSTRAINT PK_LOST  +
+                          PRIMARY KEY( K00001 ) ) RCDFMT RLOST') +
+                          COMMIT(*NONE)
+             MONMSG     MSGID(CPF0000)
+             CALL       PGM(PREVIONW)
              DLTF       FILE(LAST)
-             OVRDBF     FILE(TOLO) TOFILE(TOLB)
+             OVRDBF     FILE(TOL0) TOFILE(TOLB)
              CALL       PGM(ONLINEC/PERSONNW)
              DLTF       FILE(LOST)
              DLTOVR     FILE(*ALL)
