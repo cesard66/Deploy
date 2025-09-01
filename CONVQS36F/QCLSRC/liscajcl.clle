@@ -1,0 +1,35 @@
+/*                                                                  */
+             PGM
+
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+             CHGDTAARA  DTAARA(*LDA (1 19)) VALUE(&USER *TCAT +
+                          '         ')
+
+             ALCOBJ     OBJ((*LIBL/LISCAJCL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('NO SE PUEDE SOLICITAR ESTE LISTADO EN +
+                          DOS PANTALLAS SIMULTANEAMENTE') +
+                          TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+
+             CHGJOB     SWS(00000000)
+             OVRDBF     FILE(MOL0) TOFILE(MOL)
+             OVRDBF     FILE(TOL) TOFILE(TOLB)
+             OVRPRTF    FILE(AUDICINT) PAGESIZE(66) FORMTYPE(RE66) +
+                          COPIES(1) OUTPTY(9) HOLD(*YES)
+             CALL       (ONLINEC/LISCAJ)
+             DLTOVR     FILE(*ALL)
+
+
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(SNDUSRMSG +
+                          MSG('USTED NO ESTA AUTORIZADO A UTILIZAR +
+                          ESTE PROGRAMA') TOMSGQ(*EXT))
+             PAUSE
+             RETURN
+             ENDPGM

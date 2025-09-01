@@ -581,7 +581,7 @@
                           MBROPT(*REPLACE) CRTFILE(*YES) FROMRCD(1) +
                           TORCD(1)
              CLRPFM     FILE(QS36F/CAHSORT)
-             RUNSQL     SQL('INSERT INTO QS36F.CAHSORT SELECT * FRIN +
+             RUNSQL     SQL('INSERT INTO QS36F.CAHSORT SELECT * FROM +
                           QS36F.CAHSDO ORDER BY SUBSTRING(K00001, +
                           1, 1) ASC, SUBSTRING(K00001, 2, 1) ASC, +
                           SUBSRING(F00001, 240, 4) ASC') COMMIT(*NONE)

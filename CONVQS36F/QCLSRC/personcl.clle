@@ -1,0 +1,85 @@
+/* * MANTENIMIENTO DE ARCHIVO DE CATASTRO DE PERSONAL DE LA AGENCIA */
+             PGM
+
+             DCL        VAR(&RCDNBR) TYPE(*DEC) LEN(010)
+             DCL        VAR(&TEST) TYPE(*CHAR) LEN(001)
+             DCL        VAR(&TRUE) TYPE(*CHAR) LEN(001) VALUE('1')
+             DCL        VAR(&USER) TYPE(*CHAR) LEN(010)
+
+             RTVJOBA    USER(&USER)
+
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(*LIBL/PERSONCL) OBJTYPE(*PGM)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DO)
+             ALCOBJ     OBJ((*LIBL/PERSONCL *PGM *EXCL))
+             MONMSG     MSGID(CPF1002) EXEC(DO)
+             SNDPGMMSG  MSG('ESTE PROGRAMA ESTA SENDO UTILIZADO POR +
+                          OTRO TERMINAL-CANCELO') TOPGMQ(*EXT) +
+                          MSGTYPE(*COMP)
+             PAUSE
+             RETURN
+             ENDDO
+             ENDDO
+             CHGJOB     SWS(00000000)
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(LAST) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(LAST))
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(LOST) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(&TEST *EQ &TRUE) THEN(DLTF FILE(LOST))
+             CHGDTAARA  DTAARA(*LDA (1 19)) VALUE(&USER *TCAT +
+                          '       ')
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(SEÑALES) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             CHGJOB     SWS(1XXXXXXX)
+             RUNSQL     SQL('CREATE TABLE SEÑALES ( K00001 CHAR(4), +
+                          F00001 CHAR(12) , CONSTRAINT PK_SENHAL  +
+                          PRIMARY KEY( K00001 ) ) RCDFMT RSENHAL')
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+             CHGVAR     VAR(&TEST) VALUE(&TRUE)
+             CHKOBJ     OBJ(TOLB) OBJTYPE(*FILE)
+             MONMSG     MSGID(CPF9801) EXEC(CHGVAR VAR(&TEST) +
+                          VALUE('0'))
+             IF         COND(*NOT (&TEST *EQ &TRUE)) THEN(DO)
+             RUNSQL     SQL('CREATE TABLE TOLB ( K00001 CHAR(8), +
+                          F00001 CHAR(312) , CONSTRAINT PK_TOLB   +
+                          PRIMARY KEY( K00001 ) ) RCDFMT RTOLB')
+             MONMSG     MSGID(CPF0000)
+             ENDDO
+             RTVMBRD    FILE(SEÑALES) NBRCURRCD(&RCDNBR)
+             IF         COND(&RCDNBR *EQ 00000000) THEN(DO)
+             RUNSQL     SQL('CREATE TABLE LAST  ( K00001 CHAR(4), +
+                          F00001 CHAR(12) , CONSTRAINT PK_LAST  +
+                          PRIMARY KEY( K00001 ) ) RCDFMT RLAST')
+             MONMSG     MSGID(CPF0000)
+             GOTO       CMDLBL(NADA)
+             ENDDO
+             RUNSQL     SQL('INSERT INTO LAST SELECT * FROM SEÑALES +
+                          ORDER BY SUBSTR(F00001, 1, 1) ASC, +
+                          SUBSTR(F00001, 2, 9) ASC') COMMIT(*NONE)
+ NADA:
+             CALL       PGM(PREVIO)
+             DLTF       FILE(LAST)
+             OVRDBF     FILE(TOLO) TOFILE(TOLB)
+             CALL       PGM(ONLINEC/PERSONNW)
+             DLTF       FILE(LOST)
+             DLTOVR     FILE(*ALL)
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             SNDPGMMSG  MSG('DEBES TENER CARGO DE SUPERVISOR DE +
+                          CPD') TOPGMQ(*EXT) MSGTYPE(*COMP)
+             PAUSE
+             ENDDO
+             CHGJOB     SWS(00000000)
+ FIN:
+
+             ENDPGM
