@@ -172,6 +172,10 @@
  FIN:
 /* * VALIPF **YA NO SE USA                                          */
              CALL       PGM(CONTMCLCL)
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             CHGJOB     SWS(00000000)
+             RETURN
+             ENDDO
 /* *-/ IF ?F'A,MCLB'?>0 PAUSE 'ERROR-MCLB CON REGISTROS-MIMIX-AB'   */
              CHGVAR     VAR(&TEST) VALUE(&TRUE)
              CHKOBJ     OBJ(QS36F/MCLB) OBJTYPE(*FILE)

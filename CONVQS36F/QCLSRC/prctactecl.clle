@@ -46,6 +46,10 @@
                           PGM(INTERB1C/CTEP22CL))
              CHGDTAARA  DTAARA(ONLINE/ITCHDT (1 1)) VALUE(' ')
              CALL       PGM(CONTMCLCL)
+             IF         COND(%SWITCH(XXXXXXX1)) THEN(DO)
+             CHGJOB     SWS(00000000)
+             RETURN
+             ENDDO
              CLRPFM     FILE(QS36F/AUXMCL)
              SNDPGMMSG  +
                           MSG('*-------------------------------------+
