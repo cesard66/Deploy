@@ -1,18 +1,31 @@
 **free
 ctl-opt dftactgrp(*no) actgrp(*caller);
 
+/**********************************************************
+ * Prototipos de pthread
+ **********************************************************/
 dcl-pr pthread_create int(10) extproc('pthread_create');
-  threadptr    pointer;
-  attr         pointer;
-  startRoutine pointer;
-  arg          pointer;
+  threadptr    pointer;               // (pthread_t *)
+  attr         pointer value options(*omit);
+  startRoutine pointer value;         // (void *(*)(void *))
+  arg          pointer value;         // (void *)
 end-pr;
 
 dcl-pr pthread_join int(10) extproc('pthread_join');
-  threadptr    pointer;
+  threadptr    pointer value;
   retval       pointer;
 end-pr;
 
+/**********************************************************
+ * Estructura para pasar parámetros
+ **********************************************************/
+dcl-ds ThreadArg qualified template;
+  id 10i 0;
+end-ds;
+
+/**********************************************************
+ * Procedimiento del thread
+ **********************************************************/
 dcl-pr myThreadProc pointer export;
   arg pointer value;
 end-pr;
@@ -22,18 +35,39 @@ dcl-proc myThreadProc export;
     arg pointer value;
   end-pi;
 
-  dsply ('Hola desde el thread!');
+  dcl-ds parm likeds(ThreadArg) based(arg);
+
+  if arg <> *null;
+     dsply ('Hola desde el thread #' + %char(parm.id));
+  else;
+     dsply ('Thread sin argumentos');
+  endif;
+
   return *null;
 end-proc;
 
-dcl-s thread pointer;
-dcl-s rc int(10);
+/**********************************************************
+ * Programa principal
+ **********************************************************/
+dcl-s thread pointer dim(3);
+dcl-s args likeds(ThreadArg) dim(3);
+dcl-s rc 10i 0;
 
-rc = pthread_create(%addr(thread): *null: %paddr(myThreadProc): *null);
+for i = 1 to 3;
+   args(i).id = i;
+   rc = pthread_create(%addr(thread(i)) :
+                       *omit :
+                       %paddr(myThreadProc) :
+                       %addr(args(i)));
+   if rc <> 0;
+      dsply ('Error creando thread ' + %char(i));
+   endif;
+endfor;
 
-if rc = 0;
-   dsply ('Thread creado, esperando...');
-   rc = pthread_join(thread: *null);
-endif;
+// Esperar a que terminen
+for i = 1 to 3;
+   rc = pthread_join(thread(i) : *null);
+endfor;
 
+dsply ('Todos los threads finalizaron.');
 *inlr = *on;
