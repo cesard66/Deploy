@@ -1,52 +1,39 @@
-**FREE
-ctl-opt dftactgrp(*no) actgrp(*new) thread(*yes);
+**free
+ctl-opt dftactgrp(*no) actgrp(*caller);
 
-/* ==== Prototipos de APIs POSIX ==== */
 dcl-pr pthread_create int(10) extproc('pthread_create');
-   thread     pointer;
-   attr       pointer value options(*nullind);
-   start_rtn  pointer value;
-   arg        pointer value;
+  threadptr    pointer;
+  attr         pointer;
+  startRoutine pointer;
+  arg          pointer;
 end-pr;
 
 dcl-pr pthread_join int(10) extproc('pthread_join');
-   thread     pointer value;
-   status     pointer;
+  threadptr    pointer;
+  retval       pointer;
 end-pr;
 
-dcl-pr pthread_exit extproc('pthread_exit');
-   value      pointer value;
+dcl-pr myThreadProc pointer export;
+  arg pointer value;
 end-pr;
 
-/* ==== Variables globales ==== */
-dcl-s th1 pointer;
-dcl-s th2 pointer;
+dcl-proc myThreadProc export;
+  dcl-pi *n pointer;
+    arg pointer value;
+  end-pi;
+
+  dsply ('Hola desde el thread!');
+  return *null;
+end-proc;
+
+dcl-s thread pointer;
 dcl-s rc int(10);
 
-/* ==== Procedimientos de los hilos ==== */
-dcl-proc tarea1 export;
-   dcl-pi *n pointer end-pi;
+rc = pthread_create(%addr(thread): *null: %paddr(myThreadProc): *null);
 
-   dsply 'Hilo 1 ejecutando...';
-   pthread_exit(*null);
-end-proc;
+if rc = 0;
+   dsply ('Thread creado, esperando...');
+   rc = pthread_join(thread: *null);
+endif;
 
-dcl-proc tarea2 export;
-   dcl-pi *n pointer end-pi;
-
-   dsply 'Hilo 2 ejecutando...';
-   pthread_exit(*null);
-end-proc;
-
-/* ==== Programa principal ==== */
-dcl-s null ptr inz(*null);
-
-rc = pthread_create(%addr(th1): null: %paddr(tarea1): null);
-rc = pthread_create(%addr(th2): null: %paddr(tarea2): null);
-
-rc = pthread_join(th1: null);
-rc = pthread_join(th2: null);
-
-dsply 'Programa principal terminado';
 *inlr = *on;
-return;
