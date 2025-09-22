@@ -36,4 +36,3 @@ SRCFILE:     QUAL TYPE(*NAME) LEN(10) DFT(QDDSSRC) +
                  SPCVAL((QDDSSRC))
              QUAL TYPE(*NAME) LEN(10) DFT(*CURLIB) +
                  SPCVAL((*LIBL) (*CURLIB)) PROMPT('Library')
-
