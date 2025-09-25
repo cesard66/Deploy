@@ -1,0 +1,9 @@
+pgm
+             DCL        VAR(&MONTO) TYPE(*char) len(10)
+             CHGVAR     VAR(&MONTO) VALUE(100050)
+             CALL       PGM(VALIDANUM) PARM((&MONTO))
+             CHGVAR     VAR(&MONTO) VALUE('  050')
+             CALL       PGM(VALIDANUM) PARM((&MONTO))
+             CHGVAR     VAR(&MONTO) VALUE('A 050')
+             CALL       PGM(VALIDANUM) PARM((&MONTO))
+endpgm
