@@ -4,7 +4,7 @@
  PARM KWD(CONTEXT) TYPE(*CHAR) LEN(20) PROMPT('Contexto')                
                                                                  
  /* Clave Configuracion */                                          
- PARM KWD(Key) TYPE(*CHAR) LEN(50) PROMPT('')                                                                     
+ PARM KWD(Key) TYPE(*CHAR) LEN(50) PROMPT('Key')                                                                     
 
  /* Valor Configuracion */                                          
  PARM KWD(Value) TYPE(*CHAR) LEN(200) PROMPT('Valor')  

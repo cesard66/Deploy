@@ -3,9 +3,9 @@ CTL-OPT DFTACTGRP(*NO) ACTGRP(*NEW);
 
  // --- Interfaz de parámetros ---
 DCL-PI GetCfgVal;
-   Context   VARCHAR(20) CONST;
-   Key       VARCHAR(50) CONST;
-   Value     VARCHAR(200);
+   Context   CHAR(20) CONST;
+   Key       CHAR(50) CONST;
+   Value     CHAR(200);
 END-PI;
 
  // --- Variable para SQLSTATE ---
