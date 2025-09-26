@@ -2,7 +2,7 @@
 CTL-OPT DFTACTGRP(*NO) ACTGRP(*NEW);
 
  // --- Interfaz de parámetros ---
-DCL-PI GetCfgValue;
+DCL-PI GetCfgVal;
    Context   VARCHAR(20) CONST;
    Key       VARCHAR(50) CONST;
    Value     VARCHAR(200);
