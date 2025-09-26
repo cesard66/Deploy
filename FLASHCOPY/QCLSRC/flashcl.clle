@@ -1,0 +1,155 @@
+
+     PGM
+     DCL VAR(&CMD) TYPE(*CHAR) LEN(500)
+     DCL VAR(&NULL) TYPE(*CHAR) LEN(1) VALUE(X'00')
+     DCL VAR(&PARM1) TYPE(*CHAR) LEN(10) VALUE('/')
+     DCL VAR(&LOG) TYPE(*CHAR) LEN(100)
+     DCL VAR(&STATE) TYPE(*CHAR) LEN(1) VALUE('1')
+     DCL VAR(&OPTION) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&LPAR) TYPE(*DEC) LEN(3 0) VALUE(001)
+     ADDLIBLE INSTFLASH
+             MONMSG     MSGID(CPF2103)
+             LOGTABLE   LOG('INICIA FLASHCOPY CON OPCIÓN 1')
+     RMVENVVAR ENVVAR(QIBM_QSH_CMD_OUTPUT)
+     MONMSG MSGID(CPFA981)
+     ADDENVVAR ENVVAR(QIBM_QSH_CMD_OUTPUT) VALUE(NONE)
+     MONMSG MSGID(CPF0000)
+     ADDENVVAR ENVVAR(TRACEFILE) VALUE('/tmp/qsh_trace') LEVEL(*JOB)
+     MONMSG MSGID(CPF0000)
+     ADDENVVAR ENVVAR(QIBM_ZSH_TRACE_LEVEL) VALUE(3) LEVEL(*JOB)
+     MONMSG MSGID(CPF0000)
+     STRTRC SSNID(QSHELL) JOB((*ALL/*ALL/QZSHSH *ALL)) -
+JOBTRCTYPE(*TRCTYPE) TRCTYPE((*QSHELL *VERBOSE))
+     MONMSG MSGID(CPF0000)
+     STRTRC SSNID(QSHELL2) JOB((*ALL/*ALL/QP0ZSPW* *ALL)) -
+JOBTRCTYPE(*TRCTYPE) TRCTYPE((*QSHELL *VERBOSE))
+     MONMSG MSGID(CPF0000)
+     CHGASPACT ASPDEV(*SYSBAS) OPTION(*RESUME)
+     MONMSG MSGID(CPF0000)
+     CHGASPACT ASPDEV(*SYSBAS) OPTION(*FRCWRT)
+     MONMSG     MSGID(CPF0000)
+
+             LOGTABLE   LOG('SYSBAS MEMORY *FRCWRT')
+
+     CHGASPACT  ASPDEV(IASP1) OPTION(*RESUME)
+     MONMSG     MSGID(CPF0000)
+     CHGASPACT  ASPDEV(IASP1) OPTION(*FRCWRT)
+     MONMSG     MSGID(CPF0000)
+
+             LOGTABLE   LOG('IASP1 MEMORY *FRCWRT')
+
+             CHGDTAARA  DTAARA(INSTFLASH/BNOPTFC (1 1)) VALUE('1')
+             RTVDTAARA  DTAARA(INSTFLASH/BNOPTFC (1 1)) RTNVAR(&OPTION)
+             LOGTABLE   LOG('CHANGE DTAARA FLASHCOPY OPCION')
+             SELECT
+             WHEN       COND(&OPTION *EQ '1') THEN(CHGVAR VAR(&LPAR) +
+                          VALUE(001))
+             WHEN       COND(&OPTION *EQ '2') THEN(CHGVAR VAR(&LPAR) +
+                          VALUE(001))
+             WHEN       COND(&OPTION *EQ '3') THEN(CHGVAR VAR(&LPAR) +
+                          VALUE(002))
+             ENDSELECT
+ LOOP:       RCVF       RCDFMT(RCONFLASH)
+     MONMSG MSGID(CPF0864) EXEC(GOTO CMDLBL(FIN))
+             IF         COND(&LPARNRO *NE &LPAR) THEN(GOTO +
+                          CMDLBL(LOOP))
+     CHGVAR VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) || '@' || -
+%TRIM(&HMCIP) *BCAT 'chsysstate -m ' || %TRIM(&NOMBRE) *BCAT '-r lpar-
+ -o shutdown --id ' || %TRIM(&LPARID) *BCAT '--immed')
+     QSH CMD(&CMD)
+             CHGVAR     VAR(&LOG) VALUE('El usuario ' || &USUARIO || +
+                          'ha iniciado sesión en ' || &HMCIP)
+             LOGTABLE   LOG(&LOG)
+
+            /* Bucle hasta que &STATE sea 0 */
+             DOWHILE    COND(&STATE *NE '0')
+
+             DLYJOB     DLY(5)
+
+            /* Verificar si la particion esta activa o no         */
+            /* Copia 1 en /tmp/state.txt si esta activa, 0 si no  */
+             CHGVAR     VAR(&CMD) VALUE('if ssh ' *CAT +
+                          %TRIM(&USUARIO) *CAT '@' *CAT +
+                          %TRIM(&HMCIP) *CAT ' "lssyscfg -r lpar ' +
+                          *CAT '-m ' *CAT %TRIM(&NOMBRE) *CAT ' +
+                          --filter ' *CAT 'lpar_ids=' *CAT +
+                          %TRIM(&LPARID) *CAT '" | grep -q "Not +
+                          Activated"; ' *CAT 'then echo "0" > +
+                          /tmp/state.txt; else echo ' *CAT '"1" > +
+                          /tmp/state.txt; fi')
+
+             QSH        CMD(&CMD)
+
+             /* Copiar desde el archivo /tmp/state.txt al DTAARA*/
+             QSH        CMD('read LINE < /tmp/state.txt; system +
+                          "CHGDTAARA DTAARA(INSTFLASH/STATE) +
+                          VALUE(''${LINE:-0}'')"')
+
+             RTVDTAARA  DTAARA(INSTFLASH/STATE) RTNVAR(&STATE)
+
+             ENDDO
+
+  CHGVAR     VAR(&LOG) VALUE('El usuario ' || %trim(&USUARIO) || +
+                          'ha detenido la LPAR' || &LPARID || ' +
+                          desde el ' || &HMCIP)
+             LOGTABLE   LOG(&log)
+
+     CHGVAR VAR(&CMD) VALUE('exit')
+     QSH CMD(&CMD)
+     CHGVAR VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) || '@' || -
+%TRIM(&IPSTG) *BCAT 'stopfcconsistgrp ' || %TRIM(&CGRPFC))
+     QSH CMD(&CMD)
+
+             CHGVAR     VAR(&LOG) VALUE('El usuario ' || &USUARIO || +
+                          'ha iniciado sesión en ' || &IPSTG)
+             LOGTABLE   LOG(&LOG)
+
+             CHGVAR     VAR(&LOG) VALUE('El usuario ' || &USUARIO || +
+                          'ha detenido el grupo de consistencia ' || +
+                          &CGRPFC || ' desde el ' || &IPSTG)
+             LOGTABLE   LOG(&LOG)
+
+     CHGVAR VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) || '@' || -
+%TRIM(&IPSTG) *BCAT 'prestartfcmap -restore ' || %TRIM(&CGRPFC))
+     QSH CMD(&CMD)
+
+     CHGVAR VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) || '@' || -
+%TRIM(&IPSTG) *BCAT 'startfcmap -restore ' || %TRIM(&CGRPFC))
+     QSH CMD(&CMD)
+     CHGVAR VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) || '@' || -
+%TRIM(&IPSTG) *BCAT 'startfcconsistgrp -prep ' || %TRIM(&CGRPFC))
+     QSH CMD(&CMD)
+
+     CHGVAR     VAR(&LOG) VALUE('El usuario ' || +
+              &USUARIO ||'ha iniciado el grupo de consistencia ' || +
+                  &CGRPFC || ' desde el ' || &IPSTG )
+     LOGTABLE   LOG(&log)
+
+     CHGVAR VAR(&CMD) VALUE('quit')
+     QSH CMD(&CMD)
+     CHGVAR VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) || '@' || -
+%TRIM(&HMCIP) *BCAT 'chsysstate -m ' || %TRIM(&NOMBRE) *BCAT '-r lpar-
+ -o on --id ' || %TRIM(&LPARID))
+     QSH CMD(&CMD)
+
+     CHGVAR     VAR(&LOG) VALUE('El usuario ' || &USUARIO || +
+                  'ha iniciado la LPAR' || &LPARID || ' +
+                  desde el ' || &HMCIP)
+     LOGTABLE   LOG(&log)
+
+     CHGVAR VAR(&CMD) VALUE('exit')
+     QSH CMD(&CMD)
+             CHGASPACT  ASPDEV(*SYSBAS) OPTION(*RESUME)
+             LOGTABLE   LOG('SYSBAS MEMORY RESUME')
+
+             CHGASPACT  ASPDEV(IASP1) OPTION(*RESUME)
+             LOGTABLE   LOG('IASP1 MEMORY RESUME')
+
+     RMVENVVAR  ENVVAR(QIBM_ZSH_TRACE_LEVEL)
+     ENDTRC SSNID(QSHELL) DTALIB(QTEMP) PRTTRC(*YES)
+     MONMSG MSGID(CPF0000)
+     ENDTRC SSNID(QSHELL2) DTALIB(QTEMP) PRTTRC(*YES)
+     MONMSG MSGID(CPF0000)
+             LOGTABLE   LOG('FLASHCOPY ENDED')
+FIN: +
+     ENDPGM

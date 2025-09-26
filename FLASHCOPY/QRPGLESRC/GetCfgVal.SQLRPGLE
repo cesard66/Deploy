@@ -9,7 +9,7 @@ DCL-PI GetCfgVal;
 END-PI;
 
  // --- Variable para SQLSTATE ---
-DCL-S SqlState CHAR(5);
+DCL-S WSqlState CHAR(5);
 
  // --- Consulta SQL ---
 EXEC SQL
@@ -20,7 +20,7 @@ EXEC SQL
       AND CFGKEY     = :Key;
 
  // --- Manejo de "no encontrado" ---
-SqlState = SQLSTATE;
+WSqlState = SQLSTATE;
 IF SqlState = '02000';  // Not found
    Value = '*NOTFOUND';
 ENDIF;
