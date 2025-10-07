@@ -16,8 +16,8 @@ EXEC SQL
    SELECT CFGVALUE
      INTO :Value
      FROM FLASHLIB.FLASHCFG
-    WHERE CFGCONTEXT = :Context
-      AND CFGKEY     = :Key;
+    WHERE trim(CFGCONTEXT) = trim(:Context)
+      AND trim(CFGKEY)     = trim(:Key);
 
  // --- Manejo de "no encontrado" ---
 WSqlState = SQLSTATE;
