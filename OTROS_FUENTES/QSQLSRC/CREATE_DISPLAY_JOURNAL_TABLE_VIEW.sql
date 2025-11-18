@@ -23,7 +23,7 @@ CREATE OR REPLACE PROCEDURE CESARDLIB.CREATE_DISPLAY_JOURNAL_TABLE_VIEW  ( IN MY
                                                         IN CREATEANDREPLACE  char(1),
                                                         OUT MYCMD            varchar(32000)
                                                         )
-LANGUAGE SQL
+LANGUAGE SQL 
 SPECIFIC CESARDLIB/CRTJOUVIEW
 SET OPTION DBGVIEW=*SOURCE
 P1: BEGIN
