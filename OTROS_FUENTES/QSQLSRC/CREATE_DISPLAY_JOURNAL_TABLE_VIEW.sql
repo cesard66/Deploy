@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------------------------------------
--- FAQ400.CREATE_DISPLAY_JOURNAL_TABLE_VIEW 
--- Author : Roberto De Pedrini (FAQ400)
---  https://github.com/Faq400Git/CREATE_DISPLAY_JOURNAL_TABLE_VIEW
+-- CESARDLIB.CREATE_DISPLAY_JOURNAL_TABLE_VIEW 
+-- Author : Roberto De Pedrini (CESARDLIB)
+--  https://github.com/CESARDLIBGit/CREATE_DISPLAY_JOURNAL_TABLE_VIEW
 --
 -- SQL Stored Procedure to read data from Journal Entries, interpreting data from the DATA_ENTRY
 --     storage buffer
@@ -23,7 +23,7 @@ CREATE OR REPLACE PROCEDURE CESARDLIB.CREATE_DISPLAY_JOURNAL_TABLE_VIEW  ( IN MY
                                                         IN CREATEANDREPLACE  char(1),
                                                         OUT MYCMD            varchar(32000)
                                                         )
-LANGUAGE SQL 
+LANGUAGE SQL
 SPECIFIC CESARDLIB/CRTJOUVIEW
 SET OPTION DBGVIEW=*SOURCE
 P1: BEGIN
@@ -163,4 +163,6 @@ SET STRINGPOSITION=1;
 
                 
 END P1;
+
+
 

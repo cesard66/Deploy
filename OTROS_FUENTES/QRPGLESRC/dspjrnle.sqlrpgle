@@ -1,0 +1,1049 @@
+**Free
+        //==============================================================*
+        // json_table                                                   *
+        // FEC. CREACION: 12/11/2025          FEC.ULT.MOD.:   /  /      *
+        //==============================================================*
+        // For journal code R the possible journal entry types are:
+        //
+        // BR - Before-image of record updated for rollback
+        // DL - Record deleted from physical file member
+        // DR - Record deleted for rollback
+        // IL - Increment record limit
+        // PT - Record added to physical file member
+        // PX - Record added directly to physical file member
+        // UB - Before-image of record updated in physical file member
+        // UP - After-image of record updated in physical file member
+        // UR - After-image of record updated for rollback
+        Ctl-Opt DEBUG DECEDIT(',') DATEDIT(*DMY/);
+        //--------------------------------------------------------------*
+        dcl-F DSPJRND WORKSTN SFILE(PSF01:recno)
+                SFILE(PSF02:recno2)
+                SFILE(PSF03:recno3)
+                SFILE(PSF04:recno4)
+                SFILE(PSF05:recno5);
+        dcl-f MYPRT printer(133) oflind(*in99);
+        //--------------------------------------------------------------*
+        dcl-DS *N PSDS;
+            WUSER          Char(10)   Pos(254);
+            WUSUA          Char(8)    Pos(254);
+            WPROG          Char(10)   Pos(334);
+       end-DS;
+       //  Detalle de la linea del subfile donde se delimitan los campos
+       dcl-Ds LinSfl         Len(72);
+          Tim_LOG           char(22) Pos(01);
+          Des_LOG           Char(40) Pos(24);
+       end-Ds;
+       dcl-s situar_ts timestamp;
+
+       dcl-s separador       CHAR(1) ;
+       dcl-s STRINGPOSITION  INT(20) ;
+       dcl-s REALSTORAGE     INT(20) ;
+       dcl-s COLUMN_NAME     VARCHAR(128) ;
+       dcl-s COLUMN_HEADING  VARCHAR(254) ;
+       dcl-s DATA_TYPE       VARCHAR( 32 ) ;
+       dcl-s DATA_TYPE_LENGTH VARCHAR( 32 ) ;
+       dcl-s DATA_LENGTH     INT(20) ;
+       dcl-s ORDINAL_POSITION INT(20) ;
+       dcl-s FIELD_LENGTH    INT(20) ;
+       dcl-s NUMERIC_SCALE   INT(20) ;
+       dcl-s STORAGE         INT(20) ;
+       dcl-s FIELD_CCSID     INT(20) ;
+       dcl-s END_TABLE       INT(20) ;
+       dcl-s MYTABLE_NAME    CHAR( 10 ); //inz('CLIENTEPF');
+       dcl-s MYLIBRARY_NAME  CHAR( 10 ); //inz('CESARDLIB');
+       dcl-s MYTABLE_LIBRARY CHAR( 10 ); //inz('CESARDLIB') ;
+       dcl-s MYJOURNAL_LIBRARY CHAR(10); //inz('CESARDLIB') ;
+       dcl-s MYJOURNAL_NAME CHAR(10);    //inz('QSQJRN') ;
+       dcl-s MY_SYSTEM_TABLE_NAME  CHAR(10) ;
+       dcl-s MY_SYSTEM_SCHEMA_NAME CHAR(10) ;
+       dcl-s ENTRY_TIMESTAMP  timestamp;
+       dcl-s JOURNAL_CODE  CHAR(1);
+       dcl-s JRNTYPE CHAR(15);
+       dcl-s JOB_NAME VARCHAR(10);
+       dcl-s JOB_USER VARCHAR(10);
+       dcl-s CURRENTUSER VARCHAR(10);
+       dcl-s JOB_NUMBER VARCHAR(6);
+       dcl-s FILE VARCHAR(10);
+       dcl-s FILELIB VARCHAR(10);
+       dcl-s FILEMBR VARCHAR(10);
+       dcl-s OBJECT_TYPE VARCHAR(10);
+       dcl-s PROGRAM_NAME VARCHAR(10);
+       dcl-s PROGRAM_LIBRARY VARCHAR(10);
+       dcl-s MYCMD  varchar(32672);
+       dcl-s stmsql varchar(32672);
+       dcl-s DATOS  varchar(32672);// SQLType( CLOB : 2000000 );
+       dcl-s linea   char(130);
+       dcl-s resto   int(10) inz(0);
+       dcl-s offset  int(10) inz(0);
+       dcl-s lenline int(10) inz(120);
+       dcl-s lenstr  int(10) inz(120);
+       dcl-s i       int(10);
+       dcl-s len     int(10);
+       dcl-s len_datos int(10);
+       dcl-s len_datos1 int(10);
+       dcl-s len_datos2 int(10);
+       dcl-s CICLO   int(10) INZ(0);
+       dcl-s Existe   packed(1:0);
+       Dcl-ds line len(133) inz qualified;
+           fcfc     char(1);
+           *n       char(6);        // left margin
+           text     Char(126);      // Ad-hoc text
+           num      char(6)    overlay(text:*next);
+           *n       char(6)    overlay(text:*next);
+           ts       char(26)   overlay(text:*next);
+       end-ds;
+       dcl-ds   head1 likeds(line);
+       dcl-ds   head2 likeds(line);
+       dcl-ds   head3 likeds(line);
+       dcl-ds   deta1 likeds(line);
+       dcl-c TOP '1';       // Skip to top of  page
+       dcl-c S1  ' ';       // Space 1 line & print
+       dcl-c S2  '0';       // Space 2 lines & print t
+       dcl-c S3  '-';       // Space 3 lines & Print t
+       dcl-c S0  '+';       // Space 0, overprint
+       *in99 = *on;    // First page is always skip
+       exec sql
+        set option naming = *sys,
+        commit = *none,
+        usrprf = *user,
+        dynusrprf = *user,
+        datfmt = *iso,
+        closqlcsr = *endmod;
+
+       exec sql
+         SELECT VARCHAR_FORMAT(CURRENT TIMESTAMP, 'YYYYMMDD')
+         ,  VARCHAR_FORMAT(CURRENT TIMESTAMP, 'HHMMSS')
+         into :FECHA_CHAR, :HORA_CHAR
+         FROM SYSIBM.SYSDUMMY1;
+
+       Exec SQL CALL QCMDEXC('CHGJOB CCSID(284)');
+       Dow *IN03 = *OFF;
+         EXSR RINICIO;
+         EXSR RCARGA;
+         EXSR RVISUAL;
+         If *In03;
+           LEAVE;
+         Endif;
+       ENDDO;
+       *InLR = *On;
+        //--------------------------------------------------------------*
+        //    RUTINA PARA INICIAL SUBFILE                               *
+        //--------------------------------------------------------------*
+       BEGSR RINICIO;
+         recno = recno + 1;
+         WRITE PSF01;
+         WRITE PCL01;
+         recno = 0;
+         *IN50 = *ON;
+         WRITE PCL01;
+         WRITE PBLAN;
+         *IN50 = *OFF;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA CARGAR EL SUBFILE                             *
+       //--------------------------------------------------------------*
+       BEGSR RCARGA;
+         SITUAR_TS = %timestamp(
+                                 %subst(FECHA_CHAR:1:4) + '-' +
+                                 %subst(FECHA_CHAR:5:2) + '-' +
+                                 %subst(FECHA_CHAR:7:2) + '-' +
+                                 %subst(HORA_CHAR:1:2) + '.' +
+                                 %subst(HORA_CHAR:3:2) + '.' +
+                                 %subst(HORA_CHAR:5:2) + '.' +
+                                 '000000'
+                                 ) ;
+       MYTABLE_NAME  = PTABLE;
+       MYLIBRARY_NAME = PTABLELIB;
+       MYTABLE_LIBRARY = PTABLELIB;
+       MYJOURNAL_LIBRARY = PJOURNALL;
+       MYJOURNAL_NAME = PJOURNAL;
+       Exec Sql DECLARE CURSOR1 Scroll Cursor FOR
+                SELECT CAST(COLUMN_NAME AS VARCHAR(128)) ,
+                       CAST(COLUMN_HEADING AS VARCHAR(254)) ,
+                       ORDINAL_POSITION ,
+                       CAST(DATA_TYPE AS VARCHAR(32)) ,
+                       LENGTH ,
+                       COALESCE ( NUMERIC_SCALE , 0 ) ,
+                       STORAGE ,
+                       COALESCE ( CCSID , 0 )
+                FROM QSYS2 . SYSCOLUMNS A
+                WHERE ( SYSTEM_TABLE_NAME = :MYTABLE_NAME OR TABLE_NAME = :MYTABLE_NAME )
+                AND ( SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY OR TABLE_SCHEMA = :MYTABLE_LIBRARY )
+                ORDER BY ORDINAL_POSITION ;
+
+
+
+        MYCMD = '' ;
+
+
+        Exec Sql
+            SELECT SYSTEM_TABLE_NAME , SYSTEM_TABLE_SCHEMA
+            INTO :MY_SYSTEM_TABLE_NAME , :MY_SYSTEM_SCHEMA_NAME
+            FROM QSYS2 . SYSTABLES
+            WHERE ( SYSTEM_TABLE_NAME = :MYTABLE_NAME OR TABLE_NAME = :MYTABLE_NAME )
+            AND ( SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY OR TABLE_SCHEMA = :MYTABLE_LIBRARY ) ;
+
+            MYCMD = %trim ( MYCMD ) + ' ' +
+                    'SELECT ENTRY_TIMESTAMP,  ' +
+                            'JOURNAL_CODE,  ' +
+                            'CASE WHEN JOURNAL_ENTRY_TYPE = ''PT'' ' +
+                                'THEN ''INSERT'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''PX'' ' +
+                                'THEN ''INSERT BY RRN'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''UB'' ' +
+                                'THEN ''UPDATE BEFORE'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''UP'' ' +
+                                'THEN ''UPDATE AFTER'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''DL'' ' +
+                                'THEN ''DELETE'' ' +
+                                'ELSE JOURNAL_ENTRY_TYPE ' +
+                            'END AS JRNTYPE, ' +
+                            'JOB_NAME, ' +
+                            'JOB_USER, ' +
+                            'CURRENT_USER as CURRENTUSER, ' +
+                            'JOB_NUMBER , ' +
+                            'SUBSTR(OBJECT, 1, 10) AS FILE, ' +
+                            'SUBSTR(OBJECT, 11, 10) AS FILELIB, ' +
+                            'SUBSTR(OBJECT, 21, 10) AS FILEMBR, ' +
+                            'OBJECT_TYPE, ' +
+                            'COALESCE(PROGRAM_NAME, '''') PROGRAM_NAME , ' +
+                            'COALESCE(PROGRAM_LIBRARY,'''') PROGRAM_LIBRARY, ' +
+                            'json_object(' ;
+            STRINGPOSITION = 1 ;
+
+        Exec Sql
+            OPEN CURSOR1 ;
+        Exec Sql
+            FETCH CURSOR1 INTO :COLUMN_NAME , :COLUMN_HEADING , :ORDINAL_POSITION
+                    , :DATA_TYPE , :FIELD_LENGTH , :NUMERIC_SCALE , :STORAGE , :FIELD_CCSID ;
+
+        Dow SqlCod = 0;
+
+        Select;
+            WHEN DATA_TYPE = 'DATE' ;
+                REALSTORAGE = 10 ;
+            WHEN DATA_TYPE = 'TIME' ;
+                REALSTORAGE = 08 ;
+            WHEN DATA_TYPE = 'TIMESTMP' ;
+                REALSTORAGE = 26 ;
+            Other;
+                REALSTORAGE = STORAGE ;
+        endsl;
+
+        Select;
+        WHEN DATA_TYPE = 'DATE' ;
+            DATA_TYPE_LENGTH = 'CHAR(10)';
+        WHEN DATA_TYPE = 'TIME' ;
+            DATA_TYPE_LENGTH = 'CHAR(08)';
+        WHEN DATA_TYPE = 'TIMESTMP' ;
+            DATA_TYPE_LENGTH = 'CHAR(26)';
+        WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 16 ;
+            DATA_TYPE_LENGTH = 'FLOAT';
+        WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 8 ;
+            DATA_TYPE_LENGTH = 'DOUBLE';
+        WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 4 ;
+            DATA_TYPE_LENGTH = 'REAL';
+        Other;
+            DATA_TYPE_LENGTH = DATA_TYPE;
+        endsl ;
+
+
+        if ORDINAL_POSITION <> 1;
+           separador = ',';
+        else;
+           separador = '';
+        endif;
+
+        // FIELD NAME
+        MYCMD = %trim( MYCMD ) +  separador +
+        ' ''' +
+        %trim( COLUMN_NAME )  +
+        ''' VALUE ' ;
+        // INTERPRET for each data_type
+        // in a different way:
+        // DATA as CHAR(10), TIME as CHAR(8), TIMESTAMP as CHAR(26)
+        MYCMD = %trim ( MYCMD ) +
+        ' INTERPRET(SUBSTR(ENTRY_DATA, ' +
+        %trim(%char(STRINGPOSITION ) ) +
+        ',  ' +
+        %trim(%char( REALSTORAGE ) ) +
+        ') AS ' +
+        %trim( DATA_TYPE_LENGTH ) ;
+
+        Select;
+            WHEN DATA_TYPE = 'CHAR' OR
+            DATA_TYPE = 'VARCHAR' OR
+            DATA_TYPE = 'BINARY';
+            MYCMD = %trim( MYCMD ) + ' (' + %trim(%char(FIELD_LENGTH ) ) + ') ) ' ;
+            WHEN DATA_TYPE = 'DECIMAL' OR
+            DATA_TYPE = 'NUMERIC';
+            MYCMD = %trim( MYCMD ) + ' (' + %trim(%char( FIELD_LENGTH  ) ) + ',  ' +
+                    %trim(%char( NUMERIC_SCALE ) ) + '))' ;
+            Other;
+            MYCMD = %trim( MYCMD ) + ')' ;
+        endsl;
+
+
+
+
+        STRINGPOSITION = STRINGPOSITION + REALSTORAGE ;
+
+        Exec Sql
+            FETCH CURSOR1 INTO :COLUMN_NAME , :COLUMN_HEADING , :ORDINAL_POSITION
+                    , :DATA_TYPE , :FIELD_LENGTH , :NUMERIC_SCALE , :STORAGE , :FIELD_CCSID ;
+
+
+        EndDo  ;
+
+        Exec Sql
+        CLOSE CURSOR1 ;
+
+        // ENCODING UTF8
+        MYCMD = %trim ( MYCMD ) +
+        ' format JSON RETURNING VARCHAR(20000) ' +
+        ') as Datos FROM TABLE(DISPLAY_JOURNAL(' +
+        ' JOURNAL_LIBRARY => ''' + %trim(MYJOURNAL_LIBRARY) + '''' +
+        ' ,JOURNAL_NAME => ''' + %trim(MYJOURNAL_NAME) + '''' +
+        ' ,STARTING_RECEIVER_NAME =>  ''*CURAVLCHN'' ' +
+        ' ,JOURNAL_CODES => ''R'' ' +
+        ' ,OBJECT_LIBRARY => ''' + %trim(MY_SYSTEM_SCHEMA_NAME) + '''' +
+        ' ,OBJECT_NAME => ''' + %trim(MY_SYSTEM_TABLE_NAME) + '''' +
+        ' ,OBJECT_MEMBER => ''*ALL'' ' +
+        ' ,OBJECT_OBJTYPE => ''*FILE'')) ' +
+        ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''';
+
+         stmsql = %trim(MYCMD);
+       //Exsr Prt_journal_CMD;
+         exec sql
+           prepare SELECT2 from :stmsql;
+
+         exec sql
+           declare CURSOR2 cursor for SELECT2;
+
+         exec sql open CURSOR2;
+
+           dow 1 = 1;
+               exec sql
+                 fetch next from CURSOR2
+                 into
+                 :ENTRY_TIMESTAMP,
+                 :JOURNAL_CODE,
+                 :JRNTYPE,
+                 :JOB_NAME,
+                 :JOB_USER,
+                 :CURRENTUSER,
+                 :JOB_NUMBER,
+                 :FILE,
+                 :FILELIB,
+                 :FILEMBR,
+                 :OBJECT_TYPE,
+                 :PROGRAM_NAME,
+                 :PROGRAM_LIBRARY,
+                 :DATOS;
+               if sqlcode<>0;
+                 leave;
+                 endif;
+               //if *in04 = *on;
+               //   exsr Prt_journal;
+               //endif;
+                 Tim_LOG  = %char(Entry_Timestamp);
+                 len_datos = %len(%trim(DATOS));
+                 if len_datos < 40;
+                    len_datos1 = len_datos;
+                    else;
+                    len_datos1 = 40;
+                 endif;
+                 if len_datos < 500;
+                    len_datos2 = len_datos;
+                    else;
+                    len_datos2 = 500;
+                 endif;
+                 Des_LOG  = %subst(%trim(DATOS) : 1 : len_datos1);
+                 Oculto   =   %subst(%trim(DATOS) : 1 : len_datos2);
+                 Oculto2 =
+                    'ENTRY_TIMESTAMP :' + %char(ENTRY_TIMESTAMP) + ' JOURNAL_CODE:' + JOURNAL_CODE +
+                    ' JRNTYPE :' + JRNTYPE + ' JOB_NAME : ' + JOB_NAME + ' JOB_USER : ' + JOB_USER +
+                    'CURRENTUSER : ' + CURRENTUSER;
+                 recno += 1;
+                 write PSF01 ;
+                 Ctlfld = 0  ;
+
+           enddo;
+         exec sql
+           close CURSOR2;
+
+         IF recno = 0;
+           POPC  = '';
+           LinSfl ='Sin datos';
+           recno = recno + 1;
+           WRITE PSF01;
+         ENDIF;
+         WRITE PIEPAG;
+         //Exsr RGenera_tabla;  //AQUI
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
+       //--------------------------------------------------------------*
+       BEGSR RVISUAL;
+         *In12 = *Off;
+         EXFMT PCL01;
+          //dsply ('Record format = ' + ZRCDFMT) ;
+          //dsply ('Subfile RRN   = ' + %char(ZSFLRRN)) ;
+          //dsply ('Field name    = ' + ZFIELD) ;
+         WRITE PIEPAG;
+         pmensa = *blanks;
+         if *in04 = *on;
+           select;
+              when ZFIELD = 'PTIPOJRN';
+                exsr ConsultaSeleccion3;
+              when ZFIELD = 'PJOURNAL' or ZFIELD = 'PJOURNALL';
+                exsr ConsultaSeleccion4;
+              when ZFIELD = 'PTABLE' or ZFIELD = 'PTABLELIB';
+                exsr ConsultaSeleccion5;
+              other;
+                  // código si no se cumple ninguna condición
+           endSL;
+         endif;
+         if *in06 = *on;
+            exsr  RGenera_tabla;
+         endif;
+         EXSR RSELECC;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA SELECCIONAR DATOS DEL SUBFILE                 *
+       //--------------------------------------------------------------*
+       BEGSR RSELECC;
+         *In98 = *Off;
+         DOW *IN98 = *OFF;
+           READC PSF01 ;
+           *in98 = %eof();
+            //---
+           If *IN98 = *OFF AND POPC  = 'X' AND *IN12 = *OFF;
+             *IN55 = *ON;
+             Exsr ConsultaSeleccion;
+             popc = '' ;
+           ENDIF;
+         ENDDO;
+       ENDSR;
+       //------------------------------------------------------------**
+       // Rutina para Consultar selección de registros
+       //------------------------------------------------------------**
+     //Begsr ConsultaSeleccion;
+     //      DSC1= %subst(OCULTO:1:75) ;
+       //    DSC2= %subst(OCULTO:76:75) ;
+       //    DSC3= %subst(OCULTO:151:75) ;
+       //    DSC4= %subst(OCULTO:226:75) ;
+       //    DSC5= %subst(OCULTO:300:75) ;
+     //      Exfmt CONSUL;
+     //Endsr;
+       //------------------------------------------------------------**
+       // Rutina para Consultar selección de registros
+       //------------------------------------------------------------**
+       Begsr ConsultaSeleccion;
+         EXSR RINICIO_Subfile2;
+         EXSR RCARGA_Subfile2;
+         EXSR RVISUAL_Subfile2;
+       Endsr;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA INICIAL SUBFILE                               *
+       //--------------------------------------------------------------*
+       BEGSR RINICIO_Subfile2;
+         recno2 = recno2+ 1;
+         WRITE PSF02;
+         WRITE PCL02;
+         recno2 = 0;
+         *IN51 = *ON;
+         WRITE PCL02;
+         WRITE PBLAN;
+         *IN51 = *OFF;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA CARGAR EL SUBFILE                             *
+       //--------------------------------------------------------------*
+       BEGSR RCARGA_Subfile2;
+          LINSF2 =  OCULTO2;
+            recno2+= 1;
+            write PSF02 ;
+         lenline = 72;
+         offset = 1;
+         CICLO = %int(%len(%trim(OCULTO)) / lenline + 1);
+         if %len(%trim(DATOS)) > lenline;
+            lenstr = lenline;
+         else;
+            lenstr = %len(%trim(OCULTO));
+         endif ;
+         for len = 1 to CICLO;
+            line.text = '';
+            resto=%len(%trim(OCULTO)) - offset;
+            if resto < lenstr;
+               lenstr= resto + 1;
+            endif;
+            if lenstr = 0;
+               leave;
+            endif;
+            LINSF2  = %subst(%trim(OCULTO) : offset : lenstr);
+            recno2+= 1;
+            write PSF02 ;
+            offset += lenline;
+         endfor;
+
+
+         IF recno2= 0;
+           LinSf2 ='Sin datos';
+           recno2= recno2+ 1;
+           WRITE PSF02;
+         ENDIF;
+         WRITE PIEPAG;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
+       //--------------------------------------------------------------*
+       BEGSR RVISUAL_Subfile2;
+         *In12 = *Off;
+         EXFMT PCL02;
+         WRITE PIEPAG;
+       ENDSR;
+
+       //--------------------------------------------------------------*
+       //    RUTINA PARA Imprimir el Journal                           *
+       //------------------------------------------------------------**
+       Begsr Prt_journal;
+        if (*in99 = *on);
+            *in99 = *off;
+            head1.fcfc = TOP;
+            head1.text = 'Impresion de Journal File:' + FILE + ' FILELIB:' +
+                          FILELIB + ' OBJECT_TYPE : ' +
+            OBJECT_TYPE;
+            head2.fcfc = S2;
+            head2.num = 'Number';
+            head2.ts = %char(%TIMESTAMP());
+            head3.fcfc = S1;
+            head3.num = *all'_';
+            head3.ts = *all'_';
+            write MYPRT head1;
+            write MYPRT head2;
+            write MYPRT head3;
+        endif;
+        deta1.text =
+        'ENTRY_TIMESTAMP :' + %char(ENTRY_TIMESTAMP) + ' JOURNAL_CODE:' + JOURNAL_CODE +
+        ' JRNTYPE :' + JRNTYPE + ' JOB_NAME : ' + JOB_NAME + ' JOB_USER : ' + JOB_USER +
+        'CURRENTUSER : ' + CURRENTUSER;
+        deta1.fcfc = S1;
+        write MYPRT deta1;
+                 lenline = 120;
+                 offset = 1;
+                 CICLO = %int(%len(%trim(DATOS)) / lenline + 1);
+                 if %len(%trim(DATOS)) > lenline;
+                    lenstr = lenline;
+                 else;
+                    lenstr = %len(%trim(DATOS));
+                 endif ;
+                 for len = 1 to CICLO;
+                    line.text = '';
+                    resto=%len(%trim(DATOS)) - offset;
+                    if resto < lenstr;
+                       lenstr= resto + 1;
+                    endif;
+                    if lenstr = 0;
+                       leave;
+                    endif;
+                    line.text  = %subst(%trim(DATOS) : offset : lenstr);
+                    write MYPRT line;
+                    offset += lenline;
+                 endfor;
+       Endsr;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA Imprimir el comando                           *
+       //------------------------------------------------------------**
+       Begsr Prt_journal_CMD;
+        if (*in99 = *on);
+            *in99 = *off;
+            head1.fcfc = TOP;
+            head1.text = 'Impresion de Journal File:' + FILE + ' FILELIB:' +
+                         FILELIB + ' OBJECT_TYPE : ' +
+            OBJECT_TYPE;
+            head2.fcfc = S2;
+            head2.num = 'Number';
+            head2.ts = %char(%TIMESTAMP());
+            head3.fcfc = S1;
+            head3.num = *all'_';
+            head3.ts = *all'_';
+            write MYPRT head1;
+            write MYPRT head2;
+            write MYPRT head3;
+        endif;
+        deta1.text =
+        'ENTRY_TIMESTAMP :' + %char(ENTRY_TIMESTAMP) + ' JOURNAL_CODE:' + JOURNAL_CODE +
+        ' JRNTYPE :' + JRNTYPE + ' JOB_NAME : ' + JOB_NAME + ' JOB_USER : ' + JOB_USER +
+        'CURRENTUSER : ' + CURRENTUSER;
+        deta1.fcfc = S1;
+        write MYPRT deta1;
+                 lenline = 120;
+                 offset = 1;
+                 CICLO = %int(%len(%trim(MYCMD)) / lenline + 1);
+                 if %len(%trim(MYCMD)) > lenline;
+                    lenstr = lenline;
+                 else;
+                    lenstr = %len(%trim(MYCMD));
+                 endif ;
+                 for len = 1 to CICLO;
+                    line.text = '';
+                    resto=%len(%trim(MYCMD)) - offset;
+                    if resto < lenstr;
+                       lenstr= resto + 1;
+                    endif;
+                    if lenstr = 0;
+                       leave;
+                    endif;
+                    line.text  = %subst(%trim(MYCMD) : offset : lenstr);
+                    write MYPRT line;
+                    offset += lenline;
+                 endfor;
+       Endsr;
+
+       //------------------------------------------------------------**
+       // Rutina para Consultar selección de registros
+       //------------------------------------------------------------**
+       Begsr ConsultaSeleccion3;
+         EXSR RINICIO_Subfile3;
+         EXSR RCARGA_Subfile3;
+         EXSR RVISUAL_Subfile3;
+       Endsr;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA INICIAL SUBFILE                               *
+       //--------------------------------------------------------------*
+       BEGSR RINICIO_Subfile3;
+         recno3 = recno3+ 1;
+         WRITE PSF03;
+         WRITE PCL03;
+         recno3 = 0;
+         *IN53 = *ON;
+         WRITE PCL03;
+         WRITE PBLAN;
+         *IN53 = *OFF;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA CARGAR EL SUBFILE                             *
+       //--------------------------------------------------------------*
+       BEGSR RCARGA_Subfile3;
+       exec sql
+         declare CURSOR3 cursor for
+       select
+       type_jrn
+       , cast(type_jrn_des as char(55)) type_jrn_des
+       from
+        table
+       ( values
+       ('BR' , 'Before-image of record updated for rollback'),
+       ('DL' , 'Record deleted from physical file member'),
+       ('DR' , 'Record deleted for rollback'),
+       ('IL' , 'Increment record limit'),
+       ('PT' , 'Record added to physical file member'),
+       ('PX' , 'Record added directly to physical file member'),
+       ('UB' , 'Before-image of record updated in physical file member'),
+       ('UP' , 'After-image of record updated in physical file member'),
+       ('UR' , 'After-image of record updated for ROLLBACK'))
+            OPCION (type_jrn, type_jrn_des);
+       exec sql
+         Open CURSOR3;
+        Dow SqlCod = 0;
+            Exec Sql
+                FETCH  CURSOR3 INTO :ptipo , :ptipds;
+            if  SqlCod <>0;
+                leave;
+            endif;
+            recno3+= 1;
+            write PSF03 ;
+        EndDo  ;
+
+        Exec Sql
+        CLOSE CURSOR3 ;
+
+
+         IF recno3= 0;
+           PTiPDS ='Sin datos';
+           recno3= recno3+ 1;
+           WRITE PSF03;
+         ENDIF;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
+       //--------------------------------------------------------------*
+       BEGSR RVISUAL_Subfile3;
+         *In12 = *Off;
+         EXFMT PCL03;
+         EXSR RSELECC3;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA SELECCIONAR DATOS DEL SUBFILE                 *
+       //--------------------------------------------------------------*
+       BEGSR RSELECC3;
+         *In98 = *Off;
+         DOW *IN98 = *OFF;
+           READC PSF03 ;
+         *in98 = %eof();
+            //---
+           If *IN98 = *OFF AND POPC3 = 'X' AND *IN12 = *OFF;
+             popc3= '' ;
+             PTipoJrn=  ptipo;
+             PTipoDes=  ptipds;
+           ENDIF;
+         ENDDO;
+       ENDSR;
+       //--------------------------------------------------------------*
+       // Rutina para Consultar selección de registros
+       //------------------------------------------------------------**
+       Begsr ConsultaSeleccion4;
+         EXSR RINICIO_Subfile4;
+         EXSR RCARGA_Subfile4;
+         EXSR RVISUAL_Subfile4;
+       Endsr;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA INICIAL SUBFILE                               *
+       //--------------------------------------------------------------*
+       BEGSR RINICIO_Subfile4;
+         recno4 = recno4+ 1;
+         WRITE PSF04;
+         WRITE PCL04;
+         recno4 = 0;
+         *IN54 = *ON;
+         WRITE PCL04;
+       //WRITE PBLAN;
+         *IN54 = *OFF;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA CARGAR EL SUBFILE                             *
+       //--------------------------------------------------------------*
+       BEGSR RCARGA_Subfile4;
+       exec sql
+         declare CURSOR4 cursor for
+       SELECT JOURNAL_LIBRARY , JOURNAL_NAME FROM  QSYS2.JOURNALED_OBJECTS
+       WHERE OBJECT_TYPE = '*FILE'
+       GROUP BY JOURNAL_LIBRARY , JOURNAL_NAME
+       ORDER BY JOURNAL_LIBRARY , JOURNAL_NAME;
+
+       exec sql
+         Open CURSOR4;
+        Dow SqlCod = 0;
+            Exec Sql
+                FETCH  CURSOR4 INTO :PLIBJ, :PJRN ;
+            if  SqlCod <>0;
+                leave;
+            endif;
+            recno4+= 1;
+            write PSF04 ;
+        EndDo  ;
+
+        Exec Sql
+        CLOSE CURSOR4 ;
+
+
+         IF recno4= 0;
+           PJRN ='Sin datos';
+           recno4= recno4+ 1;
+           WRITE PSF04;
+         ENDIF;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
+       //--------------------------------------------------------------*
+       BEGSR RVISUAL_Subfile4;
+         *In12 = *Off;
+         EXFMT PCL04;
+         EXSR RSELECC4;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA SELECCIONAR DATOS DEL SUBFILE                 *
+       //--------------------------------------------------------------*
+       BEGSR RSELECC4;
+         *In98 = *Off;
+         DOW *IN98 = *OFF;
+           READC PSF04 ;
+           *in98 = %eof();
+            //---
+            If *IN98 = *OFF AND POPC4 = 'X' AND *IN12 = *OFF;
+              popc4= '' ;
+              PJOURNAL=  PJRN;
+              PJOURNALL=  PLIBJ;
+              PTABLE=  *blank;
+              PTABLELIB=  *blank;
+            ENDIF;
+          ENDDO;
+       ENDSR;
+       //--------------------------------------------------------------*
+       // Rutina para Consultar selección de registros
+       //------------------------------------------------------------**
+       Begsr ConsultaSeleccion5;
+         EXSR RINICIO_Subfile5;
+         EXSR RCARGA_Subfile5;
+         EXSR RVISUAL_Subfile5;
+       Endsr;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA INICIAL SUBFILE                               *
+       //--------------------------------------------------------------*
+       BEGSR RINICIO_Subfile5;
+         recno5 = recno5+ 1;
+         WRITE PSF05;
+         WRITE PCL05;
+         recno5 = 0;
+         *IN55 = *ON;
+         WRITE PCL05;
+       //WRITE PBLAN;
+         *IN55 = *OFF;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA CARGAR EL SUBFILE                             *
+       //--------------------------------------------------------------*
+       BEGSR RCARGA_Subfile5;
+       exec sql
+         declare CURSOR5 cursor for
+       SELECT OBJECT_LIBRARY, OBJECT_NAME, FILE_TYPE
+       FROM  QSYS2.JOURNALED_OBJECTS
+       WHERE OBJECT_TYPE = '*FILE'
+       AND  JOURNAL_LIBRARY = :PJOURNALL AND JOURNAL_NAME = :PJOURNAL;
+
+       exec sql
+         Open CURSOR5;
+        Dow SqlCod = 0;
+            Exec Sql
+                FETCH  CURSOR5 INTO :PLIBF , :PFILE, :PTYPE;
+            if  SqlCod <>0;
+                leave;
+            endif;
+            recno5+= 1;
+            write PSF05 ;
+        EndDo  ;
+
+        Exec Sql
+        CLOSE CURSOR5 ;
+
+
+         IF recno5= 0;
+           PLIBF='Sin datos';
+           recno5= recno5+ 1;
+           WRITE PSF05;
+         ENDIF;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
+       //--------------------------------------------------------------*
+       BEGSR RVISUAL_Subfile5;
+         *In12 = *Off;
+         EXFMT PCL05;
+         EXSR RSELECC5;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA SELECCIONAR DATOS DEL SUBFILE                 *
+       //--------------------------------------------------------------*
+       BEGSR RSELECC5;
+         *In98 = *Off;
+         DOW *IN98 = *OFF;
+           READC PSF05 ;
+           *in98 = %eof();
+           //---
+           If *IN98 = *OFF AND POPC5 = 'X' AND *IN12 = *OFF;
+             popc5= '' ;
+             PTABLE=  PFILE;
+             PTABLELIB=  PLIBF;
+           ENDIF;
+         ENDDO;
+       ENDSR;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA CREAR UNA TABLA A PARTIR DEL JOURNAL          *
+       //--------------------------------------------------------------*
+       BEGSR RGenera_tabla;
+         pmens1= *blanks;
+         pmensa= *blanks;
+         plibou= *blanks;
+         pfilou= *blanks;
+         ptipou = 'S';
+         existe= 1;
+         dow existe = 1;
+           exfmt Ppan01;
+           if *in12 = *on;
+                leave;
+           endif;
+           exec sql
+                SELECT COUNT(*) INTO :EXISTE
+                  FROM QSYS2.SYSTABLES
+                 WHERE TABLE_SCHEMA = :plibou
+                   AND TABLE_NAME   = :pfilou;
+           if Existe = 1;
+              pmens1= 'La tabla ya existe';
+           else;
+           SITUAR_TS = %timestamp(
+                                   %subst(FECHA_CHAR:1:4) + '-' +
+                                   %subst(FECHA_CHAR:5:2) + '-' +
+                                   %subst(FECHA_CHAR:7:2) + '-' +
+                                   %subst(HORA_CHAR:1:2) + '.' +
+                                   %subst(HORA_CHAR:3:2) + '.' +
+                                   %subst(HORA_CHAR:5:2) + '.' +
+                                   '000000'
+                                   ) ;
+           MYTABLE_NAME  = PTABLE;
+           MYLIBRARY_NAME = PTABLELIB;
+           MYTABLE_LIBRARY = PTABLELIB;
+           MYJOURNAL_LIBRARY = PJOURNALL;
+           MYJOURNAL_NAME = PJOURNAL;
+           Exec Sql DECLARE CURSOR9 Scroll Cursor FOR
+               SELECT CAST(COLUMN_NAME AS VARCHAR(128)) ,
+                      CAST(COLUMN_HEADING AS VARCHAR(254)) ,
+                      ORDINAL_POSITION ,
+                      CAST(DATA_TYPE AS VARCHAR(32)) ,
+                      LENGTH ,
+                      COALESCE ( NUMERIC_SCALE , 0 ) ,
+                      STORAGE ,
+                      COALESCE ( CCSID , 0 )
+               FROM QSYS2 . SYSCOLUMNS A
+               WHERE ( SYSTEM_TABLE_NAME = :MYTABLE_NAME OR TABLE_NAME = :MYTABLE_NAME )
+               AND ( SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY OR TABLE_SCHEMA = :MYTABLE_LIBRARY )
+               ORDER BY ORDINAL_POSITION ;
+
+
+
+           MYCMD = '' ;
+
+
+           Exec Sql
+               SELECT SYSTEM_TABLE_NAME , SYSTEM_TABLE_SCHEMA
+               INTO :MY_SYSTEM_TABLE_NAME , :MY_SYSTEM_SCHEMA_NAME
+               FROM QSYS2 . SYSTABLES
+               WHERE ( SYSTEM_TABLE_NAME = :MYTABLE_NAME OR TABLE_NAME = :MYTABLE_NAME )
+               AND ( SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY OR TABLE_SCHEMA = :MYTABLE_LIBRARY ) ;
+
+               MYCMD = %trim ( MYCMD ) +
+                       ' CREATE TABLE  ' + %trim(plibou) + '.' + %trim(pfilou) + ' AS (' +
+                       'SELECT ';
+               if ptipou = 'S';
+               MYCMD = %trim ( MYCMD ) +
+                              ' ENTRY_TIMESTAMP,  ' +
+                               'JOURNAL_CODE,  ' +
+                               'CASE WHEN JOURNAL_ENTRY_TYPE = ''PT'' ' +
+                                   'THEN ''INSERT'' ' +
+                                   'WHEN JOURNAL_ENTRY_TYPE = ''PX'' ' +
+                                   'THEN ''INSERT BY RRN'' ' +
+                                   'WHEN JOURNAL_ENTRY_TYPE = ''UB'' ' +
+                                'THEN ''UPDATE BEFORE'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''UP'' ' +
+                                'THEN ''UPDATE AFTER'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''DL'' ' +
+                                'THEN ''DELETE'' ' +
+                                'ELSE JOURNAL_ENTRY_TYPE ' +
+                            'END AS JRNTYPE, ' +
+                            'JOB_NAME, ' +
+                            'JOB_USER, ' +
+                            'CURRENT_USER as CURRENTUSER, ' +
+                            'JOB_NUMBER , ' +
+                            'SUBSTR(OBJECT, 1, 10) AS FILE, ' +
+                            'SUBSTR(OBJECT, 11, 10) AS FILELIB, ' +
+                            'SUBSTR(OBJECT, 21, 10) AS FILEMBR, ' +
+                            'OBJECT_TYPE, ' +
+                            'COALESCE(PROGRAM_NAME, '''') PROGRAM_NAME , ' +
+                            'COALESCE(PROGRAM_LIBRARY,'''') PROGRAM_LIBRARY, ' ;
+               endif;
+           //-- Read all table columns from SYSCOLUMS catalog
+               STRINGPOSITION = 1 ;
+
+           Exec Sql
+               OPEN CURSOR9 ;
+           Exec Sql
+               FETCH CURSOR9 INTO :COLUMN_NAME , :COLUMN_HEADING , :ORDINAL_POSITION
+                       , :DATA_TYPE , :FIELD_LENGTH , :NUMERIC_SCALE , :STORAGE , :FIELD_CCSID ;
+
+           Dow SqlCod = 0;
+
+           Select;
+               WHEN DATA_TYPE = 'DATE' ;
+                   REALSTORAGE = 10 ;
+               WHEN DATA_TYPE = 'TIME' ;
+                   REALSTORAGE = 08 ;
+               WHEN DATA_TYPE = 'TIMESTMP' ;
+                   REALSTORAGE = 26 ;
+               Other;
+                REALSTORAGE = STORAGE ;
+           endsl;
+
+           Select;
+           WHEN DATA_TYPE = 'DATE' ;
+               DATA_TYPE_LENGTH = 'CHAR(10)';
+           WHEN DATA_TYPE = 'TIME' ;
+               DATA_TYPE_LENGTH = 'CHAR(08)';
+           WHEN DATA_TYPE = 'TIMESTMP' ;
+               DATA_TYPE_LENGTH = 'CHAR(26)';
+           WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 16 ;
+               DATA_TYPE_LENGTH = 'FLOAT';
+           WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 8 ;
+               DATA_TYPE_LENGTH = 'DOUBLE';
+           WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 4 ;
+               DATA_TYPE_LENGTH = 'REAL';
+           Other;
+               DATA_TYPE_LENGTH = DATA_TYPE;
+           endsl ;
+
+
+           if ORDINAL_POSITION <> 1;
+              separador = ',';
+           else;
+              separador = '';
+           endif;
+
+           // FIELD NAME
+           MYCMD = %trim( MYCMD ) +  separador ;
+           MYCMD = %trim ( MYCMD ) +
+           ' INTERPRET(SUBSTR(ENTRY_DATA, ' +
+           %trim(%char(STRINGPOSITION ) ) +
+           ',  ' +
+           %trim(%char( REALSTORAGE ) ) +
+           ') AS ' +
+           %trim( DATA_TYPE_LENGTH ) ;
+
+           Select;
+               WHEN DATA_TYPE = 'CHAR' OR
+               DATA_TYPE = 'VARCHAR' OR
+               DATA_TYPE = 'BINARY';
+           MYCMD = %trim( MYCMD ) + ' (' + %trim(%char(FIELD_LENGTH ) ) + ') ) ' ;
+           WHEN DATA_TYPE = 'DECIMAL' OR
+           DATA_TYPE = 'NUMERIC';
+           MYCMD = %trim( MYCMD ) + ' (' + %trim(%char( FIELD_LENGTH  ) ) + ',  ' +
+                   %trim(%char( NUMERIC_SCALE ) ) + '))' ;
+           Other;
+           MYCMD = %trim( MYCMD ) + ')' ;
+           endsl;
+           MYCMD = %trim( MYCMD ) +
+           ' AS ' +
+           %trim( COLUMN_NAME )  ;
+
+           STRINGPOSITION = STRINGPOSITION + REALSTORAGE ;
+
+           Exec Sql
+               FETCH CURSOR9 INTO :COLUMN_NAME , :COLUMN_HEADING , :ORDINAL_POSITION
+                    , :DATA_TYPE , :FIELD_LENGTH , :NUMERIC_SCALE , :STORAGE , :FIELD_CCSID ;
+
+
+           EndDo  ;
+
+           Exec Sql
+           CLOSE CURSOR9 ;
+
+           // ENCODING UTF8
+           MYCMD = %trim ( MYCMD ) +
+           ' FROM TABLE(DISPLAY_JOURNAL(' +
+           ' JOURNAL_LIBRARY => ''' + %trim(MYJOURNAL_LIBRARY) + '''' +
+           ' ,JOURNAL_NAME => ''' + %trim(MYJOURNAL_NAME) + '''' +
+           ' ,STARTING_RECEIVER_NAME =>  ''*CURAVLCHN'' ' +
+           ' ,JOURNAL_CODES => ''R'' ' +
+           ' ,OBJECT_LIBRARY => ''' + %trim(MY_SYSTEM_SCHEMA_NAME) + '''' +
+           ' ,OBJECT_NAME => ''' + %trim(MY_SYSTEM_TABLE_NAME) + '''' +
+           ' ,OBJECT_MEMBER => ''*ALL'' ' +
+           ' ,OBJECT_OBJTYPE => ''*FILE'')) ' +
+           ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''' +
+           ' ) WITH DATA ';
+
+           stmsql = %trim(MYCMD);
+           exec sql execute immediate :stmsql;
+             endif;
+             pmensa = 'Se ha creado la tabla ' +
+                       %trim(pfilou) + ' en la libreria ' + %trim(plibou) ;
+         enddo;
+
+       Endsr;
