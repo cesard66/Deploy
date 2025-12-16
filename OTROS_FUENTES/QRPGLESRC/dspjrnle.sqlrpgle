@@ -14,7 +14,7 @@
         // UB - Before-image of record updated in physical file member
         // UP - After-image of record updated in physical file member
         // UR - After-image of record updated for rollback
-        Ctl-Opt DEBUG DECEDIT(',') DATEDIT(*DMY/);
+        Ctl-Opt debug decedit(',') datedit(*DMY/) dftactgrp(*no) actgrp(*new);
         //--------------------------------------------------------------*
         dcl-F DSPJRND WORKSTN SFILE(PSF01:recno)
                 SFILE(PSF02:recno2)
@@ -49,11 +49,11 @@
        dcl-s STORAGE         INT(20) ;
        dcl-s FIELD_CCSID     INT(20) ;
        dcl-s END_TABLE       INT(20) ;
-       dcl-s MYTABLE_NAME    CHAR( 10 ); //inz('CLIENTEPF');
-       dcl-s MYLIBRARY_NAME  CHAR( 10 ); //inz('CESARDLIB');
-       dcl-s MYTABLE_LIBRARY CHAR( 10 ); //inz('CESARDLIB') ;
-       dcl-s MYJOURNAL_LIBRARY CHAR(10); //inz('CESARDLIB') ;
-       dcl-s MYJOURNAL_NAME CHAR(10);    //inz('QSQJRN') ;
+       dcl-s MYTABLE_NAME    CHAR( 10 );
+       dcl-s MYLIBRARY_NAME  CHAR( 10 );
+       dcl-s MYTABLE_LIBRARY CHAR( 10 );
+       dcl-s MYJOURNAL_LIBRARY CHAR(10);
+       dcl-s MYJOURNAL_NAME CHAR(10);
        dcl-s MY_SYSTEM_TABLE_NAME  CHAR(10) ;
        dcl-s MY_SYSTEM_SCHEMA_NAME CHAR(10) ;
        dcl-s ENTRY_TIMESTAMP  timestamp;
@@ -118,9 +118,9 @@
 
        Exec SQL CALL QCMDEXC('CHGJOB CCSID(284)');
        Dow *IN03 = *OFF;
-         EXSR RINICIO;
-         EXSR RCARGA;
-         EXSR RVISUAL;
+         RINICIO();
+         RCARGA();
+         RVISUAL();
          If *In03;
            LEAVE;
          Endif;
@@ -129,7 +129,7 @@
         //--------------------------------------------------------------*
         //    RUTINA PARA INICIAL SUBFILE                               *
         //--------------------------------------------------------------*
-       BEGSR RINICIO;
+       dcl-proc RINICIO;
          recno = recno + 1;
          WRITE PSF01;
          WRITE PCL01;
@@ -138,11 +138,11 @@
          WRITE PCL01;
          WRITE PBLAN;
          *IN50 = *OFF;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA CARGAR EL SUBFILE                             *
        //--------------------------------------------------------------*
-       BEGSR RCARGA;
+       dcl-proc RCARGA;
          SITUAR_TS = %timestamp(
                                  %subst(FECHA_CHAR:1:4) + '-' +
                                  %subst(FECHA_CHAR:5:2) + '-' +
@@ -311,9 +311,13 @@
         ' ,OBJECT_MEMBER => ''*ALL'' ' +
         ' ,OBJECT_OBJTYPE => ''*FILE'')) ' +
         ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''';
+        if PTIPOJRN <> '  ';
+           MYCMD = %trim ( MYCMD ) +
+                            ' AND JOURNAL_ENTRY_TYPE = ''' +  PTIPOJRN + '''';
 
+        endif;
          stmsql = %trim(MYCMD);
-       //Exsr Prt_journal_CMD;
+       //Prt_journal_CMD ();
          exec sql
            prepare SELECT2 from :stmsql;
 
@@ -344,7 +348,7 @@
                  leave;
                  endif;
                //if *in04 = *on;
-               //   exsr Prt_journal;
+               //   Prt_journal();
                //endif;
                  Tim_LOG  = %char(Entry_Timestamp);
                  len_datos = %len(%trim(DATOS));
@@ -374,17 +378,17 @@
 
          IF recno = 0;
            POPC  = '';
-           LinSfl ='Sin datos';
+           LinSfl ='*no data*';
            recno = recno + 1;
            WRITE PSF01;
          ENDIF;
          WRITE PIEPAG;
-         //Exsr RGenera_tabla;  //AQUI
-       ENDSR;
+         // RGenera_tabla ();  //AQUI
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
        //--------------------------------------------------------------*
-       BEGSR RVISUAL;
+       dcl-proc RVISUAL;
          *In12 = *Off;
          EXFMT PCL01;
           //dsply ('Record format = ' + ZRCDFMT) ;
@@ -395,24 +399,24 @@
          if *in04 = *on;
            select;
               when ZFIELD = 'PTIPOJRN';
-                exsr ConsultaSeleccion3;
+                ConsultaSeleccion3();
               when ZFIELD = 'PJOURNAL' or ZFIELD = 'PJOURNALL';
-                exsr ConsultaSeleccion4;
+                ConsultaSeleccion4();
               when ZFIELD = 'PTABLE' or ZFIELD = 'PTABLELIB';
-                exsr ConsultaSeleccion5;
+                ConsultaSeleccion5();
               other;
                   // código si no se cumple ninguna condición
            endSL;
          endif;
          if *in06 = *on;
-            exsr  RGenera_tabla;
+            RGenera_tabla();
          endif;
-         EXSR RSELECC;
-       ENDSR;
+         RSELECC();
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA SELECCIONAR DATOS DEL SUBFILE                 *
        //--------------------------------------------------------------*
-       BEGSR RSELECC;
+       dcl-proc RSELECC;
          *In98 = *Off;
          DOW *IN98 = *OFF;
            READC PSF01 ;
@@ -420,34 +424,34 @@
             //---
            If *IN98 = *OFF AND POPC  = 'X' AND *IN12 = *OFF;
              *IN55 = *ON;
-             Exsr ConsultaSeleccion;
+             ConsultaSeleccion();
              popc = '' ;
            ENDIF;
          ENDDO;
-       ENDSR;
+       end-proc;
        //------------------------------------------------------------**
        // Rutina para Consultar selección de registros
        //------------------------------------------------------------**
-     //Begsr ConsultaSeleccion;
+     //dcl-proc ConsultaSeleccion;
      //      DSC1= %subst(OCULTO:1:75) ;
        //    DSC2= %subst(OCULTO:76:75) ;
        //    DSC3= %subst(OCULTO:151:75) ;
        //    DSC4= %subst(OCULTO:226:75) ;
        //    DSC5= %subst(OCULTO:300:75) ;
      //      Exfmt CONSUL;
-     //Endsr;
+     //end-proc;
        //------------------------------------------------------------**
        // Rutina para Consultar selección de registros
        //------------------------------------------------------------**
-       Begsr ConsultaSeleccion;
-         EXSR RINICIO_Subfile2;
-         EXSR RCARGA_Subfile2;
-         EXSR RVISUAL_Subfile2;
-       Endsr;
+       dcl-proc ConsultaSeleccion;
+         RINICIO_Subfile2();
+         RCARGA_Subfile2();
+         RVISUAL_Subfile2();
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA INICIAL SUBFILE                               *
        //--------------------------------------------------------------*
-       BEGSR RINICIO_Subfile2;
+       dcl-proc RINICIO_Subfile2;
          recno2 = recno2+ 1;
          WRITE PSF02;
          WRITE PCL02;
@@ -456,11 +460,11 @@
          WRITE PCL02;
          WRITE PBLAN;
          *IN51 = *OFF;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA CARGAR EL SUBFILE                             *
        //--------------------------------------------------------------*
-       BEGSR RCARGA_Subfile2;
+       dcl-proc RCARGA_Subfile2;
           LINSF2 =  OCULTO2;
             recno2+= 1;
             write PSF02 ;
@@ -494,20 +498,20 @@
            WRITE PSF02;
          ENDIF;
          WRITE PIEPAG;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
        //--------------------------------------------------------------*
-       BEGSR RVISUAL_Subfile2;
+       dcl-proc RVISUAL_Subfile2;
          *In12 = *Off;
          EXFMT PCL02;
          WRITE PIEPAG;
-       ENDSR;
+       end-proc;
 
        //--------------------------------------------------------------*
        //    RUTINA PARA Imprimir el Journal                           *
        //------------------------------------------------------------**
-       Begsr Prt_journal;
+       dcl-proc Prt_journal;
         if (*in99 = *on);
             *in99 = *off;
             head1.fcfc = TOP;
@@ -551,11 +555,11 @@
                     write MYPRT line;
                     offset += lenline;
                  endfor;
-       Endsr;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA Imprimir el comando                           *
        //------------------------------------------------------------**
-       Begsr Prt_journal_CMD;
+       dcl-proc Prt_journal_CMD;
         if (*in99 = *on);
             *in99 = *off;
             head1.fcfc = TOP;
@@ -599,20 +603,20 @@
                     write MYPRT line;
                     offset += lenline;
                  endfor;
-       Endsr;
+       end-proc;
 
        //------------------------------------------------------------**
        // Rutina para Consultar selección de registros
        //------------------------------------------------------------**
-       Begsr ConsultaSeleccion3;
-         EXSR RINICIO_Subfile3;
-         EXSR RCARGA_Subfile3;
-         EXSR RVISUAL_Subfile3;
-       Endsr;
+       dcl-proc ConsultaSeleccion3;
+         RINICIO_Subfile3();
+         RCARGA_Subfile3();
+         RVISUAL_Subfile3();
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA INICIAL SUBFILE                               *
        //--------------------------------------------------------------*
-       BEGSR RINICIO_Subfile3;
+       dcl-proc RINICIO_Subfile3;
          recno3 = recno3+ 1;
          WRITE PSF03;
          WRITE PCL03;
@@ -621,11 +625,11 @@
          WRITE PCL03;
          WRITE PBLAN;
          *IN53 = *OFF;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA CARGAR EL SUBFILE                             *
        //--------------------------------------------------------------*
-       BEGSR RCARGA_Subfile3;
+       dcl-proc RCARGA_Subfile3;
        exec sql
          declare CURSOR3 cursor for
        select
@@ -634,6 +638,7 @@
        from
         table
        ( values
+       ('  ' , 'All entry'),
        ('BR' , 'Before-image of record updated for rollback'),
        ('DL' , 'Record deleted from physical file member'),
        ('DR' , 'Record deleted for rollback'),
@@ -665,19 +670,19 @@
            recno3= recno3+ 1;
            WRITE PSF03;
          ENDIF;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
        //--------------------------------------------------------------*
-       BEGSR RVISUAL_Subfile3;
+       dcl-proc RVISUAL_Subfile3;
          *In12 = *Off;
          EXFMT PCL03;
-         EXSR RSELECC3;
-       ENDSR;
+         RSELECC3();
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA SELECCIONAR DATOS DEL SUBFILE                 *
        //--------------------------------------------------------------*
-       BEGSR RSELECC3;
+       dcl-proc RSELECC3;
          *In98 = *Off;
          DOW *IN98 = *OFF;
            READC PSF03 ;
@@ -689,19 +694,19 @@
              PTipoDes=  ptipds;
            ENDIF;
          ENDDO;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        // Rutina para Consultar selección de registros
        //------------------------------------------------------------**
-       Begsr ConsultaSeleccion4;
-         EXSR RINICIO_Subfile4;
-         EXSR RCARGA_Subfile4;
-         EXSR RVISUAL_Subfile4;
-       Endsr;
+       dcl-proc ConsultaSeleccion4;
+         RINICIO_Subfile4();
+         RCARGA_Subfile4();
+         RVISUAL_Subfile4();
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA INICIAL SUBFILE                               *
        //--------------------------------------------------------------*
-       BEGSR RINICIO_Subfile4;
+       dcl-proc RINICIO_Subfile4;
          recno4 = recno4+ 1;
          WRITE PSF04;
          WRITE PCL04;
@@ -710,11 +715,11 @@
          WRITE PCL04;
        //WRITE PBLAN;
          *IN54 = *OFF;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA CARGAR EL SUBFILE                             *
        //--------------------------------------------------------------*
-       BEGSR RCARGA_Subfile4;
+       dcl-proc RCARGA_Subfile4;
        exec sql
          declare CURSOR4 cursor for
        SELECT JOURNAL_LIBRARY , JOURNAL_NAME FROM  QSYS2.JOURNALED_OBJECTS
@@ -743,19 +748,19 @@
            recno4= recno4+ 1;
            WRITE PSF04;
          ENDIF;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
        //--------------------------------------------------------------*
-       BEGSR RVISUAL_Subfile4;
+       dcl-proc RVISUAL_Subfile4;
          *In12 = *Off;
          EXFMT PCL04;
-         EXSR RSELECC4;
-       ENDSR;
+         RSELECC4();
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA SELECCIONAR DATOS DEL SUBFILE                 *
        //--------------------------------------------------------------*
-       BEGSR RSELECC4;
+       dcl-proc RSELECC4;
          *In98 = *Off;
          DOW *IN98 = *OFF;
            READC PSF04 ;
@@ -769,19 +774,19 @@
               PTABLELIB=  *blank;
             ENDIF;
           ENDDO;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        // Rutina para Consultar selección de registros
        //------------------------------------------------------------**
-       Begsr ConsultaSeleccion5;
-         EXSR RINICIO_Subfile5;
-         EXSR RCARGA_Subfile5;
-         EXSR RVISUAL_Subfile5;
-       Endsr;
+       dcl-proc ConsultaSeleccion5;
+         RINICIO_Subfile5();
+         RCARGA_Subfile5();
+         RVISUAL_Subfile5();
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA INICIAL SUBFILE                               *
        //--------------------------------------------------------------*
-       BEGSR RINICIO_Subfile5;
+       dcl-proc RINICIO_Subfile5;
          recno5 = recno5+ 1;
          WRITE PSF05;
          WRITE PCL05;
@@ -790,11 +795,11 @@
          WRITE PCL05;
        //WRITE PBLAN;
          *IN55 = *OFF;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA CARGAR EL SUBFILE                             *
        //--------------------------------------------------------------*
-       BEGSR RCARGA_Subfile5;
+       dcl-proc RCARGA_Subfile5;
        exec sql
          declare CURSOR5 cursor for
        SELECT OBJECT_LIBRARY, OBJECT_NAME, FILE_TYPE
@@ -823,19 +828,19 @@
            recno5= recno5+ 1;
            WRITE PSF05;
          ENDIF;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
        //--------------------------------------------------------------*
-       BEGSR RVISUAL_Subfile5;
+       dcl-proc RVISUAL_Subfile5;
          *In12 = *Off;
          EXFMT PCL05;
-         EXSR RSELECC5;
-       ENDSR;
+         RSELECC5();
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA SELECCIONAR DATOS DEL SUBFILE                 *
        //--------------------------------------------------------------*
-       BEGSR RSELECC5;
+       dcl-proc RSELECC5;
          *In98 = *Off;
          DOW *IN98 = *OFF;
            READC PSF05 ;
@@ -847,11 +852,11 @@
              PTABLELIB=  PLIBF;
            ENDIF;
          ENDDO;
-       ENDSR;
+       end-proc;
        //--------------------------------------------------------------*
        //    RUTINA PARA CREAR UNA TABLA A PARTIR DEL JOURNAL          *
        //--------------------------------------------------------------*
-       BEGSR RGenera_tabla;
+       dcl-proc RGenera_tabla;
          pmens1= *blanks;
          pmensa= *blanks;
          plibou= *blanks;
@@ -1036,14 +1041,23 @@
            ' ,OBJECT_NAME => ''' + %trim(MY_SYSTEM_TABLE_NAME) + '''' +
            ' ,OBJECT_MEMBER => ''*ALL'' ' +
            ' ,OBJECT_OBJTYPE => ''*FILE'')) ' +
-           ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''' +
-           ' ) WITH DATA ';
+           ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''' ;
+           if PTIPOJRN <> '  ';
+              MYCMD = %trim ( MYCMD ) +
+                               ' AND JOURNAL_ENTRY_TYPE = ''' +  PTIPOJRN + '''';
+
+           endif;
+           MYCMD = %trim ( MYCMD ) + ' ) WITH DATA ';
 
            stmsql = %trim(MYCMD);
            exec sql execute immediate :stmsql;
+               if sqlcode=-601;
+               Existe = 1;
+               pmens1= 'La tabla ya existe';
+               endif;
              endif;
              pmensa = 'Se ha creado la tabla ' +
                        %trim(pfilou) + ' en la libreria ' + %trim(plibou) ;
          enddo;
 
-       Endsr;
+       end-proc;

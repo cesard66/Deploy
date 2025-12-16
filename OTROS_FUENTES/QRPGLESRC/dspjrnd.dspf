@@ -1,0 +1,324 @@
+     A*%%TS  SD  20251216  105634  CESARD      REL-V7R4M0  5770-WDS
+     A*%%EC
+     A                                      DSPSIZ(24 80 *DS3                  -
+     A                                             27 132 *DS4)
+     A          R PSF01                     SFL
+     A*%%TS  SD  20251113  164405  CESARD      REL-V7R4M0  5770-WDS
+     A                                      SFLNXTCHG
+     A            MARCA          1S 0H
+     A            CTLFLD         1Y 0H
+     A            RECNO          4S 0H
+     A            LINSFL        72A  O  6  6
+     A            OCULTO       500A  H
+     A            OCULTO2       74A  H
+     A            POPC           1A  B  6  3
+     A          R PCL01                     SFLCTL(PSF01)
+     A*%%TS  SD  20251215  151606  CESARD      REL-V7R4M0  5770-WDS
+     A  *DS3                                SFLSIZ(1250)
+     A  *DS4                                SFLSIZ(1250)
+     A  *DS3                                SFLPAG(0015)
+     A  *DS4                                SFLPAG(0015)
+     A                                      CA03(03 'finalizar')
+     A                                      CA04(04 'Seleccion de valores')
+     A                                      CA06(06 'Crear Fichero')
+     A                                      RTNCSRLOC(&ZRCDFMT &ZFIELD)
+     A                                      RTNDTA
+     A                                      OVERLAY
+     A                                      SFLCSRRRN(&ZSFLRRN)
+     A N50                                  SFLDSP
+     A N50                                  SFLDSPCTL
+     A  50                                  SFLCLR
+     A            ZSFLRRN        5S 0H
+     A            ZRCDFMT       10A  H
+     A            ZFIELD        10A  H
+     A                                  2  4'Display Journal'
+     A                                      COLOR(YLW)
+     A                                  4 41'Place in.....'
+     A                                      DSPATR(HI)
+     A                                  5  2'Opt.   Date      Time      Data...-
+     A                                      .................                  -
+     A                                           '
+     A                                      DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                      DSPATR(HI)
+     A            FECHA_CHAR     8A  B  4 56
+     A            HORA_CHAR      6A  B  4 65
+     A                                  1 68DATE
+     A                                      EDTCDE(Y)
+     A                                  2 68TIME
+     A                                  4  4'File :'
+     A                                      DSPATR(HI)
+     A            PTABLE        10A  B  4 11
+     A                                  4 23'Lib.:'
+     A                                      DSPATR(HI)
+     A            PTABLELIB     10A  B  4 29
+     A                                  3  4'Journal:'
+     A                                      DSPATR(HI)
+     A            PJOURNAL      10A  B  3 14
+     A                                  3 25'Journal Lib:'
+     A                                      DSPATR(HI)
+     A            PJOURNALL     10A  B  3 38
+     A                                  1 28'R - Record level operation'
+     A                                      DSPATR(HI)
+     A                                      DSPATR(UL)
+     A                                  3 50'Type Jrn:'
+     A                                      DSPATR(HI)
+     A            PTIPOJRN       2A  B  3 60
+     A            PTIPODES      15A  O  3 63
+     A          R PIEPAG
+     A*%%TS  SD  20251216  105119  CESARD      REL-V7R4M0  5770-WDS
+     A                                      KEEP
+     A                                      ASSUME
+     A                                      OVERLAY
+     A                                      PUTRETAIN
+     A                                 23  2'Option: X-Consul              '
+     A                                 22  2'                                  -
+     A                                                                         -
+     A                                             '
+     A                                      DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                 24  1'F3=Exit   F4=List of values  F6=Ta-
+     A                                      ble output                 Enter=to-
+     A                                       continue '
+     A                                      DSPATR(HI)
+     A            PMENSA        60A  O 21 11COLOR(RED)
+     A          R PBLAN
+     A*%%TS  SD  20110506  162251  NESTORV     REL-V5R4M0  5722-WDS
+     A          R CONSUL
+     A*%%TS  SD  20251212  153533  CESARD      REL-V7R4M0  5770-WDS
+     A                                      CF12(12 'salir')
+     A                                  1 32' Sistema contable '
+     A                                      DSPATR(RI)
+     A                                      DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                  2  4'Consulta de preasientos con plazo'
+     A                                      COLOR(YLW)
+     A                                  5  3'                                  -
+     A                                                                         -
+     A                                            '
+     A                                      DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                      DSPATR(HI)
+     A                                  4 41'Situar en....'
+     A                                      DSPATR(HI)
+     A            FECHA_CHAR     8A  O  4 56
+     A            HORA_CHAR      6A  O  4 65
+     A                                  1 68DATE
+     A                                      EDTCDE(Y)
+     A                                  2 68TIME
+     A                                  4  4'Tabla:'
+     A                                      DSPATR(HI)
+     A            PTABLE        10A  O  4 11
+     A                                  4 23'Lib.:'
+     A                                      DSPATR(HI)
+     A            PFILELIB      10A  O  4 29
+     A                                  3  4'Journal:'
+     A                                      DSPATR(HI)
+     A            PJOURNAL      10A  O  3 14
+     A                                  3 25'Journal Lib:'
+     A                                      DSPATR(HI)
+     A            PJOURNALL     10A  O  3 38
+     A            DSC1          75A  O  8  4COLOR(WHT)
+     A            MSGFMT        76A  O 23  2COLOR(RED)
+     A                                  7  4'Datos..........:'
+     A                                      COLOR(BLU)
+     A            DSC2          75A  O  9  4COLOR(WHT)
+     A            DSC3          75A  O 10  4COLOR(WHT)
+     A            DSC4          75A  O 11  4COLOR(WHT)
+     A            DSC5          75A  O 12  4COLOR(WHT)
+     A                                 22  2'                                  -
+     A                                                                         -
+     A                                             '
+     A                                      DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                  1 68DATE
+     A                                      EDTCDE(Y)
+     A                                  2 68TIME
+     A                                 24  2'F12 p/salir                       -
+     A                                                                 Enter p/-
+     A                                      continuar'
+     A                                      DSPATR(HI)
+     A          R PSF02                     SFL
+     A*%%TS  SD  20251126  090444  CESARD      REL-V7R4M0  5770-WDS
+     A                                      SFLNXTCHG
+     A            MARCA          1S 0H
+     A            CTLFLD         1Y 0H
+     A            RECNO2         4S 0H
+     A            LINSF2        74A  O  6  2
+     A          R PCL02                     SFLCTL(PSF02)
+     A*%%TS  SD  20251215  145515  CESARD      REL-V7R4M0  5770-WDS
+     A  *DS3                                SFLSIZ(1250)
+     A  *DS4                                SFLSIZ(1250)
+     A  *DS3                                SFLPAG(0015)
+     A  *DS4                                SFLPAG(0015)
+     A                                      CA03(03 'finalizar')
+     A                                      RTNDTA
+     A                                      OVERLAY
+     A N51                                  SFLDSP
+     A N51                                  SFLDSPCTL
+     A  51                                  SFLCLR
+     A                                  2  4'Display Journal'
+     A                                      COLOR(YLW)
+     A                                  4 41'Place in.....'
+     A                                      DSPATR(HI)
+     A                                  5  2'                                  -
+     A                                                                         -
+     A                                           '
+     A                                      DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                      DSPATR(HI)
+     A            FECHA_CHAR     8A  O  4 56
+     A            HORA_CHAR      6A  O  4 65
+     A                                  1 68DATE
+     A                                      EDTCDE(Y)
+     A                                  2 68TIME
+     A                                  4  4'File :'
+     A                                      DSPATR(HI)
+     A            PTABLE        10A  O  4 11
+     A                                  4 23'Lib.:'
+     A                                      DSPATR(HI)
+     A            PTABLELIB     10A  O  4 29
+     A                                  3  4'Journal:'
+     A                                      DSPATR(HI)
+     A            PJOURNAL      10A  O  3 14
+     A                                  3 25'Journal Lib:'
+     A                                      DSPATR(HI)
+     A            PJOURNALL     10A  O  3 38
+     A                                  1 28'R - Record level operation'
+     A                                      DSPATR(HI)
+     A                                      DSPATR(UL)
+     A          R PSF03                     SFL
+     A*%%TS  SD  20251202  143054  CESARD      REL-V7R4M0  5770-WDS
+     A                                      SFLNXTCHG
+     A            MARCA          1S 0H
+     A            CTLFLD         1Y 0H
+     A            RECNO3         4S 0H
+     A            PTIPDS        55A  O  4 11
+     A            POPC3          1A  B  4  4
+     A            PTIPO          2A  O  4  7
+     A          R PCL03                     SFLCTL(PSF03)
+     A*%%TS  SD  20251215  145906  CESARD      REL-V7R4M0  5770-WDS
+     A  *DS3                                SFLSIZ(1250)
+     A  *DS4                                SFLSIZ(1250)
+     A  *DS3                                SFLPAG(0012)
+     A  *DS4                                SFLPAG(0010)
+     A  *DS3                                WINDOW(2 3 16 65)
+     A  *DS4                                WINDOW(2 3 15 45)
+     A                                      CA03(03 'finalizar')
+     A                                      RTNDTA
+     A                                      OVERLAY
+     A N53                                  SFLDSP
+     A N53                                  SFLDSPCTL
+     A  53                                  SFLCLR
+     A                                  1  1'Display Journal'
+     A                                      COLOR(YLW)
+     A                                  3  3'Opt.  X to select          F3 Exit-
+     A                                         '
+     A                                      DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                      DSPATR(HI)
+     A                                  1 22'R-Record level Operation'
+     A                                      DSPATR(HI)
+     A                                      DSPATR(UL)
+     A          R PSF04                     SFL
+     A*%%TS  SD  20251203  100232  CESARD      REL-V7R4M0  5770-WDS
+     A                                      SFLNXTCHG
+     A            MARCA          1S 0H
+     A            CTLFLD         1Y 0H
+     A            RECNO4         4S 0H
+     A            PJRN          12A  O  4 21
+     A            POPC4          1A  B  4  4
+     A            PLIBJ         12A  O  4  7
+     A          R PCL04                     SFLCTL(PSF04)
+     A*%%TS  SD  20251216  105634  CESARD      REL-V7R4M0  5770-WDS
+     A  *DS3                                SFLSIZ(1250)
+     A  *DS4                                SFLSIZ(1250)
+     A  *DS3                                SFLPAG(0012)
+     A  *DS4                                SFLPAG(0010)
+     A  *DS3                                WINDOW(2 3 16 40)
+     A  *DS4                                WINDOW(2 3 15 45)
+     A                                      CA03(03 'finalizar')
+     A                                      RTNDTA
+     A                                      OVERLAY
+     A N54                                  SFLDSP
+     A N54                                  SFLDSPCTL
+     A  54                                  SFLCLR
+     A                                  1  1'Display Journal'
+     A                                      COLOR(YLW)
+     A                                  3  3'Opt. Library        Journal       -
+     A                                         '
+     A                                      DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                      DSPATR(HI)
+     A                                  2  6'X to select         F3 Exit   '
+     A                                      DSPATR(HI)
+     A                                  1 21'Journal list...'
+     A                                      DSPATR(HI)
+     A                                      DSPATR(RI)
+     A                                      COLOR(TRQ)
+     A          R PSF05                     SFL
+     A*%%TS  SD  20251203  141323  CESARD      REL-V7R4M0  5770-WDS
+     A                                      SFLNXTCHG
+     A            MARCA          1S 0H
+     A            CTLFLD         1Y 0H
+     A            RECNO5         4S 0H
+     A            PTYPE         12A  O  4 33
+     A            POPC5          1A  B  4  4
+     A            PFILE         12A  O  4 20
+     A            PLIBF         12   O  4  7
+     A          R PCL05                     SFLCTL(PSF05)
+     A*%%TS  SD  20251216  084319  CESARD      REL-V7R4M0  5770-WDS
+     A  *DS3                                SFLSIZ(1250)
+     A  *DS4                                SFLSIZ(1250)
+     A  *DS3                                SFLPAG(0012)
+     A  *DS4                                SFLPAG(0010)
+     A  *DS3                                WINDOW(2 3 16 45)
+     A  *DS4                                WINDOW(2 3 15 45)
+     A                                      CA03(03 'finalizar')
+     A                                      RTNDTA
+     A                                      OVERLAY
+     A N55                                  SFLDSP
+     A N55                                  SFLDSPCTL
+     A  55                                  SFLCLR
+     A                                  1  1'Display Journal'
+     A                                      COLOR(YLW)
+     A                                  3  3'Opt. Lib/Jrn:'
+     A                                      DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                      DSPATR(HI)
+     A                                  2  6'X to select         F3 Exit   '
+     A                                      DSPATR(HI)
+     A                                  1 21'Table seleccion'
+     A                                      DSPATR(HI)
+     A                                      DSPATR(RI)
+     A                                      COLOR(TRQ)
+     A            PJOURNALL     10A  O  3 17DSPATR(UL)
+     A                                      COLOR(BLU)
+     A                                  3 28'/'
+     A                                      COLOR(BLU)
+     A            PJOURNAL      10A  O  3 30DSPATR(UL)
+     A                                      COLOR(BLU)
+     A          R PPAN01
+     A*%%TS  SD  20251212  152041  CESARD      REL-V7R4M0  5770-WDS
+     A  *DS3                                WINDOW(5 10 10 30)
+     A  *DS4                                WINDOW(5 10 10 30)
+     A                                      CF12(12 'SALIR')
+     A                                      WDWBORDER((*DSPATR RI) (*CHAR '    -
+     A                                          '))
+     A                                      RMVWDW
+     A                                  3  2'Archivo..'
+     A                                      DSPATR(HI)
+     A            PFILOU        12A  B  3 12
+     A                                  4  2'Libreria:'
+     A                                      DSPATR(HI)
+     A            PLIBOU        12A  B  4 12
+     A            PMENS1        20A  O  7  4DSPATR(HI)
+     A                                      COLOR(RED)
+     A                                  1  5'Salida en fichero'
+     A                                      DSPATR(HI)
+     A                                      DSPATR(UL)
+     A                                  9  2'F12 p/cancelar'
+     A                                      DSPATR(HI)
+     A                                  5  2'C/datos adicionales:'
+     A                                      DSPATR(HI)
+     A            PTIPOU         1A  B  5 23
