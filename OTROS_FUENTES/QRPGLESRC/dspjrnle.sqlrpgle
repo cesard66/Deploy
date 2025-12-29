@@ -36,27 +36,6 @@
        end-Ds;
        dcl-s situar_ts timestamp;
 
-       // Cache de estructura de tabla
-       dcl-ds TableMetaCache qualified;
-         CachedTable     CHAR(10);
-         CachedLibrary   CHAR(10);
-         CachedSQL       VARCHAR(32672);
-         IsCached        IND inz(*off);
-       end-ds;
-
-       // Estructura para almacenar información de columnas en memoria
-       dcl-ds ColumnInfo qualified dim(500);
-         ColumnName      VARCHAR(128);
-         ColumnHeading   VARCHAR(254);
-         OrdinalPos      INT(20);
-         DataType        VARCHAR(32);
-         FieldLength     INT(20);
-         NumericScale    INT(20);
-         Storage         INT(20);
-         FieldCCSID      INT(20);
-       end-ds;
-       dcl-s ColumnCount INT(10) inz(0);
-
        dcl-s separador       CHAR(1) ;
        dcl-s STRINGPOSITION  INT(20) ;
        dcl-s REALSTORAGE     INT(20) ;
@@ -170,8 +149,6 @@
        //    RUTINA PARA CARGAR EL SUBFILE                             *
        //--------------------------------------------------------------*
        dcl-proc RCARGA;
-         dcl-s idx int(10);
-         
          SITUAR_TS = %timestamp(
                                  %subst(FECHA_CHAR:1:4) + '-' +
                                  %subst(FECHA_CHAR:5:2) + '-' +
@@ -186,45 +163,165 @@
        MYTABLE_LIBRARY = PTABLELIB;
        MYJOURNAL_LIBRARY = PJOURNALL;
        MYJOURNAL_NAME = PJOURNAL;
+       Exec Sql DECLARE CURSOR1 Scroll Cursor FOR
+                SELECT CAST(COLUMN_NAME AS VARCHAR(128)) ,
+                       CAST(COLUMN_HEADING AS VARCHAR(254)) ,
+                       ORDINAL_POSITION ,
+                       CAST(DATA_TYPE AS VARCHAR(32)) ,
+                       LENGTH ,
+                       COALESCE ( NUMERIC_SCALE , 0 ) ,
+                       STORAGE ,
+                       COALESCE ( CCSID , 0 )
+                FROM QSYS2 . SYSCOLUMNS A
+                WHERE ( SYSTEM_TABLE_NAME = :MYTABLE_NAME OR TABLE_NAME = :MYTABLE_NAME )
+                AND ( SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY OR TABLE_SCHEMA = :MYTABLE_LIBRARY )
+                ORDER BY ORDINAL_POSITION ;
 
-       // Verificar si la estructura de la tabla ya está en caché
-       if TableMetaCache.IsCached
-          and TableMetaCache.CachedTable = MYTABLE_NAME
-          and TableMetaCache.CachedLibrary = MYTABLE_LIBRARY;
-          // Usar SQL en caché
-          MYCMD = TableMetaCache.CachedSQL;
-       else;
-          // Cargar metadatos de la tabla y construir SQL
-          LoadTableMetadata();
-          // Guardar en caché
-          TableMetaCache.CachedTable = MYTABLE_NAME;
-          TableMetaCache.CachedLibrary = MYTABLE_LIBRARY;
-          TableMetaCache.CachedSQL = MYCMD;
-          TableMetaCache.IsCached = *on;
-       endif;
 
-       // Completar SQL con parámetros dinámicos
-       MYCMD = %trim ( MYCMD ) +
-       ' format JSON RETURNING VARCHAR(20000) ' +
-       ') as Datos FROM TABLE(DISPLAY_JOURNAL(' +
-       ' JOURNAL_LIBRARY => ''' + %trim(MYJOURNAL_LIBRARY) + '''' +
-       ' ,JOURNAL_NAME => ''' + %trim(MYJOURNAL_NAME) + '''' +
-       ' ,STARTING_RECEIVER_NAME =>  ''*CURAVLCHN'' ' +
-       ' ,JOURNAL_CODES => ''R'' ' +
-       ' ,OBJECT_LIBRARY => ''' + %trim(MY_SYSTEM_SCHEMA_NAME) + '''' +
-       ' ,OBJECT_NAME => ''' + %trim(MY_SYSTEM_TABLE_NAME) + '''' +
-       ' ,OBJECT_MEMBER => ''*ALL'' ' +
-       ' ,OBJECT_OBJTYPE => ''*FILE'')) ' +
-       ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''';
-       if PTIPOJRN <> '  ';
-          MYCMD = %trim ( MYCMD ) +
-                           ' AND JOURNAL_ENTRY_TYPE = ''' +  PTIPOJRN + '''';
-       endif;
-       // Optimización: Ordenar por timestamp descendente y limitar resultados
-       MYCMD = %trim ( MYCMD ) +
-               ' ORDER BY ENTRY_TIMESTAMP DESC ' +
-               ' FETCH FIRST 1000 ROWS ONLY';
-        stmsql = %trim(MYCMD);
+
+        MYCMD = '' ;
+
+
+        Exec Sql
+            SELECT SYSTEM_TABLE_NAME , SYSTEM_TABLE_SCHEMA
+            INTO :MY_SYSTEM_TABLE_NAME , :MY_SYSTEM_SCHEMA_NAME
+            FROM QSYS2 . SYSTABLES
+            WHERE ( SYSTEM_TABLE_NAME = :MYTABLE_NAME OR TABLE_NAME = :MYTABLE_NAME )
+            AND ( SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY OR TABLE_SCHEMA = :MYTABLE_LIBRARY ) ;
+
+            MYCMD = %trim ( MYCMD ) + ' ' +
+                    'SELECT ENTRY_TIMESTAMP,  ' +
+                            'JOURNAL_CODE,  JOURNAL_ENTRY_TYPE,  ' +
+                            'CASE WHEN JOURNAL_ENTRY_TYPE = ''PT'' ' +
+                                'THEN ''INSERT'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''PX'' ' +
+                                'THEN ''INSERT BY RRN'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''UB'' ' +
+                                'THEN ''UPDATE BEFORE'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''UP'' ' +
+                                'THEN ''UPDATE AFTER'' ' +
+                                'WHEN JOURNAL_ENTRY_TYPE = ''DL'' ' +
+                                'THEN ''DELETE'' ' +
+                                'ELSE JOURNAL_ENTRY_TYPE ' +
+                            'END AS JRNTYPE, ' +
+                            'JOB_NAME, ' +
+                            'JOB_USER, ' +
+                            'CURRENT_USER as CURRENTUSER, ' +
+                            'JOB_NUMBER , ' +
+                            'SUBSTR(OBJECT, 1, 10) AS FILE, ' +
+                            'SUBSTR(OBJECT, 11, 10) AS FILELIB, ' +
+                            'SUBSTR(OBJECT, 21, 10) AS FILEMBR, ' +
+                            'OBJECT_TYPE, ' +
+                            'COALESCE(PROGRAM_NAME, '''') PROGRAM_NAME , ' +
+                            'COALESCE(PROGRAM_LIBRARY,'''') PROGRAM_LIBRARY, ' +
+                            'json_object(' ;
+            STRINGPOSITION = 1 ;
+
+        Exec Sql
+            OPEN CURSOR1 ;
+        Exec Sql
+            FETCH CURSOR1 INTO :COLUMN_NAME , :COLUMN_HEADING , :ORDINAL_POSITION
+                    , :DATA_TYPE , :FIELD_LENGTH , :NUMERIC_SCALE , :STORAGE , :FIELD_CCSID ;
+
+        Dow SqlCod = 0;
+
+        Select;
+            WHEN DATA_TYPE = 'DATE' ;
+                REALSTORAGE = 10 ;
+            WHEN DATA_TYPE = 'TIME' ;
+                REALSTORAGE = 08 ;
+            WHEN DATA_TYPE = 'TIMESTMP' ;
+                REALSTORAGE = 26 ;
+            Other;
+                REALSTORAGE = STORAGE ;
+        endsl;
+
+        Select;
+        WHEN DATA_TYPE = 'DATE' ;
+            DATA_TYPE_LENGTH = 'CHAR(10)';
+        WHEN DATA_TYPE = 'TIME' ;
+            DATA_TYPE_LENGTH = 'CHAR(08)';
+        WHEN DATA_TYPE = 'TIMESTMP' ;
+            DATA_TYPE_LENGTH = 'CHAR(26)';
+        WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 16 ;
+            DATA_TYPE_LENGTH = 'FLOAT';
+        WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 8 ;
+            DATA_TYPE_LENGTH = 'DOUBLE';
+        WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 4 ;
+            DATA_TYPE_LENGTH = 'REAL';
+        Other;
+            DATA_TYPE_LENGTH = DATA_TYPE;
+        endsl ;
+
+
+        if ORDINAL_POSITION <> 1;
+           separador = ',';
+        else;
+           separador = '';
+        endif;
+
+        // FIELD NAME
+        MYCMD = %trim( MYCMD ) +  separador +
+        ' ''' +
+        %trim( COLUMN_NAME )  +
+        ''' VALUE ' ;
+        // INTERPRET for each data_type
+        // in a different way:
+        // DATA as CHAR(10), TIME as CHAR(8), TIMESTAMP as CHAR(26)
+        MYCMD = %trim ( MYCMD ) +
+        ' INTERPRET(SUBSTR(ENTRY_DATA, ' +
+        %trim(%char(STRINGPOSITION ) ) +
+        ',  ' +
+        %trim(%char( REALSTORAGE ) ) +
+        ') AS ' +
+        %trim( DATA_TYPE_LENGTH ) ;
+
+        Select;
+            WHEN DATA_TYPE = 'CHAR' OR
+            DATA_TYPE = 'VARCHAR' OR
+            DATA_TYPE = 'BINARY';
+            MYCMD = %trim( MYCMD ) + ' (' + %trim(%char(FIELD_LENGTH ) ) + ') ) ' ;
+            WHEN DATA_TYPE = 'DECIMAL' OR
+            DATA_TYPE = 'NUMERIC';
+            MYCMD = %trim( MYCMD ) + ' (' + %trim(%char( FIELD_LENGTH  ) ) + ',  ' +
+                    %trim(%char( NUMERIC_SCALE ) ) + '))' ;
+            Other;
+            MYCMD = %trim( MYCMD ) + ')' ;
+        endsl;
+
+
+
+
+        STRINGPOSITION = STRINGPOSITION + REALSTORAGE ;
+
+        Exec Sql
+            FETCH CURSOR1 INTO :COLUMN_NAME , :COLUMN_HEADING , :ORDINAL_POSITION
+                    , :DATA_TYPE , :FIELD_LENGTH , :NUMERIC_SCALE , :STORAGE , :FIELD_CCSID ;
+
+
+        EndDo  ;
+
+        Exec Sql
+        CLOSE CURSOR1 ;
+
+        MYCMD = %trim ( MYCMD ) +
+        ' format JSON RETURNING VARCHAR(20000) ' +
+        ') as Datos FROM TABLE(DISPLAY_JOURNAL(' +
+        ' JOURNAL_LIBRARY => ''' + %trim(MYJOURNAL_LIBRARY) + '''' +
+        ' ,JOURNAL_NAME => ''' + %trim(MYJOURNAL_NAME) + '''' +
+        ' ,STARTING_RECEIVER_NAME =>  ''*CURAVLCHN'' ' +
+        ' ,JOURNAL_CODES => ''R'' ' +
+        ' ,OBJECT_LIBRARY => ''' + %trim(MY_SYSTEM_SCHEMA_NAME) + '''' +
+        ' ,OBJECT_NAME => ''' + %trim(MY_SYSTEM_TABLE_NAME) + '''' +
+        ' ,OBJECT_MEMBER => ''*ALL'' ' +
+        ' ,OBJECT_OBJTYPE => ''*FILE'')) ' +
+        ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''';
+        if PTIPOJRN <> '  ';
+           MYCMD = %trim ( MYCMD ) +
+                            ' AND JOURNAL_ENTRY_TYPE = ''' +  PTIPOJRN + '''';
+
+        endif;
+         stmsql = %trim(MYCMD);
        //Prt_journal_CMD ();
          exec sql
            prepare SELECT2 from :stmsql;
@@ -424,153 +521,6 @@
             endif;
             if lenstr = 0;
                leave;
-       //--------------------------------------------------------------*
-       //    RUTINA PARA CARGAR METADATOS DE TABLA (CON CACHE)        *
-       //--------------------------------------------------------------*
-       dcl-proc LoadTableMetadata;
-         dcl-s idx int(10);
-         
-         ColumnCount = 0;
-         
-         Exec Sql
-             SELECT SYSTEM_TABLE_NAME , SYSTEM_TABLE_SCHEMA
-             INTO :MY_SYSTEM_TABLE_NAME , :MY_SYSTEM_SCHEMA_NAME
-             FROM QSYS2 . SYSTABLES
-             WHERE SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY
-               AND SYSTEM_TABLE_NAME = :MYTABLE_NAME
-             FETCH FIRST 1 ROW ONLY;
-
-         MYCMD = %trim ( MYCMD ) + ' ' +
-                 'SELECT ENTRY_TIMESTAMP,  ' +
-                         'JOURNAL_CODE,  JOURNAL_ENTRY_TYPE,  ' +
-                         'CASE WHEN JOURNAL_ENTRY_TYPE = ''PT'' ' +
-                             'THEN ''INSERT'' ' +
-                             'WHEN JOURNAL_ENTRY_TYPE = ''PX'' ' +
-                             'THEN ''INSERT BY RRN'' ' +
-                             'WHEN JOURNAL_ENTRY_TYPE = ''UB'' ' +
-                             'THEN ''UPDATE BEFORE'' ' +
-                             'WHEN JOURNAL_ENTRY_TYPE = ''UP'' ' +
-                             'THEN ''UPDATE AFTER'' ' +
-                             'WHEN JOURNAL_ENTRY_TYPE = ''DL'' ' +
-                             'THEN ''DELETE'' ' +
-                             'ELSE JOURNAL_ENTRY_TYPE ' +
-                         'END AS JRNTYPE, ' +
-                         'JOB_NAME, ' +
-                         'JOB_USER, ' +
-                         'CURRENT_USER as CURRENTUSER, ' +
-                         'JOB_NUMBER , ' +
-                         'SUBSTR(OBJECT, 1, 10) AS FILE, ' +
-                         'SUBSTR(OBJECT, 11, 10) AS FILELIB, ' +
-                         'SUBSTR(OBJECT, 21, 10) AS FILEMBR, ' +
-                         'OBJECT_TYPE, ' +
-                         'COALESCE(PROGRAM_NAME, '''') PROGRAM_NAME , ' +
-                         'COALESCE(PROGRAM_LIBRARY,'''') PROGRAM_LIBRARY, ' +
-                         'json_object(' ;
-         STRINGPOSITION = 1 ;
-
-         Exec Sql DECLARE CURSOR1 Scroll Cursor FOR
-                  SELECT CAST(COLUMN_NAME AS VARCHAR(128)) ,
-                         CAST(COLUMN_HEADING AS VARCHAR(254)) ,
-                         ORDINAL_POSITION ,
-                         CAST(DATA_TYPE AS VARCHAR(32)) ,
-                         LENGTH ,
-                         COALESCE ( NUMERIC_SCALE , 0 ) ,
-                         STORAGE ,
-                         COALESCE ( CCSID , 0 )
-                  FROM QSYS2 . SYSCOLUMNS
-                  WHERE SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY
-                    AND SYSTEM_TABLE_NAME = :MYTABLE_NAME
-                  ORDER BY ORDINAL_POSITION
-                  OPTIMIZE FOR 50 ROWS
-                  FETCH FIRST 500 ROWS ONLY;
-
-         Exec Sql OPEN CURSOR1 ;
-         Exec Sql FETCH CURSOR1 INTO :COLUMN_NAME , :COLUMN_HEADING , :ORDINAL_POSITION
-                 , :DATA_TYPE , :FIELD_LENGTH , :NUMERIC_SCALE , :STORAGE , :FIELD_CCSID ;
-
-         Dow SqlCod = 0;
-           ColumnCount += 1;
-           idx = ColumnCount;
-           
-           // Guardar en array de memoria
-           ColumnInfo(idx).ColumnName = COLUMN_NAME;
-           ColumnInfo(idx).ColumnHeading = COLUMN_HEADING;
-           ColumnInfo(idx).OrdinalPos = ORDINAL_POSITION;
-           ColumnInfo(idx).DataType = DATA_TYPE;
-           ColumnInfo(idx).FieldLength = FIELD_LENGTH;
-           ColumnInfo(idx).NumericScale = NUMERIC_SCALE;
-           ColumnInfo(idx).Storage = STORAGE;
-           ColumnInfo(idx).FieldCCSID = FIELD_CCSID;
-
-           Select;
-               WHEN DATA_TYPE = 'DATE' ;
-                   REALSTORAGE = 10 ;
-               WHEN DATA_TYPE = 'TIME' ;
-                   REALSTORAGE = 08 ;
-               WHEN DATA_TYPE = 'TIMESTMP' ;
-                   REALSTORAGE = 26 ;
-               Other;
-                   REALSTORAGE = STORAGE ;
-           endsl;
-
-           Select;
-           WHEN DATA_TYPE = 'DATE' ;
-               DATA_TYPE_LENGTH = 'CHAR(10)';
-           WHEN DATA_TYPE = 'TIME' ;
-               DATA_TYPE_LENGTH = 'CHAR(08)';
-           WHEN DATA_TYPE = 'TIMESTMP' ;
-               DATA_TYPE_LENGTH = 'CHAR(26)';
-           WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 16 ;
-               DATA_TYPE_LENGTH = 'FLOAT';
-           WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 8 ;
-               DATA_TYPE_LENGTH = 'DOUBLE';
-           WHEN DATA_TYPE = 'FLOAT' AND FIELD_LENGTH = 4 ;
-               DATA_TYPE_LENGTH = 'REAL';
-           Other;
-               DATA_TYPE_LENGTH = DATA_TYPE;
-           endsl ;
-
-           if ORDINAL_POSITION <> 1;
-              separador = ',';
-           else;
-              separador = '';
-           endif;
-
-           // FIELD NAME
-           MYCMD = %trim( MYCMD ) +  separador +
-           ' ''' +
-           %trim( COLUMN_NAME )  +
-           ''' VALUE ' ;
-           // INTERPRET for each data_type
-           MYCMD = %trim ( MYCMD ) +
-           ' INTERPRET(SUBSTR(ENTRY_DATA, ' +
-           %trim(%char(STRINGPOSITION ) ) +
-           ',  ' +
-           %trim(%char( REALSTORAGE ) ) +
-           ') AS ' +
-           %trim( DATA_TYPE_LENGTH ) ;
-
-           Select;
-               WHEN DATA_TYPE = 'CHAR' OR
-               DATA_TYPE = 'VARCHAR' OR
-               DATA_TYPE = 'BINARY';
-               MYCMD = %trim( MYCMD ) + ' (' + %trim(%char(FIELD_LENGTH ) ) + ') ) ' ;
-               WHEN DATA_TYPE = 'DECIMAL' OR
-               DATA_TYPE = 'NUMERIC';
-               MYCMD = %trim( MYCMD ) + ' (' + %trim(%char( FIELD_LENGTH  ) ) + ',  ' +
-                       %trim(%char( NUMERIC_SCALE ) ) + '))' ;
-               Other;
-               MYCMD = %trim( MYCMD ) + ')' ;
-           endsl;
-
-           STRINGPOSITION = STRINGPOSITION + REALSTORAGE ;
-
-           Exec Sql FETCH CURSOR1 INTO :COLUMN_NAME , :COLUMN_HEADING , :ORDINAL_POSITION
-                   , :DATA_TYPE , :FIELD_LENGTH , :NUMERIC_SCALE , :STORAGE , :FIELD_CCSID ;
-         EndDo  ;
-
-         Exec Sql CLOSE CURSOR1 ;
-       end-proc;
             endif;
             LINSF2  = %subst(%trim(OCULTO) : offset : lenstr);
             recno2+= 1;
