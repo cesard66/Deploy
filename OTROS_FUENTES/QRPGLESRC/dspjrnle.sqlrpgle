@@ -149,6 +149,13 @@
        //    RUTINA PARA CARGAR EL SUBFILE                             *
        //--------------------------------------------------------------*
        dcl-proc RCARGA;
+         if FECHA_CHAR = *blank;
+             exec sql
+               SELECT VARCHAR_FORMAT(CURRENT TIMESTAMP, 'YYYYMMDD')
+               ,  VARCHAR_FORMAT(CURRENT TIMESTAMP, 'HHMMSS')
+               into :FECHA_CHAR, :HORA_CHAR
+               FROM SYSIBM.SYSDUMMY1;
+         endif;
          SITUAR_TS = %timestamp(
                                  %subst(FECHA_CHAR:1:4) + '-' +
                                  %subst(FECHA_CHAR:5:2) + '-' +
@@ -316,11 +323,12 @@
         ' ,OBJECT_MEMBER => ''*ALL'' ' +
         ' ,OBJECT_OBJTYPE => ''*FILE'')) ' +
         ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''';
-        if PTIPOJRN <> '  ';
-           MYCMD = %trim ( MYCMD ) +
-                            ' AND JOURNAL_ENTRY_TYPE = ''' +  PTIPOJRN + '''';
+         if PTIPOJRN <> '  ';
+             MYCMD = %trim ( MYCMD ) +
+                              ' AND JOURNAL_ENTRY_TYPE = ''' +  PTIPOJRN + '''';
 
-        endif;
+         endif;
+         MYCMD = %trim ( MYCMD ) + ' ORDER BY Entry_Timestamp DESC';
          stmsql = %trim(MYCMD);
        //Prt_journal_CMD ();
          exec sql
