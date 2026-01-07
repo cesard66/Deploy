@@ -20,7 +20,8 @@
                 SFILE(PSF02:recno2)
                 SFILE(PSF03:recno3)
                 SFILE(PSF04:recno4)
-                SFILE(PSF05:recno5);
+                SFILE(PSF05:recno5)
+                SFILE(PSF06:recno6);
         dcl-f MYPRT printer(133) oflind(*in99);
         //--------------------------------------------------------------*
         dcl-DS *N PSDS;
@@ -34,8 +35,14 @@
           Tim_LOG           char(22) Pos(05);
           Des_LOG           Char(40) Pos(28);
        end-Ds;
-       dcl-s situar_ts timestamp;
-
+       dcl-s situar_tsh timestamp;
+       dcl-s situar_tsd timestamp;
+       dcl-s Journal_Receiver_Library  char(10);
+       dcl-s Journal_Receiver_Name     char(10);
+       dcl-s First_Sequence_Number     int(10);
+       dcl-s Fecha_Hora_Coneccion      char(26);
+       dcl-s Fecha_Hora_Desconeccion   char(26);
+       dcl-s Estado                    char(10);
        dcl-s separador       CHAR(1) ;
        dcl-s STRINGPOSITION  INT(20) ;
        dcl-s REALSTORAGE     INT(20) ;
@@ -118,10 +125,12 @@
 
        exec sql
          SELECT VARCHAR_FORMAT(CURRENT TIMESTAMP, 'YYYYMMDD')
-         ,  VARCHAR_FORMAT(CURRENT TIMESTAMP, 'HHMMSS')
-         into :FECHA_CHAR, :HORA_CHAR
+         ,  VARCHAR_FORMAT(CURRENT TIMESTAMP, 'HH24MISS')
+         into :FEC_CHARH, :HORA_CHARH
          FROM SYSIBM.SYSDUMMY1;
 
+         FEC_CHARD = '00010101';
+         HORA_CHARD = '000000';
        Exec SQL CALL QCMDEXC('CHGJOB CCSID(284)');
        Dow *IN03 = *OFF;
          RINICIO();
@@ -149,20 +158,33 @@
        //    RUTINA PARA CARGAR EL SUBFILE                             *
        //--------------------------------------------------------------*
        dcl-proc RCARGA;
-         if FECHA_CHAR = *blank;
+         if FEC_CHARH = *blank;
              exec sql
                SELECT VARCHAR_FORMAT(CURRENT TIMESTAMP, 'YYYYMMDD')
                ,  VARCHAR_FORMAT(CURRENT TIMESTAMP, 'HHMMSS')
-               into :FECHA_CHAR, :HORA_CHAR
+               into :FEC_CHARH, :HORA_CHARH
                FROM SYSIBM.SYSDUMMY1;
          endif;
-         SITUAR_TS = %timestamp(
-                                 %subst(FECHA_CHAR:1:4) + '-' +
-                                 %subst(FECHA_CHAR:5:2) + '-' +
-                                 %subst(FECHA_CHAR:7:2) + '-' +
-                                 %subst(HORA_CHAR:1:2) + '.' +
-                                 %subst(HORA_CHAR:3:2) + '.' +
-                                 %subst(HORA_CHAR:5:2) + '.' +
+         SITUAR_TSH = %timestamp(
+                                 %subst(FEC_CHARH:1:4) + '-' +
+                                 %subst(FEC_CHARH:5:2) + '-' +
+                                 %subst(FEC_CHARH:7:2) + '-' +
+                                 %subst(HORA_CHARH:1:2) + '.' +
+                                 %subst(HORA_CHARH:3:2) + '.' +
+                                 %subst(HORA_CHARH:5:2) + '.' +
+                                 '000000'
+                                 ) ;
+         if FEC_CHARD = *blank;
+            FEC_CHARD = '00010101';
+            HORA_CHARD = '000000';
+         endif;
+         SITUAR_TSD = %timestamp(
+                                 %subst(FEC_CHARD:1:4) + '-' +
+                                 %subst(FEC_CHARD:5:2) + '-' +
+                                 %subst(FEC_CHARD:7:2) + '-' +
+                                 %subst(HORA_CHARD:1:2) + '.' +
+                                 %subst(HORA_CHARD:3:2) + '.' +
+                                 %subst(HORA_CHARD:5:2) + '.' +
                                  '000000'
                                  ) ;
        MYTABLE_NAME  = PTABLE;
@@ -189,12 +211,15 @@
         MYCMD = '' ;
 
 
+        MY_SYSTEM_TABLE_NAME = *blank;
         Exec Sql
             SELECT SYSTEM_TABLE_NAME , SYSTEM_TABLE_SCHEMA
             INTO :MY_SYSTEM_TABLE_NAME , :MY_SYSTEM_SCHEMA_NAME
             FROM QSYS2 . SYSTABLES
             WHERE ( SYSTEM_TABLE_NAME = :MYTABLE_NAME OR TABLE_NAME = :MYTABLE_NAME )
             AND ( SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY OR TABLE_SCHEMA = :MYTABLE_LIBRARY ) ;
+
+            if  MY_SYSTEM_TABLE_NAME <> *blank;
 
             MYCMD = %trim ( MYCMD ) + ' ' +
                     'SELECT ENTRY_TIMESTAMP,  ' +
@@ -322,7 +347,8 @@
         ' ,OBJECT_NAME => ''' + %trim(MY_SYSTEM_TABLE_NAME) + '''' +
         ' ,OBJECT_MEMBER => ''*ALL'' ' +
         ' ,OBJECT_OBJTYPE => ''*FILE'')) ' +
-        ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''';
+        ' WHERE Entry_Timestamp between ''' + %char(SITUAR_TSD)  + '''' +
+        ' and ''' + %char(SITUAR_TSH)  + '''';
          if PTIPOJRN <> '  ';
              MYCMD = %trim ( MYCMD ) +
                               ' AND JOURNAL_ENTRY_TYPE = ''' +  PTIPOJRN + '''';
@@ -402,6 +428,7 @@
            enddo;
          exec sql
            close CURSOR2;
+         endif;
 
          IF recno = 0;
            POPC  = '';
@@ -409,7 +436,7 @@
            recno = recno + 1;
            WRITE PSF01;
          ENDIF;
-         TECLAS = 'F3=Salir  F4=s/Tipo Entrada  F6=Salida tabla                 Enter=continuar';
+         TECLAS = 'F3=Salir  F4=s/Tipo Entrada  F6=Salida tabla  F7=Receptores  Enter=continuar';
        //TECLAS = 'F3=Salir  F4=Lista valores   F6=Salida tabla                 Enter=continuar';
          WRITE PIEPAG;
          // RGenera_tabla ();  //AQUI
@@ -441,6 +468,9 @@
             else;
               pmensa = 'no ingreso tabla p/salida ';
             endif;
+         endif;
+         if *in07 = *on and  PTABLE <> *BLANKS;
+              RVer_receptores();
          endif;
          RSELECC();
        end-proc;
@@ -872,15 +902,15 @@
            WHEN pfilou = *blanks;
                 pmens1= 'Ingrese tabla y libreria';
            other;
-           SITUAR_TS = %timestamp(
-                                   %subst(FECHA_CHAR:1:4) + '-' +
-                                   %subst(FECHA_CHAR:5:2) + '-' +
-                                   %subst(FECHA_CHAR:7:2) + '-' +
-                                   %subst(HORA_CHAR:1:2) + '.' +
-                                   %subst(HORA_CHAR:3:2) + '.' +
-                                   %subst(HORA_CHAR:5:2) + '.' +
-                                   '000000'
-                                   ) ;
+         //SITUAR_TS = %timestamp(
+         //                        %subst(FECHA_CHAR:1:4) + '-' +
+         //                        %subst(FECHA_CHAR:5:2) + '-' +
+         //                        %subst(FECHA_CHAR:7:2) + '-' +
+         //                        %subst(HORA_CHAR:1:2) + '.' +
+         //                        %subst(HORA_CHAR:3:2) + '.' +
+         //                        %subst(HORA_CHAR:5:2) + '.' +
+         //                        '000000'
+         //                        ) ;
            MYTABLE_NAME  = PTABLE;
            MYLIBRARY_NAME = PTABLELIB;
            MYTABLE_LIBRARY = PTABLELIB;
@@ -904,7 +934,7 @@
 
            MYCMD = '' ;
 
-
+           MY_SYSTEM_TABLE_NAME= *blank;
            Exec Sql
                SELECT SYSTEM_TABLE_NAME , SYSTEM_TABLE_SCHEMA
                INTO :MY_SYSTEM_TABLE_NAME , :MY_SYSTEM_SCHEMA_NAME
@@ -912,6 +942,7 @@
                WHERE ( SYSTEM_TABLE_NAME = :MYTABLE_NAME OR TABLE_NAME = :MYTABLE_NAME )
                AND ( SYSTEM_TABLE_SCHEMA = :MYTABLE_LIBRARY OR TABLE_SCHEMA = :MYTABLE_LIBRARY ) ;
 
+          if MY_SYSTEM_TABLE_NAME <> *blank;
                MYCMD = %trim ( MYCMD ) +
                        ' CREATE TABLE  ' + %trim(plibou) + '.' + %trim(pfilou) + ' AS (' +
                        'SELECT ';
@@ -1037,7 +1068,8 @@
            ' ,OBJECT_NAME => ''' + %trim(MY_SYSTEM_TABLE_NAME) + '''' +
            ' ,OBJECT_MEMBER => ''*ALL'' ' +
            ' ,OBJECT_OBJTYPE => ''*FILE'')) ' +
-           ' WHERE Entry_Timestamp <= ''' + %char(SITUAR_TS)  + '''' ;
+           ' WHERE Entry_Timestamp between ''' + %char(SITUAR_TSD)  + '''' +
+           ' and ''' + %char(SITUAR_TSH)  + '''';
            if PTIPOJRN <> '  ';
               MYCMD = %trim ( MYCMD ) +
                                ' AND JOURNAL_ENTRY_TYPE = ''' +  PTIPOJRN + '''';
@@ -1054,8 +1086,93 @@
                endif;
              pmensa = 'Se ha creado la tabla ' +
                        %trim(pfilou) + ' en la libreria ' + %trim(plibou) ;
+             else;
+             pmensa = 'tabla no existe';
+             endif;
             leave;
             endsl;
          enddo;
 
+       end-proc;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA CREAR UNA TABLA A PARTIR DEL JOURNAL          *
+       //--------------------------------------------------------------*
+       dcl-proc RVer_receptores;
+         RINICIO_Subfile6();
+         RCARGA_Subfile6();
+         RVISUAL_Subfile6();
+       end-proc;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA INICIAL SUBFILE                               *
+       //--------------------------------------------------------------*
+       dcl-proc RINICIO_Subfile6;
+         recno6 = recno6+ 1;
+         WRITE PSF06;
+         WRITE PCL06;
+         recno6 = 0;
+         *IN56 = *ON;
+         WRITE PCL06;
+         *IN56 = *OFF;
+       end-proc;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA CARGAR EL SUBFILE                             *
+       //--------------------------------------------------------------*
+       dcl-proc RCARGA_Subfile6;
+       exec sql
+         declare CURSOR6 cursor for
+         Select Journal_Receiver_Library,
+                Journal_Receiver_Name,
+                First_Sequence_Number,
+                varchar(Attach_Timestamp) As Fecha_Hora_Coneccion,
+                coalesce(varchar(Detach_Timestamp) , '0000-00-00-00.00.00.000000')
+                                                   As Fecha_Hora_Desconeccion,
+                Case Status
+                    When 'ATTACHED' Then 'CONECTADO'
+                    When 'ONLINE' Then 'EN LINEA'
+                    When 'SAVED' Then 'SALVADO'
+                    When 'FREED' Then 'LIBERADO'
+                    When 'PARTIAL' Then 'PARCIAL'
+                End As Estado
+             From Qsys2.Journal_Receiver_Info
+             Where Journal_Library =  :PJOURNALL
+                   And Journal_Name = :PJOURNAL;
+       exec sql
+         Open CURSOR6;
+        Dow SqlCod = 0;
+            Exec Sql
+                FETCH  CURSOR6 INTO
+                :Journal_Receiver_Library,
+                :Journal_Receiver_Name,
+                :First_Sequence_Number,
+                :Fecha_Hora_Coneccion,
+                :Fecha_Hora_Desconeccion,
+                :Estado;
+            if  SqlCod <>0;
+                leave;
+            endif;
+            PLIBJRN = %trim(Journal_Receiver_Library) + '/' +
+                      %trim(Journal_Receiver_Name);
+            PSECUE  = First_Sequence_Number;
+            PHORDES = %char(Fecha_Hora_Coneccion);
+            PHORHAS = %char(Fecha_Hora_Desconeccion);
+            PESTADO = Estado;
+            recno6+= 1;
+            write PSF06 ;
+        EndDo  ;
+
+        Exec Sql
+        CLOSE CURSOR6 ;
+
+
+         IF recno6= 0;
+           recno6= recno6+ 1;
+           WRITE PSF06;
+         ENDIF;
+       end-proc;
+       //--------------------------------------------------------------*
+       //    RUTINA PARA VISUALIZAR EL SUBFILE                         *
+       //--------------------------------------------------------------*
+       dcl-proc RVISUAL_Subfile6;
+         *In12 = *Off;
+         EXFMT PCL06;
        end-proc;
