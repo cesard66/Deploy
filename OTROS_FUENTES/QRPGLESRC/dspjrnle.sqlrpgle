@@ -14,6 +14,7 @@
         // UB - Before-image of record updated in physical file member
         // UP - After-image of record updated in physical file member
         // UR - After-image of record updated for rollback
+        // CD 
         Ctl-Opt debug decedit(',') datedit(*DMY/) dftactgrp(*no) actgrp(*new);
         //--------------------------------------------------------------*
         dcl-F DSPJRND WORKSTN SFILE(PSF01:recno)
