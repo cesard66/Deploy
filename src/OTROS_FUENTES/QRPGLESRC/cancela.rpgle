@@ -11,7 +11,7 @@ dcl-pr SendEscMsg extpgm('QMHSNDPM');
     MsgKey    char(4);
     ErrorDS   char(16);
 end-pr;
-
+ 
 dcl-ds ErrorDS inz;
     BytesProv    int(10) inz(16);
     BytesAvail   int(10);
