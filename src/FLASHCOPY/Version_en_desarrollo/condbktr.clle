@@ -1,0 +1,11 @@
+PGM
+             VRYCFG     CFGOBJ(TAP*) CFGTYPE(*DEV) STATUS(*OFF)
+             MONMSG     MSGID(CPF0000)
+             VRYCFG     CFGOBJ(MLB*) CFGTYPE(*DEV) STATUS(*OFF)
+             MONMSG     MSGID(CPF0000)
+
+             VRYCFG     CFGOBJ(TAPMLB01) CFGTYPE(*DEV) STATUS(*ON)
+             MONMSG     MSGID(CPF0000)
+             HLDJOBSCDE JOB(*ALL) ENTRYNBR(*ALL)
+
+   ENDPGM

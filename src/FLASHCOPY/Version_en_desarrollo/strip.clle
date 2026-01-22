@@ -1,0 +1,58 @@
+PGM
+             DCL        VAR(&CONTEXT) TYPE(*CHAR) LEN(20)
+             DCL        VAR(&VALUE) TYPE(*CHAR) LEN(200)
+             DCL        VAR(&USUARIO) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&ETHLIN) TYPE(*CHAR) LEN(9)
+             DCL        VAR(&CMNDST) TYPE(*CHAR) LEN(5)
+             DCL        VAR(&IPORG) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&IPDEST) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&OPTION) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&LOG) TYPE(*CHAR) LEN(100)
+             RTVDTAARA  DTAARA(BNOPTFC (1 1)) RTNVAR(&OPTION)
+             RTVDTAARA  DTAARA(FLASHCONTX (1 20)) RTNVAR(&CONTEXT)
+             CALLSUBR   SUBR(GETCONFIG)
+             IF         COND(&USUARIO *EQ '*NOTFOUND') THEN(RETURN)
+
+             CHGJOB     LOG(4 00 *SECLVL) LOGCLPGM(*YES)
+             ADDRPYLE   SEQNBR(9999) MSGID(CPA2610) RPY('G')
+             MONMSG     MSGID(CPF0000)
+             MONMSG     MSGID(CPF2555)
+
+             QSYS/ENDTCPIFC INTNETADR(&IPORG)
+
+             VRYCFG     CFGOBJ(ETH*) CFGTYPE(*LIN) STATUS(*OFF)
+             MONMSG     MSGID(CPF0000)
+             VRYCFG     CFGOBJ(&ETHLIN) CFGTYPE(*LIN) STATUS(*OFF)
+             MONMSG     MSGID(CPF0000)
+             LOGTABLE   LOG('SE DETIENEN TODAS LAS INTERFACES EN +
+                          LPAR DE DESTINO')
+
+             CHGLINETH  LIND(&ETHLIN) RSRCNAME(&CMNDST)
+             CHGDTAARA  DTAARA(STRIP (1 50)) VALUE(CHGLINETH)
+
+             VRYCFG     CFGOBJ(&ETHLIN) CFGTYPE(*LIN) STATUS(*ON)
+             QSYS/STRTCPIFC INTNETADR(&IPDEST)
+             LOGTABLE   LOG('SE INICIA DIRECCIÓN IP EN LPAR DE +
+                          DESTINO')
+
+             SNDPGMMSG  MSG('SE INICIA DIRECCIÓN IP EN LPAR DE +
+                          DESTINO')
+             SUBR       SUBR(GETCONFIG)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('Usuario' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&USUARIO) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('IPORG' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&IPORG) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('IPDEST' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&IPDEST) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('ETHLIN' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&ETHLIN) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('CMNDST' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&CMNDST) VALUE(&VALUE)
+
+             ENDSUBR
+ENDPGM

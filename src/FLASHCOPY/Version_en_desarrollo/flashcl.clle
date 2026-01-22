@@ -1,0 +1,235 @@
+
+             PGM        PARM(&CONTEXT)
+             DCL        VAR(&CONTEXT) TYPE(*CHAR) LEN(20)
+             DCL        VAR(&VALUE) TYPE(*CHAR) LEN(200)
+             DCL        VAR(&USUARIO) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&PASSWORD) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&HMCIP) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&IPSTG) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&IPORG) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&IPDEST) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&NOMBRE) TYPE(*CHAR) LEN(30)
+             DCL        VAR(&SERIAL) TYPE(*CHAR) LEN(8)
+             DCL        VAR(&LPARID) TYPE(*CHAR) LEN(2)
+             DCL        VAR(&ETHLIN) TYPE(*CHAR) LEN(9)
+             DCL        VAR(&CMNDST) TYPE(*CHAR) LEN(5)
+             DCL        VAR(&LPARHMC) TYPE(*CHAR) LEN(2)
+             DCL        VAR(&CGRPFC) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&IASP) TYPE(*CHAR) LEN(4)
+             DCL        VAR(&IASPDEV) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&SAV) TYPE(*CHAR) LEN(4)
+             DCL        VAR(&SAVDEV) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&NULL) TYPE(*CHAR) LEN(1) VALUE(X'00')
+             DCL        VAR(&PARM1) TYPE(*CHAR) LEN(10) VALUE('/')
+             DCL        VAR(&LOG) TYPE(*CHAR) LEN(100)
+             DCL        VAR(&STATE) TYPE(*CHAR) LEN(1) VALUE('1')
+             DCL        VAR(&OPTION) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&LPAR) TYPE(*DEC) LEN(3 0) VALUE(001)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+             CHGDTAARA  DTAARA(FLASHCONTX (1 20)) +
+                          VALUE(&CONTEXT)
+             CALLSUBR   SUBR(GETCONFIG)
+             IF         COND(&USUARIO *EQ '*NOTFOUND') THEN(RETURN)
+
+             LOGTABLE   LOG('INICIA FLASHCOPY CON OPCIÓN' *BCAT +
+                          &OPTION)
+             RMVENVVAR  ENVVAR(QIBM_QSH_CMD_OUTPUT)
+             MONMSG     MSGID(CPFA981)
+             ADDENVVAR  ENVVAR(QIBM_QSH_CMD_OUTPUT) VALUE(NONE)
+             MONMSG     MSGID(CPF0000)
+             ADDENVVAR  ENVVAR(TRACEFILE) VALUE('/tmp/qsh_trace') +
+                          LEVEL(*JOB)
+             MONMSG     MSGID(CPF0000)
+             ADDENVVAR  ENVVAR(QIBM_ZSH_TRACE_LEVEL) VALUE(3) +
+                          LEVEL(*JOB)
+             MONMSG     MSGID(CPF0000)
+             STRTRC     SSNID(QSHELL) JOB((*ALL/*ALL/QZSHSH *ALL)) +
+                          JOBTRCTYPE(*TRCTYPE) TRCTYPE((*QSHELL +
+                          *VERBOSE))
+             MONMSG     MSGID(CPF0000)
+             STRTRC     SSNID(QSHELL2) JOB((*ALL/*ALL/QP0ZSPW* +
+                          *ALL)) JOBTRCTYPE(*TRCTYPE) +
+                          TRCTYPE((*QSHELL *VERBOSE))
+             MONMSG     MSGID(CPF0000)
+             CHGASPACT  ASPDEV(*SYSBAS) OPTION(*RESUME)
+             MONMSG     MSGID(CPF0000)
+             CHGASPACT  ASPDEV(*SYSBAS) OPTION(*FRCWRT)
+             MONMSG     MSGID(CPF0000)
+
+             LOGTABLE   LOG('SYSBAS MEMORY *FRCWRT')
+
+             IF         COND(&IASP = '*YES') THEN(DO)
+             CHGASPACT  ASPDEV(&IASPDEV) OPTION(*RESUME)
+             MONMSG     MSGID(CPF0000)
+             CHGASPACT  ASPDEV(&IASPDEV) OPTION(*FRCWRT)
+             MONMSG     MSGID(CPF0000)
+             LOGTABLE   LOG(&IASPDEV *BCAT 'MEMORY *FRCWRT')
+             ENDDO
+
+             CHGDTAARA  DTAARA(BNOPTFC (1 1)) VALUE(&OPTION)
+             LOGTABLE   LOG('CHANGE DTAARA FLASHCOPY OPCION')
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          || '@' || %TRIM(&HMCIP) *BCAT 'chsysstate +
+                          -m ' || %TRIM(&NOMBRE) *BCAT '-r lpar -o +
+                          shutdown --id ' || %TRIM(&LPARID) *BCAT +
+                          '--immed')
+             QSH        CMD(&CMD)
+             CHGVAR     VAR(&LOG) VALUE('El usuario ' || &USUARIO || +
+                          'ha iniciado sesión en ' || &HMCIP)
+             LOGTABLE   LOG(&LOG)
+
+            /* Bucle hasta que &STATE sea 0 */
+             DOWHILE    COND(&STATE *NE '0')
+
+             DLYJOB     DLY(5)
+
+            /* Verificar si la particion esta activa o no         */
+            /* Copia 1 en /tmp/state.txt si esta activa, 0 si no  */
+             CHGVAR     VAR(&CMD) VALUE('if ssh ' *CAT +
+                          %TRIM(&USUARIO) *CAT '@' *CAT +
+                          %TRIM(&HMCIP) *CAT ' "lssyscfg -r lpar ' +
+                          *CAT '-m ' *CAT %TRIM(&NOMBRE) *CAT ' +
+                          --filter ' *CAT 'lpar_ids=' *CAT +
+                          %TRIM(&LPARID) *CAT '" | grep -q "Not +
+                          Activated"; ' *CAT 'then echo "0" > +
+                          /tmp/state.txt; else echo ' *CAT '"1" > +
+                          /tmp/state.txt; fi')
+
+             QSH        CMD(&CMD)
+
+             /* Copiar desde el archivo /tmp/state.txt al DTAARA*/
+             QSH        CMD('read LINE < /tmp/state.txt; system +
+                          "CHGDTAARA DTAARA(STATE) +
+                          VALUE(''${LINE:-0}'')"')
+
+             RTVDTAARA  DTAARA(STATE) RTNVAR(&STATE)
+
+             ENDDO
+
+             CHGVAR     VAR(&LOG) VALUE('El usuario ' || +
+                          %TRIM(&USUARIO) || ' ha detenido la LPAR' +
+                          || &LPARID || ' desde el ' || &HMCIP)
+             LOGTABLE   LOG(&log)
+
+             CHGVAR     VAR(&CMD) VALUE('exit')
+             QSH        CMD(&CMD)
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          || '@' || %TRIM(&IPSTG) *BCAT +
+                          'stopfcconsistgrp ' || %TRIM(&CGRPFC))
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&LOG) VALUE('El usuario ' || &USUARIO || +
+                          'ha iniciado sesión en ' || &IPSTG)
+             LOGTABLE   LOG(&LOG)
+
+             CHGVAR     VAR(&LOG) VALUE('El usuario ' || &USUARIO || +
+                          'ha detenido el grupo de consistencia ' || +
+                          &CGRPFC || ' desde el ' || &IPSTG)
+             LOGTABLE   LOG(&LOG)
+
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          || '@' || %TRIM(&IPSTG) *BCAT +
+                          'prestartfcmap -restore ' || %TRIM(&CGRPFC))
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          || '@' || %TRIM(&IPSTG) *BCAT 'startfcmap +
+                          -restore ' || %TRIM(&CGRPFC))
+             QSH        CMD(&CMD)
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          || '@' || %TRIM(&IPSTG) *BCAT +
+                          'startfcconsistgrp -prep ' || %TRIM(&CGRPFC))
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&LOG) VALUE('El usuario ' || &USUARIO || +
+                          'ha iniciado el grupo de consistencia ' +
+                          || &CGRPFC || ' desde el ' || &IPSTG)
+             LOGTABLE   LOG(&LOG)
+
+             CHGVAR     VAR(&CMD) VALUE('quit')
+             QSH        CMD(&CMD)
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          || '@' || %TRIM(&HMCIP) *BCAT 'chsysstate +
+                          -m ' || %TRIM(&NOMBRE) *BCAT '-r lpar -o +
+                          on --id ' || %TRIM(&LPARID))
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&LOG) VALUE('El usuario ' || &USUARIO || +
+                          'ha iniciado la LPAR' || &LPARID || ' +
+                          desde el ' || &HMCIP)
+             LOGTABLE   LOG(&LOG)
+
+             CHGVAR     VAR(&CMD) VALUE('exit')
+             QSH        CMD(&CMD)
+             CHGASPACT  ASPDEV(*SYSBAS) OPTION(*RESUME)
+             LOGTABLE   LOG('SYSBAS MEMORY RESUME')
+
+             CHGASPACT  ASPDEV(&IASPDEV) OPTION(*RESUME)
+             LOGTABLE   LOG(&IASPDEV *BCAT 'MEMORY RESUME')
+
+             RMVENVVAR  ENVVAR(QIBM_ZSH_TRACE_LEVEL)
+             ENDTRC     SSNID(QSHELL) DTALIB(QTEMP) PRTTRC(*YES)
+             MONMSG     MSGID(CPF0000)
+             ENDTRC     SSNID(QSHELL2) DTALIB(QTEMP) PRTTRC(*YES)
+             MONMSG     MSGID(CPF0000)
+             LOGTABLE   LOG('FLASHCOPY ENDED')
+FIN:
+             SUBR       SUBR(GETCONFIG)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('Usuario' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&USUARIO) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('Password' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&PASSWORD) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('HMCIP' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&HMCIP) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('IPSTG' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&IPSTG) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('IPORG' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&IPORG) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('IPDEST' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&IPDEST) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('NOMBRE' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&NOMBRE) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('SERIAL' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&SERIAL) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('LPARID' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&LPARID) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('ETHLIN' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&ETHLIN) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('CMNDST' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&CMNDST) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('LPARHMC' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&LPARHMC) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('CGRPFC' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&CGRPFC) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('IASP' (*CHAR +
+                          50)) (&VALUE))
+             CHGVAR     VAR(&IASP) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('IASPDEV' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&IASPDEV) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('SAV' (*CHAR +
+                          50)) (&VALUE))
+             CHGVAR     VAR(&SAV) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('SAVDEV' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&SAVDEV) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('OPTION' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&OPTION) VALUE(&VALUE)
+
+             ENDSUBR
+
+             ENDPGM

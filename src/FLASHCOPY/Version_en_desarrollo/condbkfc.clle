@@ -1,0 +1,93 @@
+PGM
+             DCL        VAR(&CONTEXT) TYPE(*CHAR) LEN(20)
+             DCL        VAR(&VALUE) TYPE(*CHAR) LEN(200)
+             DCL        VAR(&USUARIO) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&IPORGN) TYPE(*DEC) LEN(2)
+             DCL        VAR(&IPORGA) TYPE(*CHAR) LEN(2)
+             DCL        VAR(&LPARHMC) TYPE(*CHAR) LEN(2)
+             DCL        VAR(&SAV) TYPE(*CHAR) LEN(4)
+             DCL        VAR(&SAVDEV) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&OPTION) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&LOG) TYPE(*CHAR) LEN(100)
+             DCL        VAR(&LPAR) TYPE(*DEC) LEN(3 0) VALUE(001)
+             RTVDTAARA  DTAARA(FLASHCONTX (1 20)) RTNVAR(&CONTEXT)
+             /* RECUPERA OPCIÓN DE FLASHCOPY                 */
+             CALLSUBR   SUBR(GETCONFIG)
+             IF         COND(&USUARIO *EQ '*NOTFOUND') THEN(RETURN)
+
+   /* RECUPERA OPCIÓN DE FLASHCOPY                 */
+             RTVDTAARA  DTAARA(BNOPTFC (1 1)) RTNVAR(&OPTION)
+             CHGVAR     VAR(&LOG) VALUE('SE HA EJECUTADO LA OPCIÓN ' +
+                          || &OPTION || 'PARA EL FLASHCOPY')
+             LOGTABLE   LOG(&LOG)
+
+
+   /* RECUPERA ID DE LPAR                          */
+             CALL       PGM(LPARIDEXT) PARM((&IPORGA))
+             CHGVAR     VAR(&IPORGN) VALUE(&IPORGA)
+             MONMSG     MSGID(CPF0000)
+             LOGTABLE   LOG('SE HA RECUPERADO EL ID DE LPAR CON +
+                          LPARIDEXT')
+
+             IF         COND(&LPARHMC *NE &IPORGA) THEN(DO)
+             SNDPGMMSG  MSG('ID DE LPAR NO ES IGUAL PARA BACKUP')
+             LOGTABLE   LOG('ID DE LPAR NO ES IGUAL PARA BACKUP')
+             RETURN
+             ENDDO
+     SELECT
+             WHEN       COND(&SAV = '*NO') THEN(DO)
+             SNDPGMMSG  MSG('EJECUCIÓN DE FLASHCOPY')
+             CALL       PGM(STRIP)
+  /* ----- CONDBTR Act y deact.libreria    solo para GNB             */
+             CALL       PGM(CONDBKTR)
+  /* -----                                                           */
+             RETURN
+             ENDDO
+             WHEN       COND(&SAV = '*YES') THEN(DO)
+             SNDPGMMSG  MSG('EJECUCIÓN DE FLASHCOPY EN CINTA')
+             CALL       PGM(STRIP)
+
+          /* SAVLIB     archivo de Graciela LOG     */
+          /* SAVLIB     LIB(*ALLUSR) DEV(TAPMLB01)  */
+             MONMSG     MSGID(CPF0000)
+  /* -----   VRYCFG     CFGOBJ(TAP*) CFGTYPE(*DEV) STATUS(*OFF)      */
+  /* -----   MONMSG     MSGID(CPF0000)                               */
+  /* -----   VRYCFG     CFGOBJ(MLB*) CFGTYPE(*DEV) STATUS(*OFF)      */
+  /* -----   MONMSG     MSGID(CPF0000)                               */
+  /* ----- CONDBTR Act y deact.libreria                              */
+             CALL       PGM(CONDBKTR)
+  /* -----                                                           */
+          /* QSYS/DLTDEVD DEVD(TAPMLB01)            */
+          /* MONMSG     MSGID(CPF0000)              */
+          /* RNMOBJ     OBJ(TAPMLB03) OBJTYPE(*DEVD) NEWOBJ(TAPMLB01)*/
+             MONMSG     MSGID(CPF0000)
+          /* VRYCFG     CFGOBJ(TAP01) CFGTYPE(*DEV) STATUS(*ON)        */
+             DLYJOB     DLY(20)
+  /* Sacar   STRBKUBRM  CTLGRP(GRPCTL01)  y compilar                  */
+          /* SBMJOB     CMD(SAVOBJ OBJ(*ALL) LIB(GXDB006) +
+                          DEV(TAP01)) JOB(BACKUP)                      */
+             SNDPGMMSG  MSG('EL PROCESO DE BACKUP HA INICIADO')
+             CALL       PGM(TRANSFTP)
+          /* CALL       PGM(TRANFTPIBM)      CRDM */
+          /* SNDPGMMSG  MSG('TRANSFERECIA DE ARCHIVOS COMPLETADO') */
+             ENDDO
+             ENDSELECT
+             SUBR       SUBR(GETCONFIG)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('Usuario' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&USUARIO) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('LPARHMC' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&LPARHMC) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('SAV' (*CHAR +
+                          50)) (&VALUE))
+             CHGVAR     VAR(&SAV) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('SAVDEV' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&SAVDEV) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('OPTION' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&OPTION) VALUE(&VALUE)
+
+             ENDSUBR
+             ENDPGM

@@ -1,0 +1,43 @@
+PGM
+             DCL        VAR(&CONTEXT) TYPE(*CHAR) LEN(20)
+             DCL        VAR(&VALUE) TYPE(*CHAR) LEN(200)
+             DCL        VAR(&USUARIO) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&PASSWORD) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&LIBRARY) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&PASSWORD) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&IPORG) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&ERROR) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&OPTION) TYPE(*CHAR) LEN(1)
+             /* RECUPERA OPCIÓN DE FLASHCOPY                 */
+             RTVDTAARA  DTAARA(FLASHLIB/BNOPTFC (1 1)) RTNVAR(&OPTION)
+             CHGJOB     LOG(4 00 *SECLVL) LOGCLPGM(*YES)
+             ADDLIBLE   LIB(FLASHLIB)
+             MONMSG     MSGID(CPF0000)
+             DLYJOB     DLY(60)
+             MONMSG     MSGID(CPF0000)
+             /* RESTAURA OBJETO DE LOG                                       */
+             SNDRSTCMD  USR(&USUARIO) PWD(&PASSWORD) LIB(&LIBRARY) +
+                          OBJ(LOGTABLE) TIP(*FILE) REL(*CURRENT) +
+                          RST(FLASHLIB) IP(&IPORG)
+
+             SNDRSTCMD  USR(&USUARIO) PWD(&PASSWORD) LIB(QUSRBRM) +
+                          OBJ(Q*) TIP(*FILE) REL(*CURRENT) +
+                          RST(QUSRBRM) IP(&IPORG)
+             LOGTABLE   LOG('SE HA ENVIADO EL CATALOGO BRMS')
+             SUBR       SUBR(GETCONFIG)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('Usuario' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&USUARIO) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('Password' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&PASSWORD) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('IPORG' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&IPORG) VALUE(&VALUE)
+             CALL       PGM(GETCFGVAL) PARM((&CONTEXT) ('LIBRARY' +
+                          (*CHAR 50)) (&VALUE))
+             CHGVAR     VAR(&LIBRARY) VALUE(&VALUE)
+
+             ENDSUBR
+
+ENDPGM
