@@ -1,0 +1,50 @@
+PGM
+        DCLF       FILE(INSTFLASH/FLASHCONF)
+        DCL        VAR(&ETHLIN) TYPE(*CHAR) LEN(9)
+        DCL        VAR(&CMNDST) TYPE(*CHAR) LEN(5)
+        DCL        VAR(&IPORG) TYPE(*CHAR) LEN(15)
+        DCL        VAR(&IPDEST) TYPE(*CHAR) LEN(15)
+        DCL        VAR(&OPTION) TYPE(*CHAR) LEN(1)
+        DCL        VAR(&LPAR) TYPE(*DEC) LEN(3 0) VALUE(001)
+        DCL VAR(&LOG) TYPE(*CHAR) LEN(100)
+/*      ADDLIBLE INSTFLASH                              */
+        MONMSG     MSGID(CPF0000)
+        RTVDTAARA  DTAARA(INSTFLASH/BNOPTFC (1 1)) RTNVAR(&OPTION)
+        SELECT
+        WHEN       COND(&OPTION *EQ '1') THEN(CHGVAR VAR(&LPAR) +
+                     VALUE(001))
+        WHEN       COND(&OPTION *EQ '2') THEN(CHGVAR VAR(&LPAR) +
+                     VALUE(001))
+        WHEN       COND(&OPTION *EQ '3') THEN(CHGVAR VAR(&LPAR) +
+                      VALUE(002))
+        ENDSELECT
+    LOOP: +
+             RCVF       RCDFMT(RCONFLASH)
+             MONMSG MSGID(CPF0864)
+             IF         COND(&LPARNRO *NE &LPAR) THEN(GOTO +
+                          CMDLBL(LOOP))
+    CHGJOB LOG(4 00 *SECLVL) LOGCLPGM(*YES)
+             ADDRPYLE   SEQNBR(9999) MSGID(CPA2610) RPY('G')
+             MONMSG     MSGID(CPF0000)
+             MONMSG     MSGID(CPF2555)
+
+             QSYS/ENDTCPIFC INTNETADR(&IPORG)
+
+             VRYCFG     CFGOBJ(ETH*) CFGTYPE(*LIN) STATUS(*OFF)
+             MONMSG     MSGID(CPF0000)
+             VRYCFG     CFGOBJ(&ETHLIN) CFGTYPE(*LIN) STATUS(*OFF)
+             MONMSG     MSGID(CPF0000)
+             LOGTABLE   LOG('SE DETIENEN TODAS LAS INTERFACES EN +
+                          LPAR DE DESTINO')
+
+             CHGLINETH  LIND(&ETHLIN) RSRCNAME(&CMNDST)
+             CHGDTAARA  DTAARA(INSTFLASH/STRIP (1 50)) VALUE(CHGLINETH)
+
+             VRYCFG     CFGOBJ(&ETHLIN) CFGTYPE(*LIN) STATUS(*ON)
+             QSYS/STRTCPIFC INTNETADR(&IPDEST)
+             LOGTABLE   LOG('SE INICIA DIRECCIÓN IP EN LPAR DE +
+                          DESTINO')
+
+             SNDPGMMSG  MSG('SE INICIA DIRECCIÓN IP EN LPAR DE +
+                          DESTINO')
+ENDPGM

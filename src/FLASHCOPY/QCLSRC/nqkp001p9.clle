@@ -1,0 +1,29 @@
+  /*         &VOK = 1 Indica Fue creado el usuario FLASHSS     */
+  /*         &VOK = 2 Indica NO  creado el usuario FLASHSS     */
+  /*         &VOK = 3 Indica YA existe  el usuario FLASHSS     */
+
+ PGM         PARM(&VOK)
+             DCL        VAR(&VOK) TYPE(*CHAR) LEN(1)
+             CHKOBJ     OBJ(QSYS/FLASHSS) OBJTYPE(*USRPRF)
+             MONMSG     MSGID(CPF9801) EXEC(DO)
+             CRTUSRPRF  USRPRF(FLASHSS) PASSWORD(PASSW0RD) +
+                          USRCLS(*SECOFR) TEXT('USUARIO +
+                          FSFC-SOFTSHOP') SPCAUT(*ALLOBJ *AUDIT +
+                          *IOSYSCFG *JOBCTL *SAVSYS *SECADM +
+                          *SERVICE *SPLCTL) MSGQ(FLASHSS/QUSRSYS)
+             MONMSG     MSGID(CPF2292)
+             CHKOBJ     OBJ(QSYS/FLASHSS) OBJTYPE(*USRPRF)
+             MONMSG     MSGID(CPF9801) EXEC(DO)
+             CHGVAR     VAR(&VOK) VALUE('2')
+                          GOTO CMDLBL(FIN)
+                          ENDDO
+             CHGVAR     VAR(&VOK) VALUE('1')
+                          GOTO CMDLBL(FIN)
+
+             ENDDO
+ /*          DEBE TENER PERFL DE SEGURIDAD                        */
+             MONMSG     MSGID(CPF2291)
+
+       CHGVAR     VAR(&VOK) VALUE('3')
+  FIN:
+ ENDPGM

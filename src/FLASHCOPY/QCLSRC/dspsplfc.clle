@@ -1,0 +1,42 @@
+PGM PARM(&FILE &JOB &NBR &USER &OPC)
+
+    dcl &FILE *Char 11
+    dcl &JOB  *Char 10
+    dcl &NBR  *Char 6
+    dcl &USER *Char 10
+    dcl &OPC  *Char 1
+
+    dcl &Abending *Lgl
+    dcl &MsgID    *Char 7
+    dcl &MsgDta   *Char 256
+    dcl &MsgF     *Char 10
+    dcl &MsgFLib  *Char 10
+    dcl &MsgKey   *Char 4
+    dcl &MsgType  *Char 10
+    dcl &RtnType  *Char 2
+    dcl &PgmName  *Char 10
+    dcl &Sender   *Char 80
+
+    MONMSG MSGID(CPF0000) EXEC(GOTO CMDLBL(ABEND))
+
+   IF COND(&JOB *EQ '*' *AND &USER *EQ ' ' *AND +
+           &NBR *EQ ' ') THEN(RTVJOBA JOB(&JOB) USER(&USER) NBR(&NBR))
+
+    DSPSPLF FILE(&FILE) JOB(&NBR/&USER/&JOB) SPLNBR(*LAST)
+    IF COND(&OPC = 'S') THEN(DLTSPLF FILE(&FILE) JOB(&NBR/&USER/&JOB) SPLNBR(*LA
+    GOTO FIN
+
+Abend:If &Abending Then(Return)
+      Chgvar &Abending '1'
+      RcvMsg MsgType(*LAST) MsgDta(&MsgDta) MsgId(&MsgId) +
+                            Sender(&Sender) RtnType(&RtnType) +
+                            MsgF(&MsgF) SndMsgfLIB(&MsgfLib)
+      Chgvar &PgmName %SST(&Sender 56 10)
+      If ((&RtnType *EQ '15') *Or (&RtnType *EQ '17')) Do
+         SndPgmMsg MsgId(&MsgId) MsgF(&MsgF) MsgType(*Diag) MsgDta(&MsgDta)
+      Enddo
+
+Escape:SndPgmMsg MsgId(CPF9898) MsgF(QCPGMSG) MsgType(*Escape) +
+                 MsgDta('Program' *Bcat &PgmName *Bcat +
+                       'ended abnormally')
+ Fin:EndPgm

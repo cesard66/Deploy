@@ -1,0 +1,14 @@
+/*********************************************************************/
+/* Programa: OPCTAPE                                                 */
+/* CPP de  : OPCTAPEC                                                */
+/* Funcion : Elige opción de Menu                                    */
+/* Hecho   : Guido Martinez                                          */
+/*********************************************************************/
+ PGM PARM(&OPC)
+      Dcl &OPC    *Char 1
+
+             MONMSG     MSGID(CPF0000)
+             CHGDTAARA  DTAARA(INSTFLASH/OPCSAV (1 1)) VALUE(&OPC)
+             CALL PGM(INSTFLASH/FCCONFPGM)
+
+ END: ENDPGM

@@ -1,0 +1,10 @@
+             PGM        PARM(&VQK02ID)
+
+       DCL        VAR(&VQK02ID   ) TYPE(*DEC) LEN(10 0)
+     /* Actualiza ultimo nro. de QK02ID para cargar al sig. despues +
+         del IPL de LPAR.                                           */
+
+             CRTDTAARA  DTAARA(INSTFLASH/DTAUSRFN) TYPE(*DEC) LEN(10 0)
+             MONMSG     MSGID(CPF0000)
+             CHGDTAARA  DTAARA(INSTFLASH/DTAUSRFN *ALL) VALUE(&VQK02ID)
+FIN: ENDPGM

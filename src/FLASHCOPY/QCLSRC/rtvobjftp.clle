@@ -1,0 +1,137 @@
+/******************************************************************************/
+/* Programa: RTVOBJFTP                                                        */
+/* Funcion : Trae objeto desde la maq.de produccion via FTP                   */
+/* CPP de  : RTVOBJCMD                                                        */
+/* Hecho   : Edgar Elizeche                                                   */
+
+/* PARAMETROS:                                                                */
+/* ----------                                                                 */
+/*  Objeto a transferir                                                       */
+/*  Tipo de objeto a transferir (Param.OBJTYPE del cmd SAVOBJ)                */
+/*  Release destino del objeto                                                */
+/*  Salvar activo                                                             */
+/*  Permitir diferencias objetos                                              */
+/*  Biblioteca local donde se va a almacenar el objeto                        */
+/*  Error                                                                     */
+/*  Direccion IP maq.remoto                                                   */
+
+/*  PROGRAMAS INVOCADOS                                                       */
+/*  -------------------                                                       */
+/*  CRTSAVFEC                                                                 */
+/*  RUNCMDFTP                                                                 */
+/*     RUNCMDRPG                                                              */
+/*     READERRSND                                                             */
+/*  RTVOBJRPG                                                                 */
+/*  READERRSND                                                                */
+/******************************************************************************/
+PGM PARM(&USR &PWD &LIB &OBJ &TIP &REL &SAV &MBR &DIF &RST &IP)
+       DCL VAR(&USR)    TYPE(*CHAR) LEN(10)
+       DCL VAR(&PWD)    TYPE(*CHAR) LEN(10)
+       DCL VAR(&LIB)    TYPE(*CHAR) LEN(10)
+       DCL VAR(&OBJ)    TYPE(*CHAR) LEN(10)
+       DCL VAR(&TIP)    TYPE(*CHAR) LEN(7)
+       DCL VAR(&REL)    TYPE(*CHAR) LEN(8)
+       DCL VAR(&SAV)    TYPE(*CHAR) LEN(8)
+       DCL VAR(&MBR)    TYPE(*CHAR) LEN(6)
+       DCL VAR(&DIF)    TYPE(*CHAR) LEN(5)
+       DCL VAR(&RST)    TYPE(*CHAR) LEN(10)
+       DCL VAR(&ERR)    TYPE(*LGL)
+       DCL VAR(&IP)     TYPE(*CHAR) LEN(32)
+       DCL VAR(&CMD)    TYPE(*CHAR) LEN(2000)
+       DCL VAR(&SAVFE)  TYPE(*CHAR) LEN(10)
+       DCL VAR(&JOBNBR) TYPE(*CHAR) LEN(6)
+       DCL VAR(&SRCPFI) TYPE(*CHAR) LEN(10)
+       DCL VAR(&SRCPFO) TYPE(*CHAR) LEN(10)
+       DCL VAR(&A)      TYPE(*CHAR) LEN(1) VALUE('''')
+
+       SNDPGMMSG MSG('Inicio RTVOBJFTP de ' || &LIB || '/' || &OBJ)
+
+       RTVJOBA NBR(&JOBNBR)
+
+/* 1-Crea localmente un SAVF temporal: 'ENVI'+JOBNBR                          */
+/* 2-Crea remotamente un SAVF temporal: 'ENVI'+JOBNBR      (FTP)              */
+/* 3-En la maq.remota salva el obj.en el SAVF temporal     (FTP)              */
+/* 4-Trae el SAVF temporal de la maq.remota a la maq.local-ENVI (FTP)         */
+/* 5-Imprime errores (si lo hubiere) en la ejecuc.del FTP                     */
+/* 6-Restaura localmente el objeto recibido 'ENVI'+JOBNBR                     */
+
+/* 1-Crea localmente un SAVF temporal: 'ENVI'+JOBNBR                          */
+
+   CHGVAR VAR(&SAVFE) VALUE('ENVI' *CAT &JOBNBR)
+   CALL PGM(PPLIB003/CRTSAVFEC) PARM(&JOBNBR 'ENVI')
+   SNDPGMMSG  MSG('Creado localmente SAVF ' *CAT &SAVFE)
+
+/* 2-Crea remotamente un SAVF temporal: 'ENVI'+JOBNBR      (FTP)              */
+
+   CHGVAR VAR(&CMD) VALUE('CALL PGM(PPLIB003/CRTSAVFEC) +
+                          PARM(' *CAT &A *CAT &JOBNBR *CAT &A *BCAT +
+                          &A *CAT ENVI *CAT &A *CAT ')')
+   RUNCMDFTP USR(&USR) PWD(&PWD) CMD(&CMD) IP(&IP)
+   MONMSG MSGID(CPF91CC) EXEC(GOTO CMDLBL(END))
+   SNDPGMMSG  MSG('Creado remotamente SAVF ' *CAT &SAVFE)
+
+/* 3-En la maq.remota salva el obj.en el SAVF temporal     (FTP)              */
+
+    SNDPGMMSG  MSG('Salvando objeto en origen')
+    CHGVAR VAR(&CMD) VALUE('SAVOBJ OBJ(' *TCAT &OBJ +
+                          *TCAT ')  LIB(' *TCAT &LIB *TCAT ') +
+                          DEV(*SAVF) OBJTYPE(' *TCAT &TIP *TCAT ') +
+                          SAVF(PPLIB003/' *TCAT &SAVFE *TCAT ') +
+                          TGTRLS(' *TCAT &REL *TCAT ') CLEAR(*ALL) +
+                          SAVACT(' *TCAT &SAV *TCAT ')')
+    RUNCMDFTP &USR &PWD &CMD &IP
+    MONMSG MSGID(CPF91CC) EXEC(GOTO CMDLBL(END))
+
+    SNDPGMMSG MSG('Objeto fue salvado en origen')
+
+/* 4-Trae el SAVF temporal de la maq.remota a la maq.local (FTP)              */
+
+    SNDPGMMSG MSG('Proceso de transf.del objeto remoto a la maq.Local')
+    DLTF FILE(QTEMP/FTPENVA)
+    MONMSG MSGID(CPF2105)
+
+    CRTSRCPF FILE(QTEMP/FTPENVA) RCDLEN(300)
+
+/*  Adic.miembro a QTEMP/FTPENVA: 'SRCI' y 'SRCO'+&JOBNBR            */
+
+    CHGVAR VAR(&SRCPFI) VALUE('SRCI' *CAT &JOBNBR)
+    CHGVAR VAR(&SRCPFO) VALUE('SRCO' *CAT &JOBNBR)
+    ADDPFM FILE(QTEMP/FTPENVA) MBR(&SRCPFI)
+           MONMSG MSGID(CPF5812)
+    ADDPFM FILE(QTEMP/FTPENVA) MBR(&SRCPFO)
+           MONMSG MSGID(CPF5812)
+
+/*  Se graban las sentencias FTP de transf.del SAVF remoto          */
+
+    SNDPGMMSG MSG('Grabando sentencias FTP')
+    OVRDBF FILE(INPUT) TOFILE(QTEMP/FTPENVA) MBR(&SRCPFI)
+    OVRDBF FILE(OUTPUT) TOFILE(QTEMP/FTPENVA) MBR(&SRCPFO)
+    CALL PGM(RTVOBJRPG) PARM(&USR &PWD 'ENVI' &JOBNBR)
+
+/*  Via FTP se transfiere (GET) el SAVF remoto a la maq.local       */
+    SNDPGMMSG MSG('Transf.objeto desde maq.remota a la maq.local')
+             STRTCPFTP  RMTSYS(&IP) PORT(*SECURE) SECCNN(*IMPLICIT)
+
+/* 5-Imprime errores (si lo hubiere) en la ejecuc.del FTP                     */
+
+     DLTOVR FILE(*ALL)
+     OVRDBF FILE(FTPENV) TOFILE(QTEMP/FTPENVA) MBR(&SRCPFO)
+     CALL PGM(READERRSND) PARM(&ERR)
+
+     IF COND(&ERR) THEN(DO)
+          SNDPGMMSG MSGID(CPF91CC) MSGF(QSYS/QCPFMSG)
+          GOTO END
+        ENDDO
+/*      6-Si no hubieron errores se restaura el objeto recibido               */
+        SNDPGMMSG MSG('Restaurando objeto recibido...')
+        SNDPGMMSG MSGID(CPF0000) MSGF(QSYS/QCPFMSG)
+        RSTOBJ OBJ(&OBJ) SAVLIB(&LIB) DEV(*SAVF) +
+               SAVF(PPLIB003/&SAVFE) MBROPT(*ALL)   +
+               ALWOBJDIF(*NONE) RSTLIB(&RST)
+               MONMSG MSGID(CPF3773 CPF3770)
+
+/*      Se elimina SAVF temporal                                              */
+        DLTF FILE(PPLIB003/&SAVFE)
+       SNDPGMMSG MSG('Fin RTVOBJFTP de ' || &LIB || '/' || &OBJ)
+
+ END:ENDPGM

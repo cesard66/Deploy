@@ -1,0 +1,24 @@
+/*********************************************************************/
+/* Programa: CRTSAVFEC                                               */
+/* Funcion : Crea SAVF temporal (para recibir objeto de sist.remoto) */
+/* Hecho   : Ino                                                     */
+/* Fecha   : 5/10/2010                                               */
+/*********************************************************************/
+PGM PARM(&JOBNBR &PREF)
+    DCL VAR(&JOBNBR) TYPE(*CHAR) LEN(6)
+    DCL VAR(&PREF)   TYPE(*CHAR) LEN(4)
+    DCL VAR(&SAVF)   TYPE(*CHAR) LEN(10)
+
+/* Crea SAVF temporal: &PREF+&JOBNBR                                 */
+
+    CHGVAR VAR(&SAVF) VALUE(&PREF *CAT &JOBNBR)
+    CHKOBJ     OBJ(INSTFLASH/&SAVF) OBJTYPE(*FILE)
+           MONMSG MSGID(CPF9801) EXEC(DO)
+           CRTSAVF    FILE(INSTFLASH/&SAVF) TEXT('SAVF temporal')
+              GOTO CMDLBL(FIN)
+           ENDDO
+
+             DLTF       FILE(INSTFLASH/&SAVF)
+             CRTSAVF    FILE(INSTFLASH/&SAVF) TEXT('SAVF temporal')
+
+ FIN: ENDPGM

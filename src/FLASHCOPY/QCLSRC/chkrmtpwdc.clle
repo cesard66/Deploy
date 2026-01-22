@@ -1,0 +1,95 @@
+/*****************************************************************************/
+/* Programa: CHKRMTPWDC                                                      */
+/* Funcion : Verifica usuario/password remoto                                */
+/* CPP de  : CHKRMTPWD                                                       */
+/* Hecho   : Ino                                                             */
+
+/* PARAMETROS:                                                               */
+/* ----------                                                                */
+/*  Usuario                                                                  */
+/*  Pasword                                                                  */
+/*  IP remoto                                                                */
+/*  Error 0: Sin error 1: Error                                              */
+/*****************************************************************************/
+PGM   PARM(&USRR &PWDR &IPR &ERROR)
+      Dcl &USRR  *CHAR 10
+      Dcl &PWDR  *CHAR 10
+      Dcl &IPR   *CHAR 32
+      Dcl &ERROR *CHAR 1
+
+      Dcl &CMD       *Char 2000
+      Dcl &SAVFE     *Char 10
+      Dcl &JOBNBR    *Char 6
+      Dcl &SRCPFI    *Char 10
+      Dcl &SRCPFO    *Char 10
+      Dcl &TIP       *Char 10 Value(*FILE)
+      Dcl &A         *Char 1  Value('''')
+      Dcl &ERR       *LGL
+      Dcl &PPLIBUSR  *Char 10 Value('PPLIBUSR')
+      Dcl &PPLIBPWD  *Char 10
+      Dcl &Key       *Char 4
+      Dcl &Reply     *Char 1
+      Dcl &Reply_Len *Dec  5 0
+      Dcl &SRCPFI    *Char 10
+      Dcl &SRCPFO    *Char 10
+
+      Dcl &Abending *Lgl
+      Dcl &MsgID    *Char 7
+      Dcl &MsgDta   *Char 256
+      Dcl &MsgF     *Char 10
+      Dcl &MsgFLib  *Char 10
+      Dcl &MsgKey   *Char 4
+      Dcl &MsgType  *Char 10
+      Dcl &RtnType  *Char 2
+      Dcl &PgmName  *Char 10
+      Dcl &Sender   *Char 80
+
+MonMsg MsgId(CPF0000) Exec(Goto CmdLbl(ABEND))
+
+/* Retrieve program name and job nbr                                         */
+
+   SNDPGMMSG  MSG(' ') TOPGMQ(*SAME) MSGTYPE(*INFO) KEYVAR(&MSGKEY)
+   RCVMSG PGMQ(*SAME) MSGTYPE(*INFO) RMV(*YES) SENDER(&SENDER)
+   CHGVAR VAR(&PGMNAME) VALUE(%SST(&SENDER 56 10))
+
+   DltOvr File(*ALL)
+   Dltf File(QTEMP/FTPENV)
+   MonMsg MsgId(CPF2105)
+
+   CrtSrcPF File(QTEMP/FTPENV) RcdLen(2000) Mbr(ENTRADA)
+
+   Call Pgm(CHKPWDRPG) Parm(&USRR &PWDR)
+   ADDPFM FILE(QTEMP/FTPENV) MBR(SALIDA)
+   OVRDBF FILE(INPUT) TOFILE(QTEMP/FTPENV) MBR(ENTRADA)
+   OVRDBF FILE(OUTPUT) TOFILE(QTEMP/FTPENV) MBR(SALIDA)
+             STRTCPFTP  RMTSYS(&IPR) PORT(*SECURE) SECCNN(*IMPLICIT)
+
+   DLTOVR FILE(*ALL)
+   OVRDBF FILE(FTPENV) TOFILE(QTEMP/FTPENV) MBR(SALIDA)
+   CALL READERRCMD &ERROR
+   IF COND(&ERROR = '1') THEN(DO)
+      SNDPGMMSG MSGID(CPF91CC) MSGF(QSYS/QCPFMSG)
+      GOTO END
+   ENDDO
+   SNDPGMMSG  MSGID(CPF0000) MSGF(QSYS/QCPFMSG)
+   CHGVAR &ERROR '0'
+   Goto End
+
+ ABEND:If &Abending Then(Return)
+
+ Chgvar &Abending '1'
+
+ RcvMsg Msgtype(*Last) Msgdta(&MsgDta) Msgid(&MsgId) +
+        Rtntype(&RtnType) Msgf(&MsgF) Sndmsgflib(&MsgfLib)
+
+/* ESCAPE                                                                   */
+
+ If ((&RtnType *Eq '15') *Or (&RtnType *Eq '17')) Do
+    SndPgmMsg MsgId(&MsgId) MsgF(&MsgF) MsgDta(&MsgDta) +
+              MsgType(*Diag)
+ Enddo
+
+ ESCAPE:SndPgmMsg MsgId(CPF9898) MsgF(QCPFMSG) +
+                          MsgDta('Program' *BCAT &PGMNAME *BCAT +
+                          'ended abnormally') MsgType(*ESCAPE)
+ END:ENDPGM

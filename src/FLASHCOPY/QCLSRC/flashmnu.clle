@@ -1,0 +1,13 @@
+PGM
+             DCL        VAR(&MNUOPC) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&OPC) TYPE(*CHAR) LEN(1)
+
+             RTVDTAARA  DTAARA(INSTFLASH/OPCSAV (1 1)) RTNVAR(&OPC)
+             IF         COND(&OPC *EQ '1') THEN(DO)
+                  GO         MENU(INSTFLASH/FLASHSS)
+             ENDDO
+             IF         COND(&OPC *EQ '2') THEN(DO)
+                  GO         MENU(INSTFLASH/FLASHSS1)
+             ENDDO
+
+ENDPGM

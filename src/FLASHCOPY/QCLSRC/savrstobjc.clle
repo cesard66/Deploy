@@ -1,0 +1,14 @@
+PGM PARM(&LIBO &OBJO &MBRO &LIBD &IP)
+DCL &LIBO *CHAR 10    /*Libreria origen */
+DCL &OBJO *CHAR 10    /*Objeto origen   */
+DCL &MBRO *CHAR 10    /*Miembro         */
+DCL &LIBD *CHAR 10    /*Libreria destino */
+DCL &IP   *CHAR 20    /*IP               */
+
+SAVRSTOBJ OBJ(&OBJO) LIB(&LIBO) RMTLOCNAME(&IP) +
+          OBJTYPE(*FILE) SAVACT(*LIB) +
+          FILEMBR((&OBJO (&MBRO))) MBROPT(*ALL) +
+          ALWOBJDIF(*ALL) RSTLIB(&LIBD) +
+          FRCOBJCVN(*YES *ALL)
+MONMSG MSGID(CPF0000)
+ENDPGM

@@ -1,0 +1,76 @@
+/******************************************************************************/
+/* Programa: CHKRMTOBJD                                                      */
+/* Funcion : Verifica si existe objeto remoto                                 */
+/* Hecho   : Ino                                                              */
+/* Parametros:                                                                */
+/*            USUARIO  : Usuario remoto                                       */
+/*            PASSWORD : Password                                             */
+/*            CMD      : CMD a ejecutar                                       */
+/*            IP       : IP remoto                                            */
+/*            Error    : Devuelve '0' existe objeto remoto                    */
+/*                           '1' no existe objeto remoto                      */
+
+/******************************************************************************/
+PGM   PARM(&USR &PWD &ENVI &RECI &JOBNBR)
+      DCL VAR(&USR)    TYPE(*CHAR) LEN(10)
+      DCL VAR(&PWD)    TYPE(*CHAR) LEN(10)
+      DCL VAR(&ENVI)   TYPE(*CHAR) LEN(4)
+      DCL VAR(&RECI)   TYPE(*CHAR) LEN(4)
+      DCL VAR(&JOBNBR) TYPE(*CHAR) LEN(6)
+      DCL VAR(&CMD)    TYPE(*CHAR) LEN(300)
+
+      DCL VAR(&SRCPFI) TYPE(*CHAR) LEN(10)
+      DCL VAR(&SRCPFO) TYPE(*CHAR) LEN(10)
+
+/* 1-Crea archivo QTEMP/FTPENVB con los sgtes.miembros:                       */
+/*   'SRCI' + &JOBNBR                                                         */
+/*   'SRCO' + &JOBNBR                                                         */
+
+      DLTF FILE(QTEMP/FTPENV)
+      MONMSG MSGID(CPF2105)
+
+      CRTSRCPF FILE(QTEMP/FTPENV) RCDLEN(300)
+
+      RTVJOBA NBR(&JOBNBR)
+             CHGVAR     VAR(&FILE) VALUE('MAYOR' *TCAT &P1 *TCAT +
+                          %TRIM(&CCA))
+             CHGVAR     VAR(&N) VALUE(%SCAN(' ' &CA))
+             CHGVAR     VAR(&N) VALUE(&N-1)
+             CHGVAR     VAR(&CBA) VALUE(&CA)
+             CHGVAR     VAR(&CAUX) VALUE(%SST(&CA 1 &N) *CAT '\' *CAT +
+                        %TRIM(&FILE))
+             CHGVAR     VAR(&CA) VALUE(%TRIM(&CAUX))
+
+      CHGVAR VAR(&SRCPFI) VALUE('SRCI' *CAT &JOBNBR)
+      CHGVAR VAR(&SRCPFO) VALUE('SRCO' *CAT &JOBNBR)
+      ADDPFM FILE(QTEMP/FTPENVB) MBR(&SRCPFI)
+             MONMSG MSGID(CPF5812)
+      ADDPFM FILE(QTEMP/FTPENVB) MBR(&SRCPFO)
+             MONMSG MSGID(CPF5812)
+
+/* 3-Se graban y ejecutan las sentencias FTP                                  */
+
+         CLRPFM FILE(QTEMP/FTPENV) MBR(&SRCPFI)
+         CLRPFM FILE(QTEMP/FTPENV) MBR(&SRCPFO)
+
+         OVRDBF FILE(FTPENV) TOFILE(QTEMP/FTPENV) MBR(&SRCPFI)
+         CALL PGM(*LIBL/RUNCMDRPG) PARM(&USR &PWD &CMD)
+
+         OVRDBF FILE(INPUT) TOFILE(QTEMP/FTPENVB) MBR(&SRCPFI)
+         OVRDBF FILE(OUTPUT) TOFILE(QTEMP/FTPENVB) MBR(&SRCPFO)
+             STRTCPFTP  RMTSYS(&IP) PORT(*SECURE) SECCNN(*IMPLICIT)
+
+/* 4-El prog.READERRCMD lee QTEMP/FTPENVB miembro SRCO+JOBNBR para im-        */
+/*   primir los errores (si lo hubiere)                                       */
+
+    SNDPGMMSG MSG('Imprimiendo errores')
+    CHGVAR VAR(&ERROR) VALUE('0')
+    CHGVAR VAR(&ERR)   VALUE('0')
+    DLTOVR FILE(*ALL)
+    OVRDBF FILE(FTPENV) TOFILE(QTEMP/FTPENVB) MBR(&SRCPFO)
+    OVRDBF FILE(QPRINT) TOFILE(QGPL/QPRINT)
+    CALL PGM(*LIBL/READERRCMD) PARM(&ERR)
+    MONMSG MSGID(CPF0000)
+    CHGVAR vAR(&ERROR) VALUE(&ERR)
+
+ END: ENDPGM

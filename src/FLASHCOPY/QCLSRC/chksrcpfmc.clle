@@ -1,0 +1,129 @@
+/*****************************************************************************/
+/* Programa: CHKSRCPFMC                                                      */
+/* Funcion : Verifica existencia miembro fuente remoto                       */
+/* CPP de  : CHKSRCPFM                                                       */
+/* Hecho   : Ino                                                             */
+
+/* PARAMETROS:                                                               */
+/* ----------                                                                */
+/*  Usuario                                                                  */
+/*  Pasword                                                                  */
+/*  Libreria remota                                                          */
+/*  Archivo fuente remota                                                    */
+/*  Miembro fuente remoto                                                    */
+/*  IP remoto                                                                */
+/*  Error 0: existe 1: no existe                                             */
+/*****************************************************************************/
+PGM PARM(&USRR &PWDR &LIBR &FILER &MBRR &IPR &ERROR)
+
+DCL &USRR  *CHAR 10
+DCL &PWDR  *CHAR 10
+DCL &LIBR  *CHAR 10
+DCL &FILER *CHAR 10
+DCL &MBRR  *CHAR 10
+DCL &IPR   *CHAR 32
+DCL &ERROR *CHAR 1
+
+Dcl &CMD   *Char 2000
+Dcl &SAVFE  *Char 10
+Dcl &JOBNBR *Char 6
+Dcl &SRCPFI *Char 10
+Dcl &SRCPFO *Char 10
+Dcl &TIP    *Char 10 Value(*FILE)
+Dcl &A      *Char 1  Value('''')
+Dcl &ERR    *LGL
+Dcl &PPLIBUSR *Char 10 Value('PPLIBUSR')
+Dcl &PPLIBPWD *Char 10
+Dcl &Key      *Char 4
+Dcl &Reply    *Char 1
+Dcl &Reply_Len *Dec  5 0
+
+Dcl &Abending *Lgl
+Dcl &MsgID    *Char 7
+Dcl &MsgDta   *Char 256
+Dcl &MsgF     *Char 10
+Dcl &MsgFLib  *Char 10
+Dcl &MsgKey   *Char 4
+Dcl &MsgType  *Char 10
+Dcl &RtnType  *Char 2
+Dcl &PgmName  *Char 10
+Dcl &Sender   *Char 80
+
+MONMSG MSGID(CPF0000) EXEC(GOTO CMDLBL(ABEND))
+
+/* Retrieve program name and job nbr                                         */
+
+   SNDPGMMSG  MSG(' ') TOPGMQ(*SAME) MSGTYPE(*INFO) KEYVAR(&MSGKEY)
+   RCVMSG PGMQ(*SAME) MSGTYPE(*INFO) RMV(*YES) SENDER(&SENDER)
+   CHGVAR VAR(&PGMNAME) VALUE(%SST(&SENDER 56 10))
+   RtvJoba Nbr(&JOBNBR)
+
+/* Verifica libreria remota                                                  */
+/* Codigo de errores                                                         */
+/* -----------------                                                         */
+/* 0: sin error                                                              */
+/* 1: no existe libreria remota                                              */
+/* 2: no existe archivo fuente remoto                                        */
+/* 3: no existe miembro fuente remoto                                        */
+
+   ChgVar Var(&CMD) Value('CHKOBJ OBJ(QSYS' *CAT +
+                          '/' *TCAT &LIBR *TCAT ') OBJTYPE(*LIB)')
+             RUNRMTCMD1 USR(&USRR) PWD(&PWDR) CMD(&CMD) IP(&IPR)
+
+   If Cond(&ERROR = '1') Then(DO)
+      SndPgmMsg Msg('No existe libreria remota ' *CAT &LIBR)
+      Goto End
+   EndDo
+
+/* Verifica archivo fuente remoto                                            */
+
+   ChgVar Var(&CMD) Value('CHKOBJ OBJ(' *CAT &LIBR +
+               *TCAT '/' *TCAT &FILER *TCAT ') OBJTYPE(*FILE)')
+   RunRmtCmd1 USR(&USRR) PWD(&PWDR) CMD(&CMD) IP(&IPR) ERROR(&ERROR)
+
+   If Cond(&ERROR = '1') Then(DO)
+      ChgVar &ERROR Value('2')
+      SndPgmMsg Msg('No existe archivo fuente remoto ' *CAT &LIBR +
+                          *TCAT '/' *TCAT &FILER)
+      Goto End
+   EndDo
+
+/* Verifica miembro fuente remoto                                            */
+
+   ChgVar &CMD Value('CHKOBJ OBJ(' *CAT &LIBR *TCAT '/' *TCAT &FILER +
+                    *TCAT ') OBJTYPE(*FILE) MBR(' *TCAT &MBRR *TCAT ')')
+
+   RunRmtCmd1 USR(&USRR) PWD(&PWDR) CMD(&CMD) IP(&IPR) ERROR(&ERROR)
+
+   If Cond(&ERROR = '1') Then(DO)
+      ChgVar &ERROR Value('3')
+      SndPgmMsg Msg('No existe miembro origen ' *CAT &LIBR +
+                          *TCAT '/' *TCAT &FILER *TCAT '/' +
+                          *TCAT &MBRR)
+      Goto End
+   EndDo
+
+/* Fin normal                                                                */
+
+   Goto End
+
+/* Routine to handle unexpected errors */
+
+ ABEND:If &Abending Then(Return)
+
+ Chgvar &Abending '1'
+
+ RcvMsg Msgtype(*Last) Msgdta(&MsgDta) Msgid(&MsgId) +
+        Rtntype(&RtnType) Msgf(&MsgF) Sndmsgflib(&MsgfLib)
+
+/* ESCAPE                                                                   */
+
+ If ((&RtnType *Eq '15') *Or (&RtnType *Eq '17')) Do
+    SndPgmMsg MsgId(&MsgId) MsgF(&MsgF) MsgDta(&MsgDta) +
+              MsgType(*Diag)
+ Enddo
+
+ ESCAPE:SndPgmMsg MsgId(CPF9898) MsgF(QCPFMSG) +
+                          MsgDta('Program' *BCAT &PGMNAME *BCAT +
+                          'ended abnormally') MsgType(*ESCAPE)
+ END:ENDPGM

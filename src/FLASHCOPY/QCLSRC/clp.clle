@@ -1,0 +1,39 @@
+Dcl &Abending *Lgl
+Dcl &MsgID    *Char 7
+Dcl &MsgDta   *Char 256
+Dcl &MsgF     *Char 10
+Dcl &MsgFLib  *Char 10
+Dcl &MsgKey   *Char 4
+Dcl &MsgType  *Char 10
+Dcl &RtnType  *Char 2
+Dcl &PgmName  *Char 10
+Dcl &Sender   *Char 80
+
+MONMSG MSGID(CPF0000) EXEC(GOTO CMDLBL(ABEND))
+
+
+
+/* Fin normal                                                                */
+
+   Goto End
+
+/* Routine to handle unexpected errors */
+
+ ABEND:If &Abending Then(Return)
+
+ Chgvar &Abending '1'
+
+ RcvMsg Msgtype(*Last) Msgdta(&MsgDta) Msgid(&MsgId) +
+        Rtntype(&RtnType) Msgf(&MsgF) Sndmsgflib(&MsgfLib)
+
+/* ESCAPE                                                                   */
+
+ If ((&RtnType *Eq '15') *Or (&RtnType *Eq '17')) Do
+    SndPgmMsg MsgId(&MsgId) MsgF(&MsgF) MsgDta(&MsgDta) +
+              MsgType(*Diag)
+ Enddo
+
+ ESCAPE:SndPgmMsg MsgId(CPF9898) MsgF(QCPFMSG) +
+                          MsgDta('Program' *BCAT &PGMNAME *BCAT +
+                          'ended abnormally') MsgType(*ESCAPE)
+ END:ENDPGM

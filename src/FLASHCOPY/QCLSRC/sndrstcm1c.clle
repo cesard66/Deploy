@@ -1,0 +1,172 @@
+/*********************************************************************/
+/* Programa: SNDRSTCM1C                                              */
+/* CPP de  : SNDRSTCM1                                               */
+/* Funcion : Transfiere objetos desde Desarrollo a Produccion        */
+/* Hecho   : Ino Gomez                                               */
+/* Parametros:                                                       */
+/*       Usuario remoto                                              */
+/*       Pwd                                                         */
+/*       Biblioteca local                                            */
+/*       Objeto local a transferir                                   */
+/*       Tipo de objeto local                                        */
+/*       Release destino              (*CURRENT)                     */
+/*       Salvar activo                (*NO)                          */
+/*       Opcion Mbr de BD             (*MATCH)                       */
+/*       Permitir dif objetos         (*NONE)                        */
+/*       Restaurar en bib.destino                                    */
+/*       IP maq.produccion                                           */
+/*       Error                                                       */
+
+/* PROGRAMAS                                                         */
+/* ---------                                                         */
+/* CRTSAVFEC                                                         */
+/* RUNCMDFTP                                                         */
+/*     RUNCMDRPG                                                     */
+/* PASARRPG                                                          */
+/* READERRSND                                                        */
+/*********************************************************************/
+ PGM PARM(&USR &PWD &LIB &OBJ &TIP &REL &SAV &MBR &DIF &RST &IP)
+     Dcl &USR    *Char 10
+     Dcl &PWD    *Char 10
+     Dcl &LIB    *Char 10
+     Dcl &OBJ    *Char 10
+     Dcl &TIP    *Char 7
+     Dcl &REL    *Char 8
+     Dcl &SAV    *Char 8
+     Dcl &MBR    *Char 6
+     Dcl &DIF    *Char 5
+     Dcl &RST    *Char 10
+     Dcl &ERR    *Lgl
+     Dcl &IP     *Char 32
+     Dcl &CMD    *Char 2000
+     Dcl &SAVFE  *Char 10
+     Dcl &SAVFR  *Char 10
+     Dcl &JOBNBR *Char 6
+     Dcl &A      *Char 1 Value('''')
+     Dcl &ERROR  *Char 1
+
+     Dcl &Abending *Lgl
+     Dcl &MsgID    *char 7
+     Dcl &MsgDta   *char 256
+     Dcl &MsgF     *char 10
+     Dcl &MsgFLib  *char 10
+     Dcl &MsgKey   *char 4
+     Dcl &MsgType  *char 10
+     Dcl &RtnType  *char 2
+     Dcl &PgmName  *char 10
+     Dcl &Sender   *char 80
+
+     MonMsg CPF0000 Exec(Goto Abend)
+
+     DltOvr *All
+     If (&RST = '*SAVLIB') (CHGVAR VAR(&RST) VALUE(&LIB))
+
+/* PASOS                                                               */
+/* -----                                                               */
+/* 1- Verifica si existe &LIB/&OBJ. Si no existe, cancela el trabajo   */
+/* 2- Crea localmente SAVF temporal: 'ENVI' + JOBNBR                   */
+/* 3- Salva localmente en SAVF 'ENVI' objeto a transferir              */
+/* 4- Crea remotamente un SAVF temporal: 'RECI'+ JOBNBR  (FTP)         */
+/* 5- Envia objeto salvado en SAVF 'ENVI' -> 'RECI'      (FTP)         */
+/* 6- Imprime errores (si hubiere)                                     */
+/* 7- Restaura remotamente objeto salvado en SAVF 'ENVI'  (FTP)        */
+
+/* ERRORES                                                             */
+/* -------                                                             */
+/* 1: Objeto no existe en libreria local                               */
+/* 2: Error al crear Save File remoto                                  */
+/* 3: Error al enviar via FTP el SAVF                                  */
+/* 4: Error al restaurar SAVF remoto                                   */
+
+/* CHKOBJ OBJ(&LIB/&OBJ) OBJTYPE(&TIP) */
+/* MONMSG MSGID(CPF9801) EXEC(DO)      */
+/*        ChgVar &ERROR '1'            */
+/*        Goto Err                     */
+/* Enddo                               */
+
+/* 1-Crea localmente un SAVF temporal: 'ENVI'+JOBNBR                   */
+
+   RTVJOBA NBR(&JOBNBR)
+   CHGVAR VAR(&SAVFE) VALUE('ENVI' *CAT &JOBNBR)
+   CALL PGM(*LIBL/CRTSAVFEC) PARM(&JOBNBR 'ENVI')
+
+/* 2-Salva localmente en &SAVFE el objeto a ser transferido               */
+
+             SAVOBJ     OBJ(&OBJ) LIB(&LIB) DEV(*SAVF) OBJTYPE(&TIP) +
+                          SAVF(*LIBL/&SAVFE) TGTRLS(&REL) +
+                          CLEAR(*ALL) SAVACT(&SAV)
+
+/* 3-Crea remotamente un SAVF temporal: 'RECI'+JOBNBR (FTP)               */
+/*   (El que va a recibir el objeto)                                      */
+
+   CHGVAR VAR(&SAVFR) VALUE('RECI' *CAT &JOBNBR)
+   CHGVAR VAR(&CMD) VALUE('CALL PGM(INSTFLASH/CRTSAVFEC) +
+          PARM(' *CAT &A *CAT &JOBNBR *CAT &A *BCAT 'RECI' *CAT ')')
+             RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) IP(&IP)
+   If (&ERROR = '1') Do
+      ChgVar &ERROR '2'
+      Goto Err
+   Enddo
+
+/* 4.1-Crea localmente archivo fuente temporal: QTEMP/FTPENVA/ENTRADA     */
+
+     DLTF FILE(QTEMP/FTPENVA)
+     MONMSG MSGID(CPF2105)
+
+     CRTSRCPF FILE(QTEMP/FTPENVA) RCDLEN(300) MBR(ENTRADA)
+
+/* 4.2-Arma sentencia FTP para enviar &SAVFR (DES->PROD)                  */
+/*     Put PPLIB004/ENVI.ENVI PPLIB004/RECI                               */
+
+     OVRDBF FILE(FTPENV) TOFILE(QTEMP/FTPENVA) MBR(ENTRADA)
+     CALL PGM(*LIBL/PASARRPG) PARM(&USR &PWD 'ENVI' 'RECI' &JOBNBR)
+
+/* 4.3- Ejecuta CMD FTP                                                   */
+
+     ADDPFM FILE(QTEMP/FTPENVA) MBR(SALIDA)
+     OVRDBF FILE(INPUT) TOFILE(QTEMP/FTPENVA) MBR(ENTRADA)
+     OVRDBF FILE(OUTPUT) TOFILE(QTEMP/FTPENVA) MBR(SALIDA)
+             STRTCPFTP  RMTSYS(&IP)
+
+/* 5-Imprime errores de coneccion (si lo hubiere)                         */
+
+   DLTOVR FILE(*ALL)
+   OVRDBF FILE(FTPENV) TOFILE(QTEMP/FTPENVA) MBR(SALIDA)
+   CALL PGM(*LIBL/READERRSND) PARM(&ERR)
+   IF COND(&ERR) THEN(DO)
+      SNDPGMMSG MSGID(CPF91CC) MSGF(QSYS/QCPFMSG)
+      ChgVar &ERROR '3'
+      GOTO ERR
+   ENDDO
+
+/* 6-Restaura remotamente desde SAVF el objeto enviado                    */
+
+   CHGVAR VAR(&CMD) VALUE('RSTOBJ OBJ(*ALL) SAVLIB(' +
+                          *CAT &LIB *BCAT ') DEV(*SAVF) +
+                          SAVF(INSTFLASH/' *CAT &SAVFR *CAT ') +
+                          MBROPT(*ALL) ALWOBJDIF(*ALL) RSTLIB(' +
+                          *CAT &RST *BCAT ')')
+   RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) IP(&IP)
+   If (&ERROR = '1') Do
+      ChgVar &ERROR '4'
+      Goto Err
+   Enddo
+
+/* 7-Borra SAVF de trabajo                                                */
+
+   DLTF FILE(INSTFLASH/&SAVFE)
+   MONMSG MSGID(CPF2105)
+
+   GOTO END
+
+/* Routine to handle unexpected errors */
+
+Abend:if &Abending then(return)
+      Chgvar &Abending '1'
+      RcvMsg MsgType(*LAST) MsgDta(&MSGDTA) MsgId(&MSGID) +
+                          Sender(&SENDER) RtnType(&RTNTYPE) +
+                          MsgF(&MSGF) SndMsgfLIB(&MSGFLIB)
+      ChgVar &ERROR '9'
+
+ ERR: SNDPGMMSG MSGID(CPF91CC) MSGF(QSYS/QCPFMSG)
+ END: ENDPGM

@@ -1,0 +1,13 @@
+
+PGM PARM(&LOG)
+    DCL VAR(&LOG) TYPE(*CHAR) LEN(100)
+    DCL VAR(&CMD) TYPE(*CHAR) LEN(200)
+    DCL &A *CHAR 1 VALUE('''')
+    /*       CHGVAR     VAR(&CMD) VALUE('INSERT INTO +  */
+    /*                    INSTFLASH.LOGTABLE (LOGDESC) +  */
+    /*    VALUES(' *CAT &A *CAT %TRIM(&LOG) *CAT &A *CAT ')') */
+    CHGVAR   VAR(&LOG) VALUE( %TRIM(&LOG) *CAT &A)
+/*RUNSQL SQL(&CMD) COMMIT(*NC) NAMING(*SQL)*/
+             CALL       PGM(INSTFLASH/LOGTABLER) PARM(&LOG)
+
+ENDPGM

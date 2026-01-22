@@ -1,0 +1,192 @@
+PGM
+             DCLF       FILE(INSTFLASH/FLASHCONF)
+             DCL        VAR(&ERROR) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&IPDEST) TYPE(*CHAR) LEN(15)
+             DCL        VAR(&PASWORD) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(2000)
+             DCL        VAR(&ERROR) TYPE(*CHAR) LEN(1)
+ LOOP:       RCVF       RCDFMT(RCONFLASH)
+             MONMSG     MSGID(CPF0864)
+             CHGJOB     LOG(4 00 *SECLVL) LOGCLPGM(*YES)
+             ADDLIBLE   LIB(INSTFLASH)
+             MONMSG     MSGID(CPF0000)
+             DLYJOB     DLY(60)
+             MONMSG     MSGID(CPF0000)
+             CHGVAR     VAR(&PASWORD) VALUE('PASSW0RD')
+  /* RESTAURA OBJETO DE LOG                                       */
+             SNDRSTCMD  USR(&USUARIO) PWD(PASSW0RD) LIB(INSTFLASH) +
+                          OBJ(LOGTABLE) TIP(*FILE) REL(*CURRENT) +
+                          RST(INSTFLASH) IP(&IPORG)
+
+             GOTO       CMDLBL(IBM_I)
+             SNDRSTCMD  USR(&USUARIO) PWD(PASSW0RD) LIB(QUSRBRM) +
+                          OBJ(Q*) TIP(*FILE) REL(*CURRENT) +
+                          RST(QUSRBRM) IP(&IPORG)
+             LOGTABLE   LOG('SE HA ENVIADO EL CATALOGO BRMS')
+
+IBM_I:
+
+   /*   Cree la unidad de cinta virtual y varíela en (TARGET):   */
+             CRTDEVTAP  DEVD(VRTDEV) RSRCNAME(*VRT)
+             MONMSG     MSGID(CPF0000)
+             VRYCFG     CFGOBJ(VRTDEV) CFGTYPE(*DEV) STATUS(*ON)
+             MONMSG     MSGID(CPF0000)
+
+   /*   Cree el catálogo de imágenes (TARGET):      */
+             CRTIMGCLG  IMGCLG(VRTCLG) DIR('/vrtclg/clg/') TYPE(*TAP)
+             MONMSG     MSGID(CPF0000)
+
+   /*   Cree una entrada de catálogo de imágenes (TARGET):      */
+             ADDIMGCLGE IMGCLG(VRTCLG) FROMFILE(*NEW) TOFILE(FSFC01) +
+                          IMGSIZ(1000000) VOLNAM(FSFC01)
+             MONMSG     MSGID(CPF0000)
+
+   /*   Cargue la imagen en el catálogo (TARGET):  */
+             LODIMGCLGE IMGCLG(VRTCLG)
+             MONMSG     MSGID(CPF0000)
+
+   /*   En la LPAR de TARGET:                          */
+   /*   Inicie la descripción de la línea FSFC:        */
+             VRYCFG     CFGOBJ(FSFCLINE) CFGTYPE(*LIN) STATUS(*ON)
+             MONMSG     MSGID(CPF0000)
+
+   /*  Iniciar TCP:                  */
+   /*        STRTCP     STRSVR(*NO) STRIFC(*NO) STRPTPPRF(*NO) +    */
+   /*                     STRIP6(*NO)                               */
+   /*        MONMSG     MSGID(CPF0000)                              */
+
+   /*        ADDTCPIFC  INTNETADR(&IPDEST) LIND(*VIRTUALIP)         */
+   /*        MONMSG     MSGID(CPF0000)                              */
+
+   /*   Inicie la interfaz IP:    ('<Interfaz IP LPAR de destino>') */
+   /*        STRTCPIFC  INTNETADR(&IPDEST)                          */
+   /*        MONMSG     MSGID(CPF0000)                              */
+
+   /*   Deshabilitar las copias de seguridad de BRMS:  */
+             CALL       PGM(QBRM/Q1AOLD) PARM(('FLSSYSSTS') +
+                          ('*ENDBACKUP'))
+             RCLACTGRP  ACTGRP(Q1ABRMS)
+
+   /*   Elimine los registradores de vuelo BRMS antiguos:    */
+             DLTF       FILE(QUSRBRM/QZRBRMLOGS)
+             MONMSG     MSGID(CPF0000)
+             RMDIR      DIR('/tmp/brms/fsfc') SUBTREE(*ALL)
+             MONMSG     MSGID(CPF0000)
+
+   /* Guarde los nuevos registradores de vuelo BRMS: ARCHIVO CRTSAVF(   */
+   /* CRTSAVF(QUSRBRM/QZRBRMLOGS)                                       */
+             CRTSAVF    FILE(INSTFLASH/QZRBRMLOGS)
+             MONMSG     MSGID(CPF0000)
+             CLRSAVF    FILE(INSTFLASH/QZRBRMLOGS)
+             MONMSG     MSGID(CPF0000)
+             SAV        DEV('/QSYS.LIB/INSTFLASH.LIB/QZRBRMLOGS.FILE') +
+                          OBJ(('/tmp/brms/*')) DTACPR(*HIGH)
+             MONMSG     MSGID(CPF0000)
+   /* Cargue el catálogo en el dispositivo:                             */
+
+             LODIMGCLG  IMGCLG(VRTCLG) DEV(VRTDEV)
+
+   /* Guarde la biblioteca de datos BRMS:                               */
+             SAVLIB     LIB(QUSRBRM) DEV(VRTDEV) SPLFDTA(*ALL) +
+                          DTACPR(*DEV) OMITOBJ((*ALL *JRN) (*ALL +
+                          *JRNRCV) (QUSRBRM/Q1ATCPIFC *DTAARA) +
+                          (QUSRBRM/QA1ARI *FILE) (QUSRBRM/Q1AMONQUE +
+                          *DTAQ))
+             MONMSG     MSGID(CPF0000)
+
+   /* FTP el archivo de cinta virtual a la LPAR de origen:              */
+   /* bin                                                              +
+      namefmt 1                                                        +
+      put /vrtclg/clg/FSFC01 /vrtclg/clg/FSFC01                        +
+      quit                                                              */
+
+             CALL       PGM(TRAFTPIBM) PARM((&USUARIO) (&PASWORD) +
+                          (&IPORG))
+
+   /* Cargue el catálogo en el dispositivo:                             */
+   /*        LODIMGCLG  IMGCLG(VRTCLG) DEV(VRTDEV)                      */
+             CHGVAR     VAR(&CMD) VALUE('LODIMGCLG  IMGCLG(VRTCLG) +
+                          DEV(VRTDEV)')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+             MONMSG     MSGID(CPF0000)
+
+   /* Restaurar la biblioteca BRMS                                     */
+   /*        RSTLIB     SAVLIB(QUSRBRM) DEV(VRTDEV) MBROPT(*ALL) +
+                          ALWOBJDIF(*AUTL *FILELVL *OWNER *PGP)        */
+             CHGVAR     VAR(&CMD) VALUE('RSTLIB SAVLIB(QUSRBRM) +
+                          DEV(VRTDEV) MBROPT(*ALL) ALWOBJDIF(*AUTL +
+                          *FILELVL *OWNER *PGP)')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+             MONMSG     MSGID(CPF0000)
+/*Restaure los registradores de vuelo BRMS (tenga en cuenta la        +
+     sustitución del nombre LPAR de destino):                         */
+        /*   RST        DEV('/QSYS.LIB/QUSRBRM.LIB/QZRBRMLOGS.file') +
+                          OBJ(('/tmp/brms/*' *INCLUDE +
+                          '/tmp/brms/fsfc/LAB01/')) +
+                          CRTPRNDIR(*YES) ALWOBJDIF(*ALL)       */
+             CHGVAR     VAR(&CMD) VALUE('RST +
+                          DEV(''/QSYS.LIB/QUSRBRM.LIB/QZRBRMLOGS.file+
+                          '') OBJ((''/tmp/brms/*'' *INCLUDE +
+                          ''/tmp/brms/fsfc/LAB01/'')) +
+                          CRTPRNDIR(*YES) ALWOBJDIF(*ALL)')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+             MONMSG     MSGID(CPF0000)
+
+ /* Limpie los registros de BRMS:                                    */
+ /*          DLTF       FILE(QUSRBRM/QZRBRMLOGS)                     */
+             CHGVAR     VAR(&CMD) VALUE('DLTF +
+                          FILE(QUSRBRM/QZRBRMLOGS)')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+             MONMSG     MSGID(CPF0000)
+
+ /* Restaurar el uso funcional:                                      */
+ /* QZRDHASM/ENDFSFLASH *RSTFCNUSG      no se aplica.                */
+
+ /* Habilitar copias de seguridad BRMS:                              */
+ /*          STRSBS     SBSD(QBRM/Q1ABRMNET)                         */
+             CHGVAR     VAR(&CMD) VALUE('STRSBS SBSD(QBRM/Q1ABRMNET)')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+ /*          CALL       PGM(QBRM/Q1AOLD) PARM(('FLSSYSSTS') ('*END ')) */
+             CHGVAR     VAR(&CMD) VALUE('CALL PGM(QBRM/Q1AOLD) +
+                          PARM((''FLSSYSSTS'') (''*END ''))')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+
+ /* Después de validar que la información de BRMS está presente +
+    en el SOURCE LPAR ejecute el mantenimiento de BRMS          +
+    y cree los informes de recuperación.                             */
+
+ /*          WRKMEDIBRM                                              */
+             CHGVAR     VAR(&CMD) VALUE('WRKMEDIBRM')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+
+             GOTO       CMDLBL(FIN)
+ /* Limpieza final en el SOURCE LPAR:                                */
+ /* LODIMGCLG IMGCLG(VRTCLG) OPTION(*UNLOAD)                         */
+             CHGVAR     VAR(&CMD) VALUE('LODIMGCLG IMGCLG(VRTCLG) +
+                          OPTION(*UNLOAD)')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+ /* RMVIMGCLGE IMGCLG(VRTCLG) IMGCLGIDX(*VOL) VOL(FSFC01) KEEP(*NO) */
+             CHGVAR     VAR(&CMD) VALUE('RMVIMGCLGE IMGCLG(VRTCLG) +
+                          IMGCLGIDX(*VOL) VOL(FSFC01) KEEP(*NO)')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+ /* DLTIMGCLG IMGCLG(VRTCLG) KEEP(*NO) DEPIMGCLG(*DELETE)          */
+             CHGVAR     VAR(&CMD) VALUE('DLTIMGCLG IMGCLG(VRTCLG) +
+                          KEEP(*NO) DEPIMGCLG(*DELETE)')
+             CALL       PGM(RMTCMDC) PARM((&USUARIO) (&PASWORD) +
+                          (&CMD) (&IPORG))
+
+ /* VRYCFG CFGOBJ(VRTDEV) CFGTYPE(*DEV) STATUS(*OFF)                 */
+ /* DLTDEVD DEVD(VRTDEV)                                             */
+
+FIN:
+             DSPJOB     OUTPUT(*PRINT) OPTION(*JOBLOG)
+ENDPGM

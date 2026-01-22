@@ -1,0 +1,28 @@
+PGM
+   DCLF       FILE(BENJALIB/FLASHCONF)
+   DCL        VAR(&IPORG) TYPE(*CHAR) LEN(15)
+   DCL        VAR(&IPDEST) TYPE(*CHAR) LEN(15)
+   DCL        VAR(&NOM) TYPE(*CHAR) LEN(8)
+
+   LOOP:       RCVF       RCDFMT(RCONFLASH)
+       MONMSG MSGID(CPF0864) EXEC(GOTO CMDLBL(FIN))
+
+   RTVNETA    NWSDOMAIN(&NOM)
+   CHGDTAARA  DTAARA(QGPL/PRUEBITA *ALL) VALUE('&NOM')
+
+             CHGCTLAPPC CTLD(NUEVO1) RMTINTNETA(&IPORG) +
+                          LCLINTNETA(&IPDEST) RMTNETID(APPN) +
+                          RMTCPNAME(&NOM) CPSSN(*YES)
+             DLYJOB     DLY(5)
+
+             VRYCFG     CFGOBJ(NUEVO1) CFGTYPE(*CTL) STATUS(*ON)
+             MONMSG     MSGID(CPF0000)
+             DLYJOB     DLY(10)
+
+             SAVRSTOBJ  OBJ(PRUEBA) LIB(QGPL) RMTLOCNAME(&NOM) +
+                          CNNTYPE(*SNA)
+
+             SNDMSG     MSG('!!!!OIKOMAAAAAA!!!!!!') TOUSR(*SYSOPR)
+  FIN:
+ ENDPGM
+

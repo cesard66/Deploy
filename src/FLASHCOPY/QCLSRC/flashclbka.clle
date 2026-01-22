@@ -1,0 +1,103 @@
+/********************************************************************/
+             PGM
+/* Archivo de parametros */
+             DCLF       FILE(INSTFLASH/FLASHCONF1)
+
+/* Declaración de la variable &CMD para los comandos QSH */
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+             DCL        VAR(&STATE) TYPE(*CHAR) LEN(1) VALUE('1')
+
+             RMVENVVAR  ENVVAR(QIBM_QSH_CMD_OUTPUT)
+             MONMSG     MSGID(CPFA981)
+             ADDENVVAR  ENVVAR(QIBM_QSH_CMD_OUTPUT) VALUE(NONE)
+             MONMSG     MSGID(CPF0000)
+
+             ADDENVVAR  ENVVAR(TRACEFILE) VALUE('/tmp/qsh_trace') +
+                          LEVEL(*JOB)
+             MONMSG     MSGID(CPF0000)
+
+             ADDENVVAR  ENVVAR(QIBM_ZSH_TRACE_LEVEL) VALUE(3) +
+                          LEVEL(*JOB)
+             MONMSG     MSGID(CPF0000)
+
+             STRTRC     SSNID(QSHELL) JOB((*ALL/*ALL/QZSHSH *ALL)) +
+                          JOBTRCTYPE(*TRCTYPE) TRCTYPE((*QSHELL +
+                          *VERBOSE))
+             MONMSG     MSGID(CPF0000)
+
+ LOOP:       RCVF       RCDFMT(RCONFLASH)
+             MONMSG     MSGID(CPF0864) EXEC(GOTO CMDLBL(FIN))
+
+/* Ejecución de comandos QSH para operaciones de apagado, manejo de  */
+/* grupos de consistencia y arranque de LPAR                         */
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          *CAT '@' *CAT %TRIM(&HMCIP) *CAT ' +
+                          chsysstate -m ' *CAT %TRIM(&NOMBRE) *CAT +
+                          '-r lpar -o shutdown --id ' *CAT +
+                          %TRIM(&LPARID) *CAT '--immed')
+             QSH        CMD(&CMD)
+
+            /* Bucle hasta que &STATE sea 0 */
+             DOWHILE    COND(&STATE *NE '0')
+
+             DLYJOB     DLY(5)
+
+            /* Verificar si la particion esta activa o no */
+             CHGVAR     VAR(&CMD) VALUE('if ssh ' *CAT +
+                          %TRIM(&USUARIO) *CAT '@' *CAT +
+                          %TRIM(&HMCIP) *CAT ' "lssyscfg -r lpar ' +
+                          *CAT '-m ' *CAT %TRIM(&NOMBRE) *CAT ' +
+                          --filter ' *CAT 'lpar_ids=' *CAT +
+                          %TRIM(&LPARID) *CAT '" | grep -q "Not +
+                          Activated"; ' *CAT 'then echo "0" > +
+                          /tmp/state.txt; else echo ' *CAT '"1" > +
+                          /tmp/state.txt; fi')
+
+             QSH        CMD(&CMD)
+
+            /* Leer el valor de &STATE desde el archivo /tmp/state.txt */
+             QSH        CMD('read LINE < /tmp/state.txt; system +
+                          "CHGDTAARA DTAARA(INSTFLASH/STATE) +
+                          VALUE(''${LINE:-0}'')"')
+
+             RTVDTAARA  DTAARA(INSTFLASH/STATE) RTNVAR(&STATE)
+
+             ENDDO
+
+             CHGVAR     VAR(&CMD) VALUE('exit')
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          *CAT '@' *CAT %TRIM(&IPSTG) *CAT ' +
+                          stopfcconsistgrp ' *CAT %TRIM(&CGRPFC))
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          *CAT '@' *CAT %TRIM(&IPSTG) *CAT ' +
+                          prestartfcmap -restore ' *CAT %TRIM(&CGRPFC))
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          *CAT '@' *CAT %TRIM(&IPSTG) *CAT ' +
+                          startfcmap -restore ' *CAT %TRIM(&CGRPFC))
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          *CAT '@' *CAT %TRIM(&IPSTG) *CAT ' +
+                          startfcconsistgrp -prep ' *CAT +
+                          %TRIM(&CGRPFC))
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&CMD) VALUE('quit')
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&CMD) VALUE('ssh ' *CAT %TRIM(&USUARIO) +
+                          *CAT '@' *CAT %TRIM(&HMCIP) *CAT ' +
+                          chsysstate -m ' *CAT %TRIM(&NOMBRE) *CAT +
+                          '-r lpar -o on --id ' *CAT %TRIM(&LPARID))
+             QSH        CMD(&CMD)
+
+             CHGVAR     VAR(&CMD) VALUE('exit')
+             QSH        CMD(&CMD)
+
+ FIN:        ENDPGM

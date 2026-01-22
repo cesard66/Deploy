@@ -1,0 +1,21 @@
+    PGM        PARM(&LIB &OBJ &TIP &MBR &DIF &RST)
+       DCL        VAR(&LIB) TYPE(*CHAR) LEN(10)
+       /*   BIBLIOTECA LOCAL A TRANSFERIR */
+       DCL        VAR(&OBJ) TYPE(*CHAR) LEN(10)
+       /*   OBJETO A TRANSFERIR */
+       DCL        VAR(&TIP) TYPE(*CHAR) LEN(7)
+       /*   TIPO DE OBJETO A TRANSFERIR */
+        DCL   VAR(&MBR) TYPE(*CHAR) LEN(6)
+        /* PERMITIR DIFERENCIAS OBJETOS */
+        DCL   VAR(&DIF) TYPE(*CHAR) LEN(5)
+        /* RESTAURAR EN BIBLIOTECA */
+        DCL   VAR(&RST) TYPE(*CHAR) LEN(10)
+        /* ERROR*/
+        DCL   VAR(&ERR) TYPE(*LGL)
+          MONMSG     MSGID(CPF2105 CPF3773)
+          RSTOBJ   OBJ(&OBJ) SAVLIB(&LIB) DEV(*SAVF) +
+                    OBJTYPE(&TIP) SAVF(PPLIB/RECIBEDE) +
+                    MBROPT(&MBR) ALWOBJDIF(&DIF) RSTLIB(&RST)
+          SNDPGMMSG  MSG('OBJETO RESTAURADO')
+
+    ENDPGM

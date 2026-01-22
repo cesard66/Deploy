@@ -1,0 +1,45 @@
+
+   PGM     /* PARM(&LIBO &OBJO)   */
+             DCLF       FILE(INSTFLASH/FLASHCONF)
+/* DCL        VAR(&LIBO) TYPE(*CHAR) LEN(10) /*Libreria +
+                          origen */
+/* DCL        VAR(&OBJO) TYPE(*CHAR) LEN(10) /*Objeto +
+                          origen   */
+   DCL        VAR(&IPORG) TYPE(*CHAR) LEN(15)
+   DCL        VAR(&IPDEST) TYPE(*CHAR) LEN(15)
+   DCL        VAR(&NOM) TYPE(*CHAR) LEN(8)
+
+   LOOP:       RCVF       RCDFMT(RCONFLASH)
+       MONMSG MSGID(CPF0864) EXEC(GOTO CMDLBL(FIN))
+
+             RTVNETA    NWSDOMAIN(&NOM)
+             CHGDTAARA  DTAARA(INSTFLASH/DTAASFTP *ALL) VALUE('&NOM')
+
+             VRYCFG     CFGOBJ(CTLSFTP) CFGTYPE(*CTL) STATUS(*OFF)
+             MONMSG     MSGID(CPF0000)
+             DLYJOB     DLY(5)
+
+             CHGCTLAPPC CTLD(CTLSFTP) RMTINTNETA(&IPORG) +
+                          LCLINTNETA(&IPDEST) RMTNETID(APPN) +
+                          RMTCPNAME(&NOM) CPSSN(*YES)
+             DLYJOB     DLY(5)
+
+             VRYCFG     CFGOBJ(CTLSFTP) CFGTYPE(*CTL) STATUS(*ON)
+             MONMSG     MSGID(CPF0000)
+             DLYJOB     DLY(10)
+
+             SAVRSTOBJ  OBJ(*ALL) LIB(QUSRBRM) RMTLOCNAME(&NOM) +
+                          CNNTYPE(*SNA) MBROPT(*ALL) ALWOBJDIF(*ALL)
+             MONMSG     MSGID(CPF3773)
+
+             MONMSG     MSGID(CPFAD8D)
+    /*                                               +
+             SAVRSTOBJ  OBJ(LOGTABLE) LIB(INSTFLASH) +
+                          RMTLOCNAME(&NOM) CNNTYPE(*SNA) +
+             MONMSG     MSGID(CPFAD8D)                    */
+
+             SNDMSG     MSG('!!!!SE HA COMPLETADO LA OPERACION!!!!') +
+                          TOUSR(*SYSOPR)
+  FIN:
+ ENDPGM
+

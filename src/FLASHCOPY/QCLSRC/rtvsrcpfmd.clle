@@ -1,0 +1,306 @@
+/******************************************************************************/
+/* Programa: RTVSRCPFMC                                                       */
+/* Funcion : Trae miembro fuente desde una maquina remota                     */
+/* CPP de  : RTVSRCPFM                                                        */
+/* Hecho   : Ino                                                              */
+
+/* PARAMETROS:                                                                */
+/* ----------                                                                 */
+/*  Usuario                                                                   */
+/*  Pasword                                                                   */
+/*  Libreria origen                                                           */
+/*  Archivo fuente origen                                                     */
+/*  Miembro fuente origen                                                     */
+/*  Release destino del objeto                                                */
+/*  Salvar activo                                                             */
+/*  Permitir diferencias objetos (al restaurar en Lib.destino)                */
+/*  Lib.dest.donde se va a almacenar el miembro fuente                        */
+/*  Archivo fuente destino donde se va a almacenar el miembro fuente          */
+/*  Direccion IP maq.remota                                                   */
+/*  Error: 0=sin error 1=error                                                */
+
+/*  PROGRAMAS INVOCADOS                                                       */
+/*  -------------------                                                       */
+/*  CRTSAVFEC                                                                 */
+/*  RUNCMDFTP                                                                 */
+/*     RUNCMDRPG                                                              */
+/*     READERRSND                                                             */
+/*  RTVOBJRPG                                                                 */
+/*  READERRSND                                                                */
+/******************************************************************************/
+ Pgm Parm(&USR &PWD &LIBO &FILEO &MBRO &REL &SAV &DIF &LIBD &FILED &IPR &ERROR)
+     Dcl &USR   *Char 10
+     Dcl &PWD   *Char 10
+     Dcl &LIBO  *Char 10
+     Dcl &FILEO *Char 10
+     Dcl &MBRO  *Char 10
+     Dcl &REL   *Char 8
+     Dcl &SAV   *Char 8
+     Dcl &DIF   *Char 5
+     Dcl &LIBD  *Char 10
+     Dcl &FILED *Char 10
+     Dcl &IPR   *Char 32
+     Dcl &ERROR *Char 1
+
+     Dcl &CMD       *Char 2000
+     Dcl &SAVFE     *Char 10
+     Dcl &JOBNBR    *Char 6
+     Dcl &SRCPFI    *Char 10
+     Dcl &SRCPFO    *Char 10
+     Dcl &TIP       *Char 10 Value(*FILE)
+     Dcl &A         *Char 1  Value('''')
+     Dcl &ERR       *LGL
+     Dcl &PPLIBUSR  *Char 10
+     Dcl &PPLIBPWD  *Char 10
+     Dcl &Key       *Char 4
+     Dcl &Reply     *Char 1
+     Dcl &Reply_Len *Dec  5 0
+
+     Dcl &Abending *Lgl
+     Dcl &MsgID    *Char 7
+     Dcl &MsgDta   *Char 256
+     Dcl &MsgF     *Char 10
+     Dcl &MsgFLib  *Char 10
+     Dcl &MsgKey   *Char 4
+     Dcl &MsgType  *Char 10
+     Dcl &RtnType  *Char 2
+     Dcl &PgmName  *Char 10
+     Dcl &Sender   *Char 80
+
+     MonMsg MsgId(CPF0000) Exec(Goto CmdLbl(ABEND))
+
+/*   SndPgmMsg Msg('Inicio RTVSRCPF de ' *CAT &LIBO *TCAT '/' *TCAT &FILEO)  */
+
+     RtvJoba Nbr(&JOBNBR)
+     If Cond(&LIBD *EQ '*LIB') Then(ChgVar &LIBD  Value(&LIBO)         )
+     If Cond(&FILED *EQ '*FILEO') Then(ChgVar &FILED Value(&FILEO)     )
+     If Cond(&REL   *EQ '*CURRENT') Then(ChgVar &REL Value('V7R1M0')   )
+/*   Call Pgm(PPPFN301) Parm(&PPLIBPWD)  */
+
+/* Valida parametros:                                                         */
+/* -----------------                                                          */
+/* &ERROR='1': No existe usuario remoto                                       */
+/* &ERROR='2': Password no valido                                             */
+/* &ERROR='3': No existe miembro libreria remota                              */
+/* &ERROR='4': No existe archivo fuente remoto                                */
+/* &ERROR='5': No existe miembro fuente origen                                */
+/* &ERROR='6': No existe comunicacion con servidor remoto                     */
+/* &ERROR='7': Miembro destino ya existe                                      */
+
+/* Verifica libreria destino                                                  */
+
+   ChkObj obj(QSYS/&LIBD) ObjType(*LIB)
+   MonMsg MSGID(CPF9801) EXEC(DO)
+      SndPgmMsg Msg('No existe libreria destino  ' *CAT &LIBD)
+      Goto End
+   EndDo
+
+/* Verifica archivo fuente destino                                            */
+
+   ChkObj Obj(&LIBD/&FILED) ObjType(*FILE)
+   MonMsg MSGID(CPF9801) EXEC(DO)
+      SndPgmMsg Msg('No existe archivo fuente destino ' *CAT &LIBD +
+                          *TCAT '/' *TCAT &FILED)
+      Goto End
+   EndDo
+
+/* Verifica miembro fuente destino. Si existe, error.                         */
+
+   ChkObj Obj(&LIBD/&FILED) ObjType(*FILE) Mbr(&MBRO)
+   MonMsg MsgId(CPF9815) EXEC(Goto Salta) /* Miembro no existe */
+
+   ChgVar &ERROR Value('7')
+   SndPgmMsg Msg('Miembro' *TCAT &LIBO *TCAT '/' *TCAT +
+                          &FILEO *TCAT '/' *TCAT &MBRO *TCAT ' +
+                          ya existe...')
+   Goto End
+
+/* Verifica comunicacion con IP remota                                        */
+
+salta:ChkIPAdd IP(&IPR) ERROR(&ERROR)
+      If Cond(&ERROR = '1') Then(DO)
+         ChgVar &ERROR Value('6')
+         SndPgmMsg Msg('No existe comunicacion con servidor +
+                          remoto ' *CAT &IPR)
+      Goto End
+   EndDo
+
+/* Verifica usuario remoto                                                    */
+
+   ChgVar &CMD Value('CHKOBJ OBJ(QSYS/' *CAT +
+                          &USR *TCAT ') OBJTYPE(*USRPRF)')
+/* RunRmtCmd1 USR(&USR) PWD(&PPLIBPWD) CMD(&CMD) IP(&IPR) ERROR(&ERROR)      */
+
+   If Cond(&ERROR = '1') Then(DO)
+      SndPgmMsg Msg('No existe usuario remoto ' *CAT &USR)
+      Goto End
+   EndDo
+
+/* Verifica pwd usuario remoto                                                */
+
+/* ChkRmtPwd Usr(&USR) Pwd(&PWD) Ip(&IPR) Error(&ERROR)     */
+
+   If Cond(&ERROR = '1') Then(DO)
+      ChgVar &ERROR Value('2')
+      SndPgmMsg Msg('Password no valido usuario remoto ' *CAT &USR)
+      Goto End
+   EndDo
+
+/* Verifica libreria remota                                                   */
+
+   ChgVar Var(&CMD) Value('CHKOBJ OBJ(QSYS' *CAT +
+                          '/' *TCAT &LIBO *TCAT ') OBJTYPE(*LIB)')
+   RunRmtCmd1 USR(&USR) PWD(&PWD) CMD(&CMD) IP(&IPR) ERROR(&ERROR)
+
+   If Cond(&ERROR = '1') Then(DO)
+      ChgVar &ERROR Value('3')
+      SndPgmMsg Msg('No existe libreria remota ' *CAT &LIBD)
+      Goto End
+   EndDo
+
+/* Verifica archivo fuente remoto                                             */
+
+   ChgVar Var(&CMD) Value('CHKOBJ OBJ(' *CAT &LIBO +
+               *TCAT '/' *TCAT &FILEO *TCAT ') OBJTYPE(*FILE)')
+   RunRmtCmd1 USR(&USR) PWD(&PWD) CMD(&CMD) IP(&IPR) ERROR(&ERROR)
+
+   If Cond(&ERROR = '1') Then(DO)
+      ChgVar &ERROR Value('4')
+      SndPgmMsg Msg('No existe archivo fuente remoto ' *CAT &LIBO +
+                          *TCAT '/' *TCAT &FILEO)
+      Goto End
+   EndDo
+
+/* Verifica miembro fuente remoto                                             */
+
+   ChgVar &CMD Value('CHKOBJ OBJ(' *CAT &LIBO *TCAT '/' *TCAT &FILEO +
+                    *TCAT ') OBJTYPE(*FILE) MBR(' *TCAT &MBRO *TCAT ')')
+   RunRmtCmd1 USR(&USR) PWD(&PWD) CMD(&CMD) IP(&IPR) ERROR(&ERROR)
+
+   If Cond(&ERROR = '1') Then(DO)
+      ChgVar &ERROR Value('5')
+      SndPgmMsg Msg('No existe miembro origen ' *CAT &LIBD +
+                          *TCAT '/' *TCAT &FILEO *TCAT '/' +
+                          *TCAT &MBRO)
+      Goto End
+   EndDo
+
+/* FIN VALIDACION                                                             */
+/* --------------                                                             */
+/* 1-Crea localmente un SAVF temporal: 'ENVI'+JOBNBR                          */
+/* 2-Crea remotamente un SAVF temporal: 'ENVI'+JOBNBR      (FTP)              */
+/* 3-En la maq.remota salva el obj.en el SAVF temporal     (FTP)              */
+/* 4-Trae el SAVF temporal de la maq.remota a la maq.local-ENVI (FTP)         */
+/* 5-Imprime errores (si lo hubiere) en la ejecuc.del FTP                     */
+/* 6-Restaura localmente el objeto recibido 'ENVI'+JOBNBR                     */
+
+/* 1-Crea localmente un SAVF temporal: 'ENVI'+JOBNBR                          */
+
+   ChgVar &SAVFE Value('ENVI' *CAT &JOBNBR)
+   Call Pgm(PPLIB003/CRTSAVFEC) Parm(&JOBNBR 'ENVI')
+/* SndPgmMsg Msg('Creado localmente SAVF ' *CAT &SAVFE)   */
+
+/* 2-Crea remotamente un SAVF temporal: 'ENVI'+JOBNBR      (FTP)              */
+
+   ChgVar &CMD Value('Call Pgm(PPLIB003/CRTSAVFEC) +
+                          Parm(' *CAT &A *CAT &JOBNBR *CAT &A *BCAT +
+                          &A *CAT ENVI *CAT &A *CAT ')')
+   RunRmtCmd1 USR(&USR) PWD(&PWD) CMD(&CMD) IP(&IPR) ERROR(&ERROR)
+   If Cond(&ERROR *EQ '1') Then(GOTO CMDLBL(END))
+
+/* SndPgmMsg Msg('Creado remotamente SAVF ' *CAT &SAVFE)  */
+
+/* 3-En la maq.remota salva el archivo en el SAVF temporal     (FTP)          */
+
+/*  SndPgmMsg Msg('Salvando objeto en origen')  */
+    ChgVar &CMD Value('SAVOBJ OBJ(' *TCAT &FILEO *TCAT ') ' *CAT +
+                                  ' LIB(' *TCAT &LIBO *TCAT ')' *CAT +
+                                  ' DEV(*SAVF)' *CAT +
+                                  ' OBJTYPE(' *TCAT &TIP *TCAT ')' *CAT +
+                                 ' SAVF(PPLIB003/' *TCAT &SAVFE *TCAT ')' *CAT +
+                                  ' TGTRLS(' *CAT &REL *TCAT ') SAVACT(' *TCAT +
+                                  &SAV *TCAT ') FILEMBR((' *TCAT +
+                                  &FILEO *CAT ' (' *TCAT &MBRO *TCAT ')))' )
+    RunRmtCmd1 USR(&USR) PWD(&PWD) CMD(&CMD) IP(&IPR) ERROR(&ERROR)
+    If Cond(&ERROR *EQ '1') Then(GOTO CMDLBL(END))
+
+/*  SndPgmMsg Msg('Objeto fue salvado en origen')     */
+
+/* 4-Trae el SAVF temporal de la maq.remota a la maq.local (FTP)              */
+
+/*  SndPgmMsg Msg('Proceso de transf.del objeto remoto a la maq.Local')   */
+    DltF File(QTEMP/FTPENVA)
+    MonMsg MSGID(CPF2105)
+
+    CRTSRCPF FILE(QTEMP/FTPENVA) RCDLEN(300)
+
+/*  Adic.miembro a QTEMP/FTPENVA: 'SRCI' y 'SRCO'+&JOBNBR            */
+
+    ChgVar &SRCPFI Value('SRCI' *CAT &JOBNBR)
+    ChgVar &SRCPFO Value('SRCO' *CAT &JOBNBR)
+    AddPfm File(QTEMP/FTPENVA) MBR(&SRCPFI)
+           MonMsg MSGID(CPF5812)
+    AddPfm File(QTEMP/FTPENVA) MBR(&SRCPFO)
+           MonMsg MSGID(CPF5812)
+
+/*  Se graban las sentencias FTP de transf.del SAVF remoto          */
+
+/*  SndPgmMsg Msg('Grabando sentencias FTP')    */
+    OvrDbf File(INPUT) ToFile(QTEMP/FTPENVA) Mbr(&SRCPFI)
+    OvrDbf File(OUTPUT) ToFile(QTEMP/FTPENVA) Mbr(&SRCPFO)
+    Call Pgm(RTVOBJRPG) Parm(&USR &PWD 'ENVI' &JOBNBR)
+
+/*  Via FTP se transfiere (GET) el SAVF remoto a la maq.local       */
+/*  SndPgmMsg Msg('Transf.objeto desde maq.remota a la maq.local') */
+             STRTCPFTP  RMTSYS(&IPR) PORT(*SECURE) SECCNN(*IMPLICIT)
+
+/* 5-Imprime errores (si lo hubiere) en la ejecuc.del FTP                     */
+
+     DltOvr File(*ALL)
+     OvrDbf File(FTPENV) ToFile(QTEMP/FTPENVA) Mbr(&SRCPFO)
+     Call Pgm(READERRSND) Parm(&ERR)
+
+     If Cond(&ERR) Then(DO)
+          SndPgmMsg MsgID(CPF91CC) MSGF(QSYS/QCPFMSG)
+          ChgVar &ERROR Value('1')
+          Goto End
+        EndDo
+/*      6-Si no hubieron errores se restaura el miembro recibido              */
+/*      SndPgmMsg Msg('Restaurando objeto recibido...')   */
+             RSTOBJ     OBJ(&FILEO) SAVLIB(&LIBO) DEV(*SAVF) +
+                          SAVF(PPLIB003/&SAVFE) FILEMBR((&FILEO +
+                          (&MBRO))) MBROPT(*ALL) ALWOBJDIF(&DIF) +
+                          FRCOBJCVN(*YES *ALL) RSTLIB(&LIBD)
+        MonMsg MSGID(CPF3773 CPF3770 CPF3872)
+
+/*      Se elimina SAVF temporal                                              */
+        Dltf File(PPLIB003/&SAVFE)
+        MonMsg MsgId(CPF0000)
+        SNDPGMMSG MSG('Miembro ' *CAT &LIBO *TCAT '/' *TCAT +
+                          &FILEO *TCAT '(' *TCAT &MBRO *TCAT ') +
+                          copiado en ' *CAT &LIBD *TCAT '/' *TCAT +
+                          &FILED *TCAT '.')
+/* Fin normal                                                                */
+
+   Goto End
+
+/* Routine to handle unexpected errors */
+
+ ABEND:If &Abending Then(Return)
+
+ Chgvar &Abending '1'
+
+ RcvMsg Msgtype(*Last) Msgdta(&MsgDta) Msgid(&MsgId) +
+        Rtntype(&RtnType) Msgf(&MsgF) Sndmsgflib(&MsgfLib)
+
+/* ESCAPE                                                                   */
+
+ If ((&RtnType *Eq '15') *Or (&RtnType *Eq '17')) Do
+    SndPgmMsg MsgId(&MsgId) MsgF(&MsgF) MsgDta(&MsgDta) +
+              MsgType(*Diag)
+ Enddo
+
+ ESCAPE:SndPgmMsg MsgId(CPF9898) Msgf(QCPFMSG) +
+                          Msgdta('Programa' *BCAT &PGMNAME *BCAT +
+                          'finalizo anormalmente') MsgType(*ESCAPE)
+ END:ENDPGM

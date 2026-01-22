@@ -1,0 +1,93 @@
+/******************************************************************************/
+/* Programa: RUNRMTCMDC                                                       */
+/* CPP de  : RUNRMTCMD1                                                       */
+/* Funcion : Ejecuta CMD remoto via FTP                                       */
+/* Modif.  : Ino                                                              */
+/* Parametros:                                                                */
+/*            USUARIO  : Usuario remoto                                       */
+/*            PASSWORD : Password                                             */
+/*            CMD      : CMD a ejecutar                                       */
+/*            IP       : IP remoto                                            */
+/*            Error    : Devuelve '0' si fue ejecutado satisfactoriamen       */
+/*                       te, '1' si no fue ejecutado satisfactoriamente       */
+
+/* Programas invocados                                                        */
+/* -------------------                                                        */
+/* RUNCMDRPG                                                                  */
+/* READERRCMD                                                                 */
+/******************************************************************************/
+PGM   PARM(&USR &PWD &CMD &IP)
+      DCL VAR(&USR)    TYPE(*CHAR) LEN(10)
+      DCL VAR(&PWD)    TYPE(*CHAR) LEN(10)
+      DCL VAR(&CMD)    TYPE(*CHAR) LEN(2000)
+      DCL VAR(&IP)     TYPE(*CHAR) LEN(15)
+      DCL VAR(&JOBNBR) TYPE(*CHAR) LEN(6)
+      DCL VAR(&SRCPFI) TYPE(*CHAR) LEN(10)
+      DCL VAR(&SRCPFO) TYPE(*CHAR) LEN(10)
+      DCL VAR(&SYSCMD) TYPE(*CHAR) LEN(10)
+      DCL VAR(&ERR)    TYPE(*LGL)
+      DCL VAR(&ERROR)  TYPE(*CHAR) LEN(1)
+
+      SNDPGMMSG MSG('Inicio RUNCMDFTP del CMD ' || &CMD || ' +
+                          en ' || &IP)
+
+/* 1-Crea archivo QTEMP/FTPENVB con los sgtes.miembros:                       */
+/*   SRCI+JOBNBR: Input                                                       */
+/*   SRCO+JOBNBR: Output                                                      */
+/* 2-El prog.RPG RUNCMDRPG graba las sentencias FTP en el archivo             */
+/*   QTEMP/FTPENVB miembro SRCI+JOBNBR                                        */
+/* 3-Se ejecutan las sentencias FTP (StrTcpFtp)                               */
+/* 4-El prog. READERRCMD lee QTEMP/FTPENVB miembro SRCO+JOBNBR para im-       */
+/*   primir los errores (si lo hubiere)                                       */
+
+/* 1-Crea archivo QTEMP/FTPENVB con los sgtes.miembros:                       */
+/*   'SRCI' + &JOBNBR                                                         */
+/*   'SRCO' + &JOBNBR                                                         */
+
+      SNDPGMMSG MSG('Creando archivo temporal QTEMP/FTPENVB')
+      DLTF FILE(QTEMP/FTPENVB)
+      MONMSG MSGID(CPF2105)
+
+      CRTSRCPF FILE(QTEMP/FTPENVB) RCDLEN(300)
+
+      RTVJOBA NBR(&JOBNBR)
+      CHGVAR VAR(&SRCPFI) VALUE('SRCI' *CAT &JOBNBR)
+      CHGVAR VAR(&SRCPFO) VALUE('SRCO' *CAT &JOBNBR)
+      ADDPFM FILE(QTEMP/FTPENVB) MBR(&SRCPFI)
+             MONMSG MSGID(CPF5812)
+      ADDPFM FILE(QTEMP/FTPENVB) MBR(&SRCPFO)
+             MONMSG MSGID(CPF5812)
+
+/* 2-El prog.RPG RUNCMDRPG graba las sentencias FTP en el archivo             */
+/*   QTEMP/FTPENVB miembro SRCI+JOBNBR                                        */
+
+     SNDPGMMSG MSG('Programa RUNCMDRPG graba sentencias FTP')
+     OVRDBF FILE(FTPENV) TOFILE(QTEMP/FTPENVB) MBR(&SRCPFI)
+     CALL       PGM(INSTFLASH/RUNCMDRPG) PARM(&USR &PWD &CMD)
+
+/* 3-Se ejecutan las sentencias FTP (StrTcpFtp)                               */
+
+     SNDPGMMSG MSG('Ejecutando FTP')
+     OVRDBF FILE(INPUT) TOFILE(QTEMP/FTPENVB) MBR(&SRCPFI)
+     OVRDBF FILE(OUTPUT) TOFILE(QTEMP/FTPENVB) MBR(&SRCPFO)
+/*           STRTCPFTP  RMTSYS(&IP) PORT(*SECURE) SECCNN(*IMPLICIT)     */
+             STRTCPFTP  RMTSYS(&IP)
+/* 4-El prog.READERRCMD lee QTEMP/FTPENVB miembro SRCO+JOBNBR para im-        */
+/*   primir los errores (si lo hubiere)                                       */
+
+    SNDPGMMSG MSG('Imprimiendo errores')
+    CHGVAR VAR(&ERROR) VALUE('0')
+    DLTOVR FILE(*ALL)
+    OVRDBF FILE(FTPENV) TOFILE(QTEMP/FTPENVB) MBR(&SRCPFO)
+             CALL       PGM(INSTFLASH/READERRCMD) PARM(&ERR)
+
+    IF COND(&ERR) THEN(DO)
+         CHGVAR VAR(&ERROR) VALUE('1')
+         SNDPGMMSG MSGID(CPF91CC) MSGF(QSYS/QCPFMSG)
+         GOTO END
+       ENDDO
+    ELSE
+      SNDPGMMSG MSG('Fin RUNCMDFTP del CMD ' || &CMD || ' +
+                          en ' || &IP)
+
+ END: ENDPGM

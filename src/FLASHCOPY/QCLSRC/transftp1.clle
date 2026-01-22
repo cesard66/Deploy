@@ -1,0 +1,24 @@
+PGM
+   DCLF       FILE(INSTFLASH/FLASHCONF)
+             DCL        VAR(&TAPO) TYPE(*CHAR) LEN(10) /*Tap origen */
+             DCL        VAR(&TAPD) TYPE(*CHAR) LEN(10) /*Tap Destino */
+   DCL        VAR(&ERROR) TYPE(*CHAR) LEN(1)
+   LOOP: +
+            RCVF       RCDFMT(RCONFLASH)
+            MONMSG MSGID(CPF0864)
+   CHGJOB LOG(4 00 *SECLVL) LOGCLPGM(*YES)
+   ADDLIBLE   LIB(INSTFLASH)
+             MONMSG     MSGID(CPF0000)
+   DLYJOB     DLY(60)
+   MONMSG     MSGID(CPF0000)
+             SNDRSTCM1  USR(&USUARIO) PWD(PASSW0RD) LIB(QUSRBRM) +
+                          OBJ(Q*) TIP(*FILE) REL(*CURRENT) +
+                          RST(QUSRBRM) IP(&IPORG)
+             LOGTABLE1  LOG('SE HA ENVIADO EL CATALOGO BRMS')
+
+  /* RESTAURA OBJETO DE LOG                                       */
+             SNDRSTCM1  USR(&USUARIO) PWD(PASSW0RD) LIB(INSTFLASH) +
+                          OBJ(LOGTABLE) TIP(*FILE) REL(*CURRENT) +
+                          RST(INSTFLASH) IP(&IPORG)
+
+ENDPGM

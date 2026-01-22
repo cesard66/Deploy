@@ -1,0 +1,8 @@
+    /* PGM    PARM(&VOP &VCurUsr &VOK)    */
+PGM
+     DCL VAR(&CMD) TYPE(*CHAR) LEN(500)
+
+             CHGUSRPRF  USRPRF(FLASHSS1) HOMEDIR('/home/flashss/')
+             CHGVAR     VAR(&CMD) VALUE('ssh-keygen -t rsa')
+     QSH CMD(&CMD)
+   ENDPGM

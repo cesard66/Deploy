@@ -1,0 +1,36 @@
+PGM
+             DCLF       FILE(INSTFLASH/FLASHCONF)
+             DCL        VAR(&ERROR) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&OPTION) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&LPAR) TYPE(*DEC) LEN(3 0) VALUE(001)
+   /* RECUPERA OPCIÓN DE FLASHCOPY                 */
+   RTVDTAARA  DTAARA(INSTFLASH/BNOPTFC (1 1)) RTNVAR(&OPTION)
+             SELECT
+             WHEN       COND(&OPTION *EQ '1') THEN(CHGVAR VAR(&LPAR) +
+                          VALUE(001))
+             WHEN       COND(&OPTION *EQ '2') THEN(CHGVAR VAR(&LPAR) +
+                          VALUE(001))
+             WHEN       COND(&OPTION *EQ '3') THEN(CHGVAR VAR(&LPAR) +
+                          VALUE(002))
+             ENDSELECT
+   LOOP: +
+            RCVF       RCDFMT(RCONFLASH)
+            MONMSG MSGID(CPF0864)
+             IF         COND(&LPARNRO *NE &LPAR) THEN(GOTO +
+                          CMDLBL(LOOP))
+   CHGJOB LOG(4 00 *SECLVL) LOGCLPGM(*YES)
+   ADDLIBLE   LIB(INSTFLASH)
+             MONMSG     MSGID(CPF0000)
+   DLYJOB     DLY(60)
+   MONMSG     MSGID(CPF0000)
+  /* RESTAURA OBJETO DE LOG                                       */
+             SNDRSTCMD  USR(&USUARIO) PWD(PASSW0RD) LIB(INSTFLASH) +
+                          OBJ(LOGTABLE) TIP(*FILE) REL(*CURRENT) +
+                          RST(INSTFLASH) IP(&IPORG)
+
+             SNDRSTCMD  USR(&USUARIO) PWD(PASSW0RD) LIB(QUSRBRM) +
+                          OBJ(Q*) TIP(*FILE) REL(*CURRENT) +
+                          RST(QUSRBRM) IP(&IPORG)
+             LOGTABLE   LOG('SE HA ENVIADO EL CATALOGO BRMS')
+
+ENDPGM

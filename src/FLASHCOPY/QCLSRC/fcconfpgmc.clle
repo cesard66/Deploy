@@ -1,0 +1,87 @@
+PGM    PARM(&VOP &VCurUsr &VOK)
+
+       DCL        VAR(&VQK01ID   ) TYPE(*DEC) LEN(10 0)
+       DCL        VAR(&VQK02ID   ) TYPE(*DEC) LEN(10 0)
+       DCL        VAR(&VQK01ESTPR) TYPE(*DEC) LEN(1 0)
+       DCL        VAR(&VQK01RESUL) TYPE(*DEC) LEN(1 0)
+       DCL        VAR(&VQK01TAREA) TYPE(*CHAR) LEN(100)
+       DCL        VAR(&VQK01COM  ) TYPE(*CHAR) LEN(200)
+       DCL        VAR(&VQK02PGM  ) TYPE(*CHAR) LEN(10)
+       DCL        VAR(&VQK02PGMDE) TYPE(*CHAR) LEN(60)
+       DCL        VAR(&VQK02TIPEV) TYPE(*DEC) LEN(1 0)
+       DCL        VAR(&VQK02MSJ  ) TYPE(*CHAR) LEN(200)
+       DCL        VAR(&vBD) TYPE(*CHAR) LEN(1)
+       DCL        VAR(&vOK) TYPE(*CHAR) LEN(1)
+       DCL        VAR(&VOP) TYPE(*DEC) LEN(1 0)
+       DCL        VAR(&VCURUSR) TYPE(*CHAR) LEN(10)
+    DCLF       FILE(INSTFLASH/FLASHCONF)
+    LOOP:       RCVF       RCDFMT(RCONFLASH)
+        MONMSG MSGID(CPF0864) EXEC(GOTO CMDLBL(FIN))
+             ADDLIBLE   LIB(INSTFLASH)
+             MONMSG     MSGID(CPF0000)
+    /*       LOGTABLE   LOG('SE HA INGRESADO EN OPCIÓN DE +
+                          CONFIGURACIÓN')                 */
+
+       CHGVAR     VAR(&VQK01ID   ) VALUE('0')
+       CHGVAR     VAR(&VQK01ESTPR) VALUE('1')
+       CHGVAR     VAR(&VQK01RESUL) VALUE('1')
+       CHGVAR     VAR(&VQK01TAREA) VALUE('SE HA INGRESADO EN +
+                          OPCIÓN DE CONFIGURACION')
+       CHGVAR     VAR(&VQK01COM) VALUE('SE HA INGRESADO EN +
+                          OPCIÓN DE CONFIGURACION')
+       CHGVAR     VAR(&VQK02PGM  ) VALUE('FCCONFPGMC')
+       CHGVAR     VAR(&VQK02PGMDE) VALUE('Graba log ')
+       CHGVAR     VAR(&VQK02TIPEV) VALUE('1')
+       CHGVAR     VAR(&VQK02MSJ  ) VALUE('Grabó sin inconveniente')
+       CHGVAR     VAR(&VBD) VALUE('0')
+       CHGVAR     VAR(&VOK) VALUE('0')
+       CHGVAR     VAR(&VOP) VALUE('3')
+    CALL       PGM(INSTFLASH/NQKP001R) PARM((&VCURUSR) (&VQK01ID) +
+                                                       (&VQK02ID) +
+             (&VQK01ESTPR) (&VQK01RESUL) (&VQK01TAREA) (&VQK01COM) +
+             (&VQK02PGM) (&VQK02PGMDE) (&VQK02TIPEV) +
+                          (&VQK02MSJ) (&vBD) (&vOK) (&vOP))
+
+             CHGJOB     LOG(4 00 *SECLVL) LOGCLPGM(*YES)
+             UPDDTA     FILE(INSTFLASH/FLASHCONF)
+
+             GRTOBJAUT  OBJ(QSYS/QPMLPMGT) OBJTYPE(*SRVPGM) +
+                          USER(*PUBLIC) AUT(*ALL)
+             MONMSG     MSGID(CPF0000)
+
+             GRTOBJAUT  OBJ(QSYS/&ETHLIN) OBJTYPE(*LIND) +
+                          USER(*PUBLIC) AUT(*ALL)
+             MONMSG     MSGID(CPF0000)
+
+             CRTDTAARA  DTAARA(QRECOVERY/VARYONIASP) TYPE(*CHAR) +
+                          LEN(32)
+             MONMSG     MSGID(CPF0000)
+
+             CHGUSRPRF  USRPRF(QPGMR) SPCAUT(*IOSYSCFG *JOBCTL *SAVSYS)
+             MONMSG     MSGID(CPF0000)
+   /*                                                            +
+                                                                    +
+             LOGTABLE   LOG('SE HA CERRADO LA OPCIÓN DE CONFIGURACIÓN')*/
+
+ /*    CHGVAR     VAR(&VQK01ID   ) VALUE('0')            */
+       CHGVAR     VAR(&VQK01ESTPR) VALUE('2')
+       CHGVAR     VAR(&VQK01RESUL) VALUE('1')
+             CHGVAR     VAR(&VQK01TAREA) VALUE('HA FINALIZADO LA +
+                          OPCIÓN DE CONFIGURACION')
+       CHGVAR     VAR(&VQK01COM) VALUE('SE HA INGRESADO EN +
+                          OPCIÓN DE CONFIGURACION')
+       CHGVAR     VAR(&VQK02PGM  ) VALUE('FCCONFPGMC')
+       CHGVAR     VAR(&VQK02PGMDE) VALUE('Graba log ')
+       CHGVAR     VAR(&VQK02TIPEV) VALUE('1')
+       CHGVAR     VAR(&VQK02MSJ) VALUE('Finalizó la +
+                          Configuración...')
+       CHGVAR     VAR(&VBD) VALUE('1')
+       CHGVAR     VAR(&VOK) VALUE('1')
+
+    CALL       PGM(INSTFLASH/NQKP001R) PARM((&VCURUSR) (&VQK01ID) +
+                                                       (&VQK02ID) +
+             (&VQK01ESTPR) (&VQK01RESUL) (&VQK01TAREA) (&VQK01COM) +
+             (&VQK02PGM) (&VQK02PGMDE) (&VQK02TIPEV) +
+                          (&VQK02MSJ) (&vBD) (&vOK) (&vOP))
+
+FIN: ENDPGM

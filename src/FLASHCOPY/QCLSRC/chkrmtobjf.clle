@@ -1,0 +1,39 @@
+/******************************************************************************/
+/* Programa: CHKRMTOBJE                                                      */
+/* Funcion : Verifica si existe objeto remoto                                 */
+/* Hecho   : BENJA                                                            */
+/* Parametros:                                                                */
+/*            USUARIO  : Usuario remoto                                       */
+/*            PASSWORD : Password                                             */
+/*            CMD      : CMD a ejecutar                                       */
+/*            IP       : IP remoto                                            */
+/*            Error    : Devuelve '0' existe objeto remoto                    */
+/*                           '1' no existe objeto remoto                      */
+
+/******************************************************************************/
+PGM   PARM(&USR &PWD &ENVI &RECI &JOBNBR &IP)
+      DCL VAR(&USR)    TYPE(*CHAR) LEN(10)
+      DCL VAR(&PWD)    TYPE(*CHAR) LEN(10)
+      DCL VAR(&ENVI)   TYPE(*CHAR) LEN(4)
+      DCL VAR(&RECI)   TYPE(*CHAR) LEN(4)
+      DCL VAR(&JOBNBR) TYPE(*CHAR) LEN(6)
+      DCL VAR(&IP)     TYPE(*CHAR) LEN(32)
+      DCL VAR(&CMD)    TYPE(*CHAR) LEN(300)
+      DCL VAR(&CMD1)   TYPE(*CHAR) LEN(300)
+             DCL        VAR(&FILE) TYPE(*CHAR) LEN(4) VALUE('FILE')
+
+
+             CHGVAR     VAR(&CMD1) VALUE('sftp ' *CAT +
+                          %TRIM(&USR) || '@' *CAT &IP)
+
+             QSH        CMD(&CMD1)
+
+             CHGVAR     VAR(&CMD) VALUE(put || ' ' *cat +
+                          '/QSYS.LIB/INSTFLASH.LIB/' *CAT %TRIM(&ENVI) +
+        *CAT %TRIM(&JOBNBR) || '.' *CAT %TRIM(&FILE) || ' ' *CAT +
+                          '/QSYS.LIB/INSTFLASH.LIB/' *CAT %TRIM(&RECI) +
+                          *CAT %TRIM(&JOBNBR) || '.' *CAT %TRIM(&FILE))
+
+             QSH        CMD(&CMD)
+
+ END: ENDPGM

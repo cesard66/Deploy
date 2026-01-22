@@ -1,0 +1,103 @@
+     A* Menú de Formato Libre: FLASHSS2
+     A*%%TS  SD  20250912  094745  BENJA       REL-V7R4M0  5770-WDS
+     A*%%EC
+     A                                      DSPSIZ(24 80 *DS3                  -
+     A                                             27 132 *DS4)
+     A                                      CHGINPDFT
+     A                                      INDARA
+     A                                      PRINT(*LIBL/QSYSPRT)
+     A          R FLASHSS2
+     A*%%TS  SD  20250912  093826  BENJA       REL-V7R4M0  5770-WDS
+     A                                      DSPMOD(*DS3)
+     A                                      LOCK
+     A                                      SLNO(01)
+     A                                      CLRL(*ALL)
+     A                                      ALWROL
+     A                                      CF03
+     A                                      HELP
+     A                                      HOME
+     A                                      HLPRTN
+     A                                  1  2'FLASHSS2'
+     A                                      COLOR(BLU)
+     A                                  1 33'FLASHSS Menu'
+     A                                      DSPATR(HI)
+     A* CMDPROMPT  No suprima esta especificación DDS.
+     A                                019  2'Seleccione opción:                -
+     A                                          '
+     A                                  5  8'*                  1.   Realiza Fl-
+     A                                      ashCopy                      *'
+     A                                  6 27'2.'
+     A                                  6 32'Realiza FlashCopy y Backup'
+     A                                  8 27'4.'
+     A                                  8 32'Configuración de FlashCopy'
+     A                                  9 27'5.'
+     A                                  9 32'Ver log de Programa'
+     A                                 11 11' *    $$$$  $$$   $$$$ $$$$$  $$$$-
+     A                                       $   $  $$$   $$$   *   '
+     A                                 11 71'*'
+     A                                  6  8'*'
+     A                                  7  8'*'
+     A                                  8  8'*'
+     A                                  9  8'*'
+     A                                 10  8'*'
+     A                                 11  8'*'
+     A                                 12  8'*'
+     A                                 13  8'*'
+     A                                 14  8'*'
+     A                                 15  8'*'
+     A                                 16  8'*'
+     A                                 17  8'*'
+     A                                 18  8'**********************************-
+     A                                      ******************************'
+     A                                  6 71'*'
+     A                                  7 71'*'
+     A                                  8 71'*'
+     A                                  9 71'*'
+     A                                 10 71'*'
+     A                                 12 71'*'
+     A                                 13 71'*'
+     A                                 14 71'*'
+     A                                 15 71'*'
+     A                                 16 71'*'
+     A                                 17 71'*'
+     A                                 12 11' *   $     $   $ $       $   $    -
+     A                                       $   $ $   $ $   $  *   '
+     A                                 13 11' *    $$$  $   $ $$$$    $    $$$ -
+     A                                       $$$$$ $   $ $$$$   *   '
+     A                                 14 11' *       $ $   $ $       $       $-
+     A                                       $   $ $   $ $      *   '
+     A                                 15 11' *   $$$$   $$$  $       $   $$$$ -
+     A                                       $   $  $$$  $      *   '
+     A                                 16 11' *********************************-
+     A                                      *********************   '
+     A                                  4  6' '
+     A                                  5  6' '
+     A                                  6  6' '
+     A                                  6 59' '
+     A                                  6 69' '
+     A                                  7  6' '
+     A                                  7 69' '
+     A                                  8  6' '
+     A                                  9 24' '
+     A                                  8 69' '
+     A                                  9  6' '
+     A                                  9 69' '
+     A                                 10  6' '
+     A                                 10 68'  '
+     A                                 11  6' '
+     A                                 12  6' '
+     A                                 13  6' '
+     A                                 14  6' '
+     A                                 15  6' '
+     A                                 16  6' '
+     A                                 17  6' '
+     A                                 18  6' '
+     A                                 10 12'**********************************-
+     A                                      ********************'
+     A                                  4  8'**********************************-
+     A                                      ******************************'
+     A                                  5 73' '
+     A                                  6 10' '
+     A                                  6 61' '
+     A                                  7 27'3.'
+     A                                  7 32'Realiza FlashCopy 2da Partición'

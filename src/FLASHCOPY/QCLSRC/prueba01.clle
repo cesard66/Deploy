@@ -1,0 +1,15 @@
+ /* Recibe Param. IP local    */
+             PGM        PARM(&IP)
+             DCL        VAR(&IP) TYPE(*CHAR) LEN(32)
+             CHGCTLAPPC CTLD(NUEVO1) RMTINTNETA(&IP) LCLINTNETA(*SYS)
+             DLYJOB     DLY(5)
+
+             VRYCFG     CFGOBJ(NUEVO1) CFGTYPE(*CTL) STATUS(*ON)
+             MONMSG     MSGID(CPF0000)
+             DLYJOB     DLY(10)
+             SAVRSTOBJ  OBJ(PRUEBA) LIB(QGPL) RMTLOCNAME(JUPITER1)
+
+             SNDMSG     MSG('!!!!OIKOMAAAAAA!!!!!!') TOUSR(*SYSOPR)
+
+ ENDPGM
+

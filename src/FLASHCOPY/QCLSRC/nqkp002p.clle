@@ -1,0 +1,40 @@
+PGM
+             DCLF       FILE(INSTFLASH/FLASHCONF)
+    LOOP:       RCVF       RCDFMT(RCONFLASH)
+        MONMSG MSGID(CPF0864) EXEC(GOTO CMDLBL(FIN))
+    MONMSG     MSGID(CPF0000)
+             CLRPFM     FILE(INSTFLASH/QKT002) /* Limpia Detalle  de +
+                          log */
+             CLRPFM     FILE(INSTFLASH/QKT001) /* Limpia cabecera de +
+                          log */
+
+             GRTOBJAUT  OBJ(INSTFLASH/QKT001) OBJTYPE(*ALL) +
+                          USER(*PUBLIC) AUT(*ALL)
+             GRTOBJAUT  OBJ(INSTFLASH/QKT002) OBJTYPE(*ALL) +
+                          USER(*PUBLIC) AUT(*ALL)
+             LOGTABLE   LOG('SE HA INGRESADO EN OPCIÓN DE +
+                          CONFIGURACIÓN')
+
+             CHGJOB     LOG(4 00 *SECLVL) LOGCLPGM(*YES)
+             UPDDTA     FILE(INSTFLASH/FLASHCONF)
+
+             GRTOBJAUT  OBJ(QSYS/QPMLPMGT) OBJTYPE(*SRVPGM) +
+                          USER(*PUBLIC) AUT(*ALL)
+             MONMSG     MSGID(CPF0000)
+
+             GRTOBJAUT  OBJ(QSYS/&ETHLIN) OBJTYPE(*LIND) +
+                          USER(*PUBLIC) AUT(*ALL)
+             MONMSG     MSGID(CPF0000)
+
+             CRTDTAARA  DTAARA(QRECOVERY/VARYONIASP) TYPE(*CHAR) +
+                          LEN(32)
+             MONMSG     MSGID(CPF0000)
+
+             CHGUSRPRF  USRPRF(QPGMR) SPCAUT(*IOSYSCFG *JOBCTL *SAVSYS)
+             MONMSG     MSGID(CPF0000)
+   /*                                                            +
+                                                                  */
+
+             LOGTABLE   LOG('SE HA CERRADO LA OPCIÓN DE CONFIGURACIÓN')
+
+FIN: ENDPGM

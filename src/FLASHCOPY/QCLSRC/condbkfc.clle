@@ -1,0 +1,91 @@
+PGM
+             DCLF       FILE(*LIBL/FLASHCONF)
+   DCL VAR(&IPORGN) TYPE(*DEC) LEN(2)
+   DCL VAR(&IPORGA) TYPE(*CHAR) LEN(2)
+   DCL VAR(&OPTION) TYPE(*CHAR) LEN(1)
+   DCL VAR(&LOG) TYPE(*CHAR) LEN(100)
+             DCL        VAR(&LPAR) TYPE(*DEC) LEN(3 0) VALUE(001)
+   ADDLIBLE INSTFLASH
+             MONMSG     MSGID(CPF0000)
+   /* RECUPERA OPCIÓN DE FLASHCOPY                 */
+   RTVDTAARA  DTAARA(INSTFLASH/BNOPTFC (1 1)) RTNVAR(&OPTION)
+             SELECT
+             WHEN       COND(&OPTION *EQ '1') THEN(CHGVAR VAR(&LPAR) +
+                          VALUE(001))
+             WHEN       COND(&OPTION *EQ '2') THEN(CHGVAR VAR(&LPAR) +
+                          VALUE(001))
+             WHEN       COND(&OPTION *EQ '3') THEN(CHGVAR VAR(&LPAR) +
+                          VALUE(002))
+             ENDSELECT
+LOOP: +
+   RCVF       RCDFMT(RCONFLASH)
+   MONMSG MSGID(CPF0864)
+             IF         COND(&LPARNRO *NE &LPAR) THEN(GOTO +
+                          CMDLBL(LOOP))
+/* CHGJOB LOG(4 00 *SECLVL) LOGCLPGM(*YES)                      */
+   CALL       PGM(INSTFLASH/LPARIDEXT) PARM(&IPORGA)
+             LOGTABLE   LOG('SE HA RECUPERADO EL ID DE LPAR CON +
+                          LPARIDEXT')
+   CHGVAR VAR(&IPORGN) VALUE(&IPORGA)
+   MONMSG MSGID(CPF0000)
+
+   /* RECUPERA OPCIÓN DE FLASHCOPY                 */
+   RTVDTAARA  DTAARA(INSTFLASH/BNOPTFC (1 1)) RTNVAR(&OPTION)
+        CHGVAR     VAR(&LOG) VALUE('SE HA EJECUTADO LA OPCIÓN '+
+                          ||&OPTION|| 'PARA EL FLASHCOPY')
+        LOGTABLE   LOG(&LOG)
+
+   IF COND(&LPARHMC *NE &IPORGA) THEN(DO)
+   SNDPGMMSG MSG('ID DE LPAR NO ES IGUAL PARA BACKUP')
+   RETURN
+   ENDDO
+
+   /* RECUPERA ID DE LPAR                          */
+   CALL       PGM(INSTFLASH/LPARIDEXT) PARM(&IPORGA)
+   CHGVAR VAR(&IPORGN) VALUE(&IPORGA)
+   MONMSG MSGID(CPF0000)
+
+
+   IF COND(&LPARHMC *NE &IPORGA) THEN(DO)
+   SNDPGMMSG MSG('ID DE LPAR NO ES IGUAL PARA BACKUP')
+   RETURN
+   ENDDO
+     SELECT
+             WHEN       COND(&OPTION = '1' *OR &OPTION = '3') THEN(DO)
+             SNDPGMMSG  MSG('EJECUCIÓN DE FLASHCOPY')
+             CALL       PGM(INSTFLASH/STRIP)
+  /* ----- CONDBTR Act y deact.libreria    solo para GNB             */
+             CALL       PGM(INSTFLASH/CONDBKTR)
+  /* -----                                                           */
+     RETURN
+     ENDDO
+             WHEN       COND(&OPTION = '2') THEN(DO)
+             SNDPGMMSG  MSG('EJECUCIÓN DE FLASHCOPY EN CINTA')
+             CALL       PGM(INSTFLASH/STRIP)
+
+          /* SAVLIB     archivo de Graciela LOG     */
+          /* SAVLIB     LIB(*ALLUSR) DEV(TAPMLB01)  */
+             MONMSG     MSGID(CPF0000)
+  /* -----   VRYCFG     CFGOBJ(TAP*) CFGTYPE(*DEV) STATUS(*OFF)      */
+  /* -----   MONMSG     MSGID(CPF0000)                               */
+  /* -----   VRYCFG     CFGOBJ(MLB*) CFGTYPE(*DEV) STATUS(*OFF)      */
+  /* -----   MONMSG     MSGID(CPF0000)                               */
+  /* ----- CONDBTR Act y deact.libreria                              */
+             CALL       PGM(INSTFLASH/CONDBKTR)
+  /* -----                                                           */
+          /* QSYS/DLTDEVD DEVD(TAPMLB01)            */
+          /* MONMSG     MSGID(CPF0000)              */
+          /* RNMOBJ     OBJ(TAPMLB03) OBJTYPE(*DEVD) NEWOBJ(TAPMLB01)*/
+             MONMSG     MSGID(CPF0000)
+          /* VRYCFG     CFGOBJ(TAP01) CFGTYPE(*DEV) STATUS(*ON)        */
+             DLYJOB     DLY(20)
+             STRBKUBRM  CTLGRP(GRPCTL01)
+          /* SBMJOB     CMD(SAVOBJ OBJ(*ALL) LIB(GXDB006) +
+                          DEV(TAP01)) JOB(BACKUP)                      */
+             SNDPGMMSG  MSG('EL PROCESO DE BACKUP HA INICIADO')
+             CALL       PGM(INSTFLASH/TRANSFTP)
+          /* CALL       PGM(INSTFLASH/TRANFTPIBM)      CRDM */
+          /* SNDPGMMSG  MSG('TRANSFERECIA DE ARCHIVOS COMPLETADO') */
+     ENDDO
+     ENDSELECT
+   ENDPGM

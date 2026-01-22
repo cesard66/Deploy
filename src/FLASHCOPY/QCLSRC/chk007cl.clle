@@ -1,0 +1,190 @@
+/*******************************************************************************
+/* Programa: BIB007CL
+/* Funcion : Realiza el pasaje de un SAVF a un servidor remoto
+/*           Si en el servidor remoto existe el objeto a restaurar, lo copia a l
+/*           Si el objeto transferido es un archivo fisico, lo journaliza
+/*           Genera en el IFS /home/bibss un pdf con el contenido del SAVF
+/* Hecho   : Ino
+/* Fecha   : 25/4/2022
+/* Parametros:
+/*    SAVFLIB   : Biblioteca del SAVF
+/*    SAVFFILE  : Archivo SAVF
+/*    RMTLOCNAME: Servidor remoto
+/*    JRNLIB    : Libreria del journal
+/*    JRN       : Journal
+/*    BOTH      : Imagenes a journalizar
+/*    OPNCLO    : Entradas de diario a omitir
+/*    RLSDST    : Release destino
+/*    BIBD      : Biblioteca destino
+/*    USR       : Usuario servidor remoto
+/*    PWD       : Pwd usuario servidor remoto
+/*    COMENT    : Comentario de la novedad del pasaje
+/*    ERROR     : Comando termino con error
+/*******************************************************************************
+             PGM        PARM(&SAVFLIB &SAVFFILE &RMTLOCNAME &JRNLIB +
+                          &JRN &BOTH &OPNCLO &RLSDST &BIBD &USR +
+                          &PWD &COMENT &ERROR &WAUTR)
+             DCLF       FILE(*LIBL/PRTSAVF2)
+             DCL        VAR(&SAVFLIB) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&SAVFFILE) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&RMTLOCNAME) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&JRNLIB) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&JRN) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&BOTH) TYPE(*CHAR) LEN(6)
+             DCL        VAR(&OPNCLO) TYPE(*CHAR) LEN(7)
+             DCL        VAR(&RLSDST) TYPE(*CHAR) LEN(8)
+             DCL        VAR(&USR) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&BIBD) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&PWD) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&COMENT) TYPE(*CHAR) LEN(60)
+             DCL        VAR(&FIRST) TYPE(*CHAR) LEN(1) VALUE('0')
+             DCL        VAR(&FIRST2) TYPE(*CHAR) LEN(1) VALUE('0')
+             DCL        VAR(&SPLF) TYPE(*CHAR) LEN(11) +
+                          VALUE('QPSAVOBJ')
+
+             DCL        VAR(&wAUTR) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(300)
+             DCL        VAR(&ERROR) TYPE(*CHAR) LEN(1)
+             DCL        VAR(&ERROR2) TYPE(*CHAR) LEN(1)
+
+ /* Imprime contenido del SAVF
+
+             CHGJOB     SWS(10000000)                             /* Utiliza IND
+             CLRPFM     FILE(*LIBL/PRTSAVF2)
+             OVRPRTF    FILE(QSYSPRT) TOFILE(BIBSS/QSYSPRT) +
+                          DEVTYPE(*AFPDS) TOSTMF('/HOME/BIBSS/') +
+                          WSCST(*PDF) OVRSCOPE(*JOB)
+             PRTSAVF    SAVF(&SAVFLIB/&SAVFFILE)
+             CHGJOB     SWS(00000000)                             /* Utiliza IND
+
+ LOOP:       RCVF       RCDFMT(RPRTSAVF2)
+             MONMSG     MSGID(CPF0864) EXEC(GOTO CMDLBL(FIN))
+
+ /* Verifica si el SAVF se trata de un SAVOBJ y no SAVLIB
+
+             IF COND(&FIRST = '0') THEN(DO)
+                IF COND(&COMMAND = 'SAVLIB') THEN(DO)
+                   CHGVAR VAR(&ERROR) VALUE('1')
+                   CHGVAR VAR(&FIRST) VALUE('1')
+                   GOTO FIN
+                ENDDO
+             ENDDO
+
+ /* Verifica si existe el objeto en el servidor remoto
+
+             CHGVAR     VAR(&CMD) VALUE('CHKOBJ OBJ(' *CAT +
+                          %TRIM(&BIBD) *CAT '/' *CAT +
+                          %TRIM(&OBJECT) *CAT ') OBJTYPE(' *CAT +
+                          %TRIM(&TYPE) *CAT ')')
+
+             RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) +
+                          IP(&RMTLOCNAME) ERROR(&ERROR)
+
+ /* ERROR='0' existe ERROR='1' no existe
+ /* Si existe, verifica si existe en RESPALDO. Si existe en RESPALDO, borra de r
+
+ /* Verifica si existe el objeto en el servidor remoto (RESPALDO)
+
+             IF COND(&ERROR = '0') THEN(DO)
+                CHGVAR     VAR(&CMD) VALUE('CHKOBJ OBJ(RESPALDO' *CAT +
+                          '/' *CAT %TRIM(&OBJECT) *CAT ') OBJTYPE(' +
+                          *CAT %TRIM(&TYPE) *CAT ')')
+
+                CHGVAR VAR(&ERROR2) VALUE(' ')
+                RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) +
+                          IP(&RMTLOCNAME) ERROR(&ERROR2)
+
+ /* Elimina SPOOL QPRINT
+             DLTSPLF    FILE(QPRINT) SPLNBR(*LAST)
+             MONMSG     MSGID(CPF3309)
+/* Si objeto existe en RESPALDO, borra de RESPALDO
+
+                IF COND(&ERROR2 = '0') THEN(DO)
+                   SELECT
+                     WHEN COND(&TYPE = '*FILE') THEN(CHGVAR VAR(&CMD) +
+                          VALUE('DLTF FILE(RESPALDO' *CAT '/' *CAT +
+                          %TRIM(&OBJECT) *CAT ')'))
+                     WHEN COND(&TYPE = '*PGM') THEN(CHGVAR VAR(&CMD) +
+                          VALUE('DLTPGM PGM(RESPALDO' *CAT '/' *CAT +
+                          %TRIM(&OBJECT) *CAT ')'))
+                   ENDSELECT
+                   RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) +
+                              IP(&RMTLOCNAME) ERROR(&ERROR2)
+                   ENDDO
+
+                ENDDO
+
+ /* Si el objeto a transferir se trata de un archivo fisico,
+ /* de la libreria RESPALDO, elimina el fisico y todos sus dependientes
+
+             CHGVAR VAR(&ERROR) VALUE('0')
+
+ /* Elimina SPOOL QPRINT
+             DLTSPLF    FILE(QPRINT) SPLNBR(*LAST)
+             MONMSG     MSGID(CPF3309)
+
+             IF COND(&TYPE *EQ '*FILE' *AND &ATT *EQ 'PF') THEN(DO)
+                DLTDBR2 USR(&USR) PWD(&PWD) IP(&RMTLOCNAME) +
+                        FILE(&OBJECT) LIBRARY(RESPALDO) ERROR(&ERROR)
+             ENDDO
+
+ /* Si existe, mueve el objeto a la biblioteca RESPALDO (MOVOBJ)
+
+         /*  IF COND(&ERROR = '0') THEN(DO)  */
+                CHGVAR VAR(&CMD) VALUE('MOVOBJ OBJ(' *CAT +
+                          %TRIM(&BIBD) *CAT '/' *CAT +
+                          %TRIM(&OBJECT) *CAT ') OBJTYPE(' *CAT +
+                          %TRIM(&TYPE) *CAT ') TOLIB(RESPALDO)')
+                RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) +
+                          IP(&RMTLOCNAME) ERROR(&ERROR)
+         /*  ENDDO   */
+
+         /*  CHGVAR VAR(&ERROR) VALUE('0') */
+
+ /* Otorga autorizacion del objeto a pasar
+             IF COND(&wAUTR = 'S') THEN(DO)
+             CALL       PGM(*LIBL/BIB011CL) PARM(&USR &PWD +
+                          &RMTLOCNAME &LIBRARY &OBJECT &TYPE &BIBD &wAUTR)
+             ENDDO
+
+ /* Restaura el objeto en el servidor remoto
+
+             SAVRSTOBJ  OBJ(&OBJECT) LIB(&LIBRARY) +
+                          RMTLOCNAME(&RMTLOCNAME) OBJTYPE(&TYPE) +
+                          OUTPUT(*PRINT) TGTRLS(&RLSDST) +
+                          PVTAUT(*YES) MBROPT(*ALL) ALWOBJDIF(*ALL) +
+                          RSTLIB(&BIBD) FRCOBJCVN(*YES *ALL)
+
+                        MONMSG     MSGID(CPFAD8D)
+
+   /*        CALL       PGM(*LIBL/BIB009CL) PARM(&USR &PWD +
+                          &RMTLOCNAME &LIBRARY &OBJECT &TYPE &BIBD)          */
+
+             CHGVAR VAR(&ERROR) VALUE('0')
+ /* Visualiza SPOOL y Elimina
+             DSPSPLF2   FILE(&SPLF) OPC(S)
+
+ /* Si el objeto es tipo *FILE con atributo PF, journaliza remotamente
+
+             IF COND(&TYPE *EQ '*FILE' *AND &ATT *EQ 'PF') THEN(DO)
+                CHGVAR VAR(&CMD) VALUE('STRJRNPF FILE(' *CAT +
+                          %TRIM(&BIBD) *CAT '/' *CAT +
+                          %TRIM(&OBJECT) *CAT ') JRN(' *CAT +
+                          %TRIM(&JRNLIB) *CAT '/' *CAT +
+                          %TRIM(&JRN) *CAT ') IMAGES(' *CAT %TRIM(&BOTH) *CAT ')
+                          *CAT ' OMTJRNE(' *CAT %TRIM(&OPNCLO) *CAT ')')
+                RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) +
+                          IP(&RMTLOCNAME) ERROR(&ERROR)
+             ENDDO
+
+ /* Adicion al historico de objetos transferidos (de una sola vez adiciona todos
+
+             IF COND(&FIRST2= '0') THEN(DO)
+                CPYF FROMFILE(*LIBL/PRTSAVF2) +
+                     TOFILE(*LIBL/PRTSAVFH) MBROPT(*ADD)
+                CHGVAR VAR(&FIRST2) VALUE('1')
+             ENDDO
+
+             GOTO LOOP
+
+ FIN:        ENDPGM

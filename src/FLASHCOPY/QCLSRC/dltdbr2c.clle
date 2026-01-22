@@ -1,0 +1,67 @@
+/*******************************************************************************
+/* Programa: DLTDBR2C
+/* Funcion : CPP de DLTDBR2.Borra un archivo fisico y todos sus dependientes de
+/* Fecha   : Mayo/2022
+/* Hecho   : Ino Gomez
+/* Param.  : &USR usuario remoto
+/*           &PWD
+/*           &RMTLOCNAME nombre servidor remoto
+/*           &FILE archivo remoto
+/*           &LIB libreria remota
+/*           &ERROR 0=ejecutado satisfactoriamente
+/*                  1=con error
+/* Observ. : Tiene que existir el archivo QGPL/QADSPDBR
+/*******************************************************************************
+PGM PARM(&USR &PWD &RMTLOCNAME &FILE &LIB &ERROR)
+
+    DCLF       FILE(BIBSS/QADSPDBR)
+    DCL        VAR(&LIB) TYPE(*CHAR) LEN(10)
+    DCL        VAR(&FILE) TYPE(*CHAR) LEN(10)
+    DCL        VAR(&NBRCURRCD) TYPE(*DEC) LEN(10 0)
+    DCL        VAR(&USR) TYPE(*CHAR) LEN(10)
+    DCL        VAR(&PWD) TYPE(*CHAR) LEN(10)
+    DCL        VAR(&RMTLOCNAME) TYPE(*CHAR) LEN(10)
+    DCL        VAR(&ERROR) TYPE(*CHAR) LEN(1)
+    DCL        VAR(&CMD) TYPE(*CHAR) LEN(300)
+
+/* Verifica si el fisico REMOTO tiene dependientes
+
+             CHGVAR     VAR(&CMD) VALUE('DSPDBR FILE(' || +
+                          %TRIMR(&LIB) || '/' || %TRIM(&FILE) || ') +
+                          OUTPUT(*OUTFILE) OUTFILE(QGPL/QADSPDBR)')
+             RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) +
+                          IP(&RMTLOCNAME) ERROR(&ERROR)
+             IF COND(&ERROR *EQ '1') THEN(GOTO CMDLBL(FIN))
+
+/* Trae  QGPL/QADSPDBR remoto
+
+             CHGVAR     VAR(&ERROR) VALUE('0')
+             DLTF       FILE(QGPL/QADSPDBR)
+             MONMSG     MSGID(CPF0000)
+             RTVOBJCMD1 USR(&USR) PWD(&PWD) LIB(QGPL) OBJ(QADSPDBR) +
+                          TIP(*FILE) REL(V7R4M0) SAV(*LIB) +
+                          DIF(*ALL) RST(QGPL) IP(&RMTLOCNAME) +
+                          ERROR(&ERROR)
+
+             CPYF       FROMFILE(QGPL/QADSPDBR) +
+                          TOFILE(BIBSS/QADSPDBR) MBROPT(*REPLACE)
+             MONMSG MSGID(CPF2817)
+/* Si no tiene dependientes, borra el fisico remoto
+             RTVMBRD    FILE(BIBSS/QADSPDBR) NBRCURRCD(&NBRCURRCD)
+             IF         COND(&NBRCURRCD = 0) THEN(GOTO CMDLBL(SALTA))
+
+/* Si tiene dependientes, borra uno a uno del remoto
+
+ LOOP:       RCVF RCDFMT(QWHDRDBR)
+             MONMSG MSGID(CPF0864) EXEC(GOTO CMDLBL(SALTA))
+
+             CHGVAR     VAR(&CMD) VALUE('DLTF FILE(RESPALDO' || '/' +
+                          || %TRIM(&WHREFI) || ')')
+             RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) +
+                          IP(&RMTLOCNAME) ERROR(&ERROR)
+             GOTO LOOP
+
+ SALTA:      CHGVAR     VAR(&CMD) VALUE('DLTF FILE(RESPALDO' ||'/' || %TRIM(&FIL
+             RUNRMTCMD1 USR(&USR) PWD(&PWD) CMD(&CMD) +
+                          IP(&RMTLOCNAME) ERROR(&ERROR)
+ FIN:ENDPGM

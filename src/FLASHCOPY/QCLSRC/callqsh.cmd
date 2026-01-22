@@ -1,0 +1,43 @@
+             DCL        VAR(&USUARIO) TYPE(*CHAR) LEN(10) +
+                          VALUE('flashss')
+             DCL        VAR(&HMCIP) TYPE(*CHAR) LEN(15) +
+                          VALUE('192.168.253.81')
+             DCL        VAR(&NOMBRE) TYPE(*CHAR) LEN(30) +
+                          VALUE('Server-9009-41A-SN7866180')
+             DCL        VAR(&LPARID) TYPE(*CHAR) LEN(5) VALUE('17')
+             DCL        VAR(&CMD) TYPE(*CHAR) LEN(500)
+             DCL        VAR(&STATE) TYPE(*CHAR) LEN(1) VALUE('1')
+
+             SAVLIB     LIB(QUSRBRM) DEV(VRTDEV) SPLFDTA(*ALL) +
+                          DTACPR(*DEV) OMITOBJ((*ALL *JRN) (*ALL +
+                          *JRNRCV) (QUSRBRM/Q1ATCPIFC *DTAARA) +
+                          (QUSRBRM/QA1ARI *FILE) (QUSRBRM/Q1AMONQUE +
+                          *DTAQ))
+
+
+
+            /* Bucle hasta que &STATE sea 0 */
+             DOWHILE    COND(&STATE *NE '0')
+
+            /* Verificar si la particion esta activa o no */
+             CHGVAR     VAR(&CMD) VALUE('if ssh ' *CAT +
+                          %TRIM(&USUARIO) *CAT '@' *CAT +
+                          %TRIM(&HMCIP) *CAT ' "lssyscfg -r lpar ' +
+                          *CAT '-m ' *CAT %TRIM(&NOMBRE) *CAT ' +
+                          --filter ' *CAT 'lpar_ids=' *CAT +
+                          %TRIM(&LPARID) *CAT '" | grep -q "Not +
+                          Activated"; ' *CAT 'then echo "0" > +
+                          /tmp/state.txt; else echo ' *CAT '"1" > +
+                          /tmp/state.txt; fi')
+
+             QSH        CMD(&CMD)
+
+             QSH        CMD('read LINE < /tmp/state.txt; system +
+                          "CHGDTAARA DTAARA(INSTFLASH/STATE) +
+                          VALUE(''${LINE:-0}'')"')
+
+             RTVDTAARA  DTAARA(INSTFLASH/STATE) RTNVAR(&STATE)
+
+             DLYJOB     DLY(5)
+
+             ENDDO

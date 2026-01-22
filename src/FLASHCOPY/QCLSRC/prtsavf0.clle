@@ -1,0 +1,58 @@
+/* ============================================================ */
+/* Print the information in a save file                         */
+/*                                                              */
+/* This is the command-processing program for command PRTSAVF.  */
+/*                                                              */
+/* To create:                                                   */
+/*      CRTBNDCL PGM(xxx/PRTSAVF0) SRCFILE(xxx/QCLSRC)          */
+/*                  SRCMBR(PRTSAVF0)                            */
+/*                                                              */
+/* Published in Four Hundred Guru (itjungle.com).               */
+/*                                                              */
+/* No warranties expressed or implied.  Use at your own risk.   */
+/*                                                              */
+/* ============================================================ */
+
+pgm   (&inSavf)
+
+   dcl   &inSavf        *char   20
+   dcl   &Status        *char   10
+   dcl   &MsgKey        *char    4
+
+   dcl   &Abending      *lgl
+
+   monmsg cpf0000
+
+/* Verifica si existe savf. Si no existe, error.
+
+   chkobj obj(%sst(&inSavf 11 10)/%sst(&inSavf 1 10)) objtype(*file)
+
+/* Verifica si existe carpeta /home/bibss. Si no existe, crea.
+
+   chklnk obj('/home/bibss1') AUT(*EXISTS)
+   monmsg msgid(CPE3025) exec(mkdir dir('/home/bibss'))
+
+   clrpfm File(*LIBL/PrtSavf2)
+   CHGVAR VAR(&STATUS) VALUE(' ')
+   call  PrtSavf1  (&Status &inSavf)
+   if (%sst(&Status 1 2) *ne '00') do
+      sndpgmmsg  msgid(cpf9898) msgf(qcpfmsg) +
+                   msgdta('PRTSAVF received error' *BCAT +
+                          %sst(&Status 4 7) *bcat +
+                          'at location' *bcat %sst(&Status 1 2)) +
+                   msgtype(*escape) keyvar(&MsgKey)
+   enddo
+   return
+
+Abend:
+   if (&Abending) do
+      sndpgmmsg  msgid(cpf9898) msgf(qcpfmsg) +
+                   msgdta('Unexpected error in PRTSAVF') +
+                   msgtype(*escape) keyvar(&MsgKey)
+   enddo
+   chgvar  &Abending   '1'
+
+   movpgmmsg  msgtype(*diag)
+   rsnescmsg
+
+endpgm

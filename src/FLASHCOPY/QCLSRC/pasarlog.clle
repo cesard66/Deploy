@@ -1,0 +1,34 @@
+    /*       PGM        PARM(&VQK01ID &VQK01ESTPR &VQK01RESUL +
+                          &VQK01TAREA &VQK01COM &VQK02PGM +
+                          &VQK02PGMDE &VQK02TIPEV &VQK02MSJ &VBD &VOK)   */
+             PGM        PARM(&VQK01ID &BD &OK)
+       DCL        VAR(&VQK01ID   ) TYPE(*DEC) LEN(10 0)
+       DCL        VAR(&VQK02ID   ) TYPE(*DEC) LEN(10 0)
+       DCL        VAR(&VQK01ESTPR) TYPE(*DEC) LEN(1 0)
+       DCL        VAR(&VQK01RESUL) TYPE(*DEC) LEN(1 0)
+       DCL        VAR(&VQK01TAREA) TYPE(*CHAR) LEN(100)
+       DCL        VAR(&VQK01COM  ) TYPE(*CHAR) LEN(200)
+       DCL        VAR(&VQK02PGM  ) TYPE(*CHAR) LeN(10)
+       DCL        VAR(&VQK02PGMDE) TYPE(*CHAR) LEN(60)
+       DCL        VAR(&VQK02TIPEV) TYPE(*DEC) LEN(1 0)
+       DCL        VAR(&VQK02MSJ  ) TYPE(*CHAR) LEN(200)
+       DCL        VAR(&bd) TYPE(*CHAR) LEN(1)
+       DCL        VAR(&ok) TYPE(*CHAR) LEN(1)
+        MONMSG     MSGID(CPF2105)
+
+       DLTOVR FILE(*ALL)
+       CHGVAR     VAR(&VQK01ID   ) VALUE('0')
+       CHGVAR     VAR(&VQK01ESTPR) VALUE('1')
+       CHGVAR     VAR(&VQK01RESUL) VALUE('1')
+       CHGVAR     VAR(&VQK01TAREA) VALUE('Copia mas backup')
+       CHGVAR     VAR(&VQK01COM  ) VALUE('Incio de copia de Backup +
+                          del programas')
+       CHGVAR     VAR(&VQK02PGM  ) VALUE('NQKP001P')
+       CHGVAR     VAR(&VQK02PGMDE) VALUE('Graba log ')
+       CHGVAR     VAR(&VQK02TIPEV) VALUE('1')
+       CHGVAR     VAR(&VQK02MSJ  ) VALUE('Grabó sin inconveniente')
+             CALL       PGM(INSTFLASH/NQKP001R) PARM((&VQK01ID) +
+             (&VQK01ESTPR) (&VQK01RESUL) (&VQK01TAREA) (&VQK01COM) +
+             (&VQK02PGM) (&VQK02PGMDE) (&VQK02TIPEV) +
+                          (&VQK02MSJ) (&BD) (&OK))
+   ENDPGM
