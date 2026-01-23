@@ -23,7 +23,7 @@ end-pr;
 
 // Variable declarations
 dcl-s Password varchar(50) inz('MySuperSecretPassword123!');
-dcl-s Hint varchar(100) inz('The usual password we use for testing');
+dcl-s Hint varchar(50) inz('password we use for testing');
 dcl-s CustomerID varchar(10);
 dcl-s CustomerName varchar(50);
 dcl-s SSN varchar(11);
