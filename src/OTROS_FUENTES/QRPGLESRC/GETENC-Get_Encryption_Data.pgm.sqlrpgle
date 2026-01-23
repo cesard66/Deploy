@@ -36,6 +36,8 @@ dcl-s DebugMSG varchar(52);
 exec sql
   SET ENCRYPTION PASSWORD = :Password;
 
+exec SQL CALL QCMDEXC('CHGJOB CCSID(284)');
+
 // Check for errors after setting password
 if sqlstate <> '00000';
   HandleError('Failed to set encryption password: ' + sqlstate);
