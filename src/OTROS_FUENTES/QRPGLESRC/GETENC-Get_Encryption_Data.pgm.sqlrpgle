@@ -49,7 +49,7 @@ SSN = '987-65-4321';
 CreditCard = '5555-5555-5555-5555';
 
 exec sql
-  insert into NICKLITTEN.CUSTENC
+  insert into CESARDLIB.CUSTENC
   values
     (
       :CUSTOMERID,
@@ -75,7 +75,7 @@ exec sql
        :SSN,
        :DECRYPTEDSSN,
        :DECRYPTEDCARD
-  from NICKLITTEN.CUSTENC
+  from CESARDLIB.CUSTENC
   where CUSTOMER_ID = :CUSTOMERID;
 
 if sqlstate = '00000';
