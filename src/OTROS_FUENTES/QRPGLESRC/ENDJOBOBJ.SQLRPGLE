@@ -54,8 +54,6 @@ Dcl-Ds JobInfo Qualified;
 End-Ds;
 
 // SQL cursor declaration
-//Dcl-S SqlState Char(5);
-//Dcl-S SqlCode  Int(10);
 
 // Get current job name to avoid ending ourselves
 Exec SQL SET :wCurrentJob = CURRENT_SERVER;
@@ -130,9 +128,6 @@ Dow SqlCode = 0;
 
     // Build full job name (number/user/name)
     wFullJob = %Trim(JobInfo.JobName);
-  //wFullJob = %Trim(JobInfo.JobNumber) + '/' +
-  //           %Trim(JobInfo.JobUser) + '/' +
-  //           %Trim(JobInfo.JobNameOnly);
 
     // Skip if it's the current job
     If %Trim(JobInfo.JobName) = %Trim(wCurrentJob);
