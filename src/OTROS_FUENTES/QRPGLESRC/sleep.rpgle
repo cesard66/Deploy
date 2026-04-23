@@ -1,9 +1,9 @@
-
+**FREE
 Ctl-Opt DftActGrp(*No) ActGrp(*New);
 
   // Simular procesamiento (puedes quitar esto)
   // Delay de 10ms para simular trabajo
-  CallP Sleep(10);
+  CallP Sleep(10000);
 *InLr = *On;
 Return;
 
